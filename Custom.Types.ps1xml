@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Types>
+  <Type>
+    <Name>System.IO.DirectoryInfo</Name>
+    <Members>
+      <ScriptProperty>
+        <Name>SizeString</Name>
+        <GetScriptBlock>
+          (Get-ChildItem $this -Recurse -File | Measure-Object -Sum Length).Sum
+        </GetScriptBlock>
+		<SetScriptBlock>
+		</SetScriptBlock>
+      </ScriptProperty>
+    </Members>
+  </Type>
+	<Type>
+    <Name>System.IO.FileInfo</Name>
+    <Members>
+	<AliasProperty>
+      <Name>SizeString</Name>
+      <ReferencedMemberName>
+        LengthString
+      </ReferencedMemberName>
+    </AliasProperty>
+    </Members>
+  </Type>
+</Types>
