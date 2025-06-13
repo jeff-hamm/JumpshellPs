@@ -1,6 +1,3 @@
-Set-PSReadLineOption -PredictionViewStyle ListView
-Set-PSReadLineOption -MaximumHistoryCount 32767 
-$global:ProfileHistory=(Get-PSReadlineOption).HistorySavePath
 function View-PsHistory() {
 	notepad (Get-PSReadlineOption).HistorySavePath
 }

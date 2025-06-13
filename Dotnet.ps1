@@ -6,3 +6,21 @@ $scriptblock = {
         }
 }
 Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock $scriptblock
+
+
+function EnvsToDict() {
+    $d=@{}
+    ls Env: | where name -like '*__*' | % { 
+$a = $_.Name -split "__";
+$s=$d
+foreach($v in  $a) {
+ if(!$s[$v]) {
+   $s[$v] = @{}
+ }
+ $p=$s
+ $s=$s[$v]
+}
+$p[$a[$a.Length-1]]=$_.Value
+}
+return $d;
+}

@@ -1,5 +1,5 @@
-function Ensure-Module($Name,[flag]$Update,$Scope="CurrentUser", [switch]$Clobber, [switch]$Confirm) {
-	if (!(Get-Module -Name "$Name")) {
+function Ensure-Module($Name,[switch]$Update,$Scope="CurrentUser", [switch]$Clobber, [switch]$Confirm) {
+	if (!(Get-Module -Name "$Name" -ListAvailable)) {
 		Install-Module $Name -Scope $Scope -Force:$(!$Confirm) -AllowClobber:$Clobber
 	}elseif($Update) {
         Update-Module $Name -Force:$(!$Confirm) -AllowClobber:$Clobber -Scope "$Scope"

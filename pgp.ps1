@@ -107,8 +107,13 @@ function Pgp-List([switch]$Internal) {
 	}
 }
 
+
 function Pgp-Address([Parameter(mandatory=$true)]$Name) {
-	return Pgp -Name "$name" -String "$global:FullHomeAddress"
+    Load-Secrets
+
+	$FullHomeAddress="$Env:MyName
+    $Env:HomeAddress"	
+	return Pgp -Name "$name" -String "$FullHomeAddress"
 }
 
 function Pgp-Key-Delete([Parameter(mandatory=$true)]$Name) {
