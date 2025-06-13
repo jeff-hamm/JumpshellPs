@@ -1,7 +1,8 @@
-function Ensure-Module($Name,[switch]$Update,$Scope="CurrentUser", [switch]$Clobber, [switch]$Confirm) {
-	if (!(Get-Module -Name "$Name" -ListAvailable)) {
-		Install-Module $Name -Scope $Scope -Force:$(!$Confirm) -AllowClobber:$Clobber
-	}elseif($Update) {
+function Ensure-Module($Name, [switch]$Update, $Scope = "CurrentUser", [switch]$Clobber, [switch]$Confirm) {
+    if (!(Get-Module -Name "$Name" -ListAvailable)) {
+        Install-Module $Name -Scope $Scope -Force:$(!$Confirm) -AllowClobber:$Clobber
+    }
+    elseif ($Update) {
         Update-Module $Name -Force:$(!$Confirm) -AllowClobber:$Clobber -Scope "$Scope"
         Reload-Module "$Name"
     }
@@ -25,7 +26,7 @@ function Use-Package(
     }
     if (!$Upgrade) {
         winget list --id "$package"
-        if($?) {
+        if ($?) {
             $ValidatedPackages[$package] = $true
             return
         }
