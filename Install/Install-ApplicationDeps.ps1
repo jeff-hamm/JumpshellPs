@@ -3,10 +3,9 @@
 
 param(
     [string]$ModuleRoot = $PSScriptRoot,
-    [array]$RequiredApplications,
-    [string]$CacheFilePath
+    [string]$CacheFilePath = (Join-Path $ModuleRoot '.module-deps-cache'),
+    [string[]]$RequiredApplications = $(& (Join-Path $PSScriptRoot 'Required-Applications.ps1'))
 )
-
 if ($RequiredApplications.Count -gt 0) {
     $appHash = ($RequiredApplications | Sort-Object | ConvertTo-Json -Compress | Get-FileHash -Algorithm SHA256).Hash
     $installedApplications = @()
@@ -16,10 +15,12 @@ if ($RequiredApplications.Count -gt 0) {
     if (Test-Path $CacheFilePath) {
         try {
             $cache = Get-Content $CacheFilePath -Raw | ConvertFrom-Json
-            if ($cache.AppHash -eq $appHash -and $cache.CheckDate -gt (Get-Date).AddDays(-7)) {
+            if ($cache.AppHash -ne $appHash -or $cache.CheckDate -gt (Get-Date).AddDays(-7)) {
                 $installedApplications = if ($cache.InstalledApplications) { $cache.InstalledApplications } else { @() }
                 $needsAppCheck = $false
                 Write-Debug "Using cached application list (valid until $($cache.CheckDate.AddDays(7)))"
+            } else {
+                Write-Debug "Cache file outdated, will regenerate"
             }
         }
         catch {

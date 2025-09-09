@@ -1,6 +1,9 @@
 # JumpShellPs.psm1
 # Auto-generated module file to load all scripts in correct order and export public functions
 
+# Set import flag to prevent circular imports
+$global:JumpshellPs_ImportInProgress = $true
+
 # Check for required modules
 
 # Helper: Get all .ps1 files in Init.ps1 order
@@ -44,3 +47,6 @@ Write-Debug "Exporting public functions: $($publicFunctions -join ', ')"
 Export-ModuleMember -Function $publicFunctions
 # Optionally, export the map as a variable for user inspection
 Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
+
+# Clear import flag - module loading complete
+$global:JumpshellPs_ImportInProgress = $false

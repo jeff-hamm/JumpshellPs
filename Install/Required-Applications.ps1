@@ -5,6 +5,6 @@
     "SSHFS-Win.SSHFS-Win",
     "Rclone.Rclone",
     "Git.Git",
-    "pwsh",
-    "vscode"
+    "Microsoft.PowerShell",
+    "Microsoft.VisualStudioCode"
 )
