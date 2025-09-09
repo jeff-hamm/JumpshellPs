@@ -1,6 +1,3 @@
-function Install-Rclone() {
-    Use-Package Rclone.Rclone
-}
 $ImageFilter='*.{jpeg,jpg,png,gif}'
 function List-Size($Filter) {
     rclone size --ignore-case --include "$Filter" --json mikaelagoogle:/DROPBOX/Tacopa

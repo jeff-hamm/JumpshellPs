@@ -74,10 +74,19 @@ function Make-Link(
     elseif ($Operation -eq "/J") {
         $Operation = "Junction"
     }
-    New-Item -Path $link -ItemType "$Operation"	-Value $target
+    ni -Path $link -ItemType "$Operation"	-Value $target
 
 }
 
-if(!(Get-Alias -Name "mklink" -ErrorAction SilentlyContinue)) {
-    New-Alias -Name "mklink" -Value "Make-Link"
+function Make-Ln($Target, $Link, [Alias("s")][switch]$Symbolic, [Alias("f")][switch]$Force) {
+    if ($Symbolic) {
+        Make-Link -Operation "SymbolicLink" -link $Link -target $Target
+    }
+    else {
+        Make-Link -Operation "HardLink" -link $Link -target $Target
+    }   
 }
+
+New-Alias -Name "mklink" -Value "Make-Link" -ErrorAction SilentlyContinue
+
+New-Alias -Name "ln" -Value "Make-Ln" -ErrorAction SilentlyContinue

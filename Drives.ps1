@@ -1,16 +1,8 @@
 $global:Installed
 
-$SshDrivePackage = "SSHFS-Win.SSHFS-Win"
-
-
 function Get-AvailableDriveLetter() {
     $used = Get-PSDrive -PSProvider filesystem -InformationAction Ignore | where Name -like '?' | sort
     return 'D'..'Z' | diff  $used -PassThru | select -first 1
-}
-
-
-function SshValidate() {
-    Use-Package "$SshDrivePackage"
 }
 function Get-SshPort($Server, $Port) {
     return Get-SshProperty "port" $Server $Port
@@ -28,6 +20,18 @@ function Get-SshUserName($Server, $Port) {
 
 function Find-Drive($DriveName) {
     return (Get-PSDrive -PSProvider filesystem -InformationAction Ignore | where Name -eq $DriveName | select -First 1)
+}
+
+function Find-PsDrives($RootPath, $DriveName, $Provider) {
+    $GetDriveArgs = @{}
+    if ($Provider) {
+        $GetDriveArgs["PsProvider"] = $Provider
+    }
+    if ($DriveName) {
+        $DriveName = $DriveName.TrimEnd(':')
+        $GetDriveArgs["Name"] = $DriveName
+    }
+    return Get-PsDrive @GetDriveArgs | where { -not $RootPath -or $_.DisplayRoot -eq $RootPath -or $_.Root -eq $RootPath }
 }
 
 function New-SshDrive($Destination, $Port, $DriveName, $DstPath, $UserName, [PSCredential]$Credential, [switch]$PasswordLogin, [switch]$Persist) {
@@ -65,7 +69,7 @@ function Get-DriveOrCreate {
         [string]$RootPath,
         [string]$DriveName,
         [PSCredential]$Credential,
-        $PSProvider="FileSystem",
+        $PSProvider = "FileSystem",
         [switch]$Persist
     )
 
@@ -101,8 +105,46 @@ function Get-DriveOrCreate {
 
 
 
-function New-RemoteDrive($Destination, $DriveName, $DstPath, $UserName, [PSCredential]$Credential,[switch]$Persist) {
+function New-RemoteDrive($Destination, $DriveName, $DstPath, $UserName, [PSCredential]$Credential, [switch]$Persist) {
     #
     $Drive = Get-DriveOrCreate -RootPath $UncPath -DriveName $DriveName -Credential $Credential -Persist:$Persist
+    return $Drive
+}
+
+
+function NfsValidate() {
+    # Ensure NFS client is installed (Windows feature)
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName "ServicesForNFS-ClientOnly"
+    if ($feature.State -ne "Enabled") {
+        Write-Information "Enabling NFS Client feature..."
+        Enable-WindowsOptionalFeature -Online -FeatureName "ServicesForNFS-ClientOnly" -NoRestart
+    }
+}
+
+function New-NfsDrive(
+    [string]$Server,
+    [string]$Share,
+    [string]$DriveName,
+    [switch]$Persist
+) {
+    #    NfsValidate
+    if (-not $Server) { throw "Server is required." }
+    if (-not $Share) { throw "Share is required." }
+    # NFS UNC path format for Windows: \\server\share
+    $RootPath = "\\$Server\$Share"
+    $Drive = Find-PsDrives -RootPath $RootPath -DriveName $DriveName -Provider "FileSystem" | select -First 1
+    if ($Drive) {
+        Write-Information "Drive with root $RootPath already exists, returning existing drive"
+        return $Drive
+    }
+    if (!$DriveName) {
+        $DriveName = Get-AvailableDriveLetter + ":"
+        Write-Information "DriveName not specified, using default $DriveName"
+    }
+    else {
+        $DriveName = $DriveName.TrimEnd(':') + ":"
+    }
+    mount.exe -o anon $RootPath $DriveName
+    #    $Drive = Get-DriveOrCreate -RootPath $RootPath -DriveName $DriveName -Credential $Credential -Persist:$Persist
     return $Drive
 }

@@ -2,3 +2,7 @@
 **/*.txt
 .history
 **/*secret.env
+.module-deps-cache
+Install/.module-deps-cache
+**/obj
+**/bin

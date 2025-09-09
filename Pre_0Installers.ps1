@@ -1,12 +1,11 @@
-function Ensure-Module($Name, [switch]$Update, $Scope = "CurrentUser", [switch]$Clobber, [switch]$Confirm) {
-    if (!(Get-Module -Name "$Name" -ListAvailable)) {
-        Install-Module $Name -Scope $Scope -Force:$(!$Confirm) -AllowClobber:$Clobber
-    }
-    elseif ($Update) {
+function Ensure-Module($Name, [switch]$Update, $Scope = "CurrentUser", [switch]$Clobber, [switch]$Confirm, [switch]$Force) {
+    if ($Update) {
         Update-Module $Name -Force:$(!$Confirm) -AllowClobber:$Clobber -Scope "$Scope"
         Reload-Module "$Name"
     }
-    Import-Module -Name "$Name"
+    if ($Force -or -not (Get-Module -Name $Name)) {
+        Import-Module -Name "$Name" -Force:$Force
+    }
 }
 
 function Reload-Module($Name) {
