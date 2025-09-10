@@ -1,5 +1,3 @@
-**/.txt
-**/*.txt
 .history
 **/*secret.env
 .module-deps-cache

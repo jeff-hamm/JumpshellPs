@@ -1,0 +1,4 @@
+SSHFS-Win.SSHFS-Win
+Rclone.Rclone
+Git.Git
+Microsoft.PowerShell

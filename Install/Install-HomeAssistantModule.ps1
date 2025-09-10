@@ -30,10 +30,28 @@ function Install-HaModule() {
         @'
 # HomeAssistantPs.psm1 - Wrapper module that imports the actual HomeAssistant module
 
-# Get the path to the actual HomeAssistant module
-$actualModulePath = Join-Path $PSScriptRoot "HomeAssistant\0.1.3\HomeAssistant.psm1"
+# Get the path to the actual HomeAssistant module by finding the latest version
+$homeAssistantBasePath = Join-Path $PSScriptRoot "HomeAssistant"
+if (Test-Path $homeAssistantBasePath) {
+    # Get all version directories and sort by semantic version descending
+    $versionDirs = Get-ChildItem -Path $homeAssistantBasePath -Directory | 
+        Where-Object { $_.Name -match '^\d+\.\d+\.\d+' } |
+        Sort-Object { [System.Version]$_.Name } -Descending
+    
+    if ($versionDirs.Count -gt 0) {
+        $latestVersion = $versionDirs[0].Name
+        $actualModulePath = Join-Path $homeAssistantBasePath "$latestVersion\HomeAssistant.psm1"
+    } else {
+        Write-Error "No valid version directories found in $homeAssistantBasePath"
+        return
+    }
+} else {
+    Write-Error "HomeAssistant base directory not found at: $homeAssistantBasePath"
+    return
+}
 
 if (Test-Path $actualModulePath) {
+    Write-Debug "Loading HomeAssistant module from: $actualModulePath (version: $latestVersion)"
     # Import the actual module
     Import-Module $actualModulePath -Force -Global
     
