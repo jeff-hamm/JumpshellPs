@@ -117,15 +117,20 @@ function Resolve-WingetApplicationId {
     
     # If exact match fails, search for similar packages
     try {
+        Write-Debug "Searching for name: $ApplicationId"
         $searchResult = winget search --name "$ApplicationId" 2>$null
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "Could not find any packages matching name: $ApplicationId"
+            Write-Debug "Fallback: searching for any match with: $ApplicationId"
             $searchResult = winget search "$ApplicationId" 2>$null
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "Could not find any packages matching: $ApplicationId"
                 return $null
             }
         }
+        
+        Write-Debug "Search result for '$ApplicationId':"
+        $searchResult | ForEach-Object { Write-Debug $_ }
         
         # Parse search results to extract package IDs
         $lines = $searchResult -split "`n" | Where-Object { $_ -match '\S' }
@@ -154,19 +159,34 @@ function Resolve-WingetApplicationId {
                 continue
             }
             
-            # Split by multiple spaces to separate columns
+            Write-Debug "Parsing line: $line"
+            
+            # More robust parsing - handle different column formats
+            # The format is typically: Name Id Version [Match] [Source]
             $parts = $line -split '\s{2,}' | Where-Object { $_ -match '\S' }
             
-            if ($parts.Count -ge 3) {
+            Write-Debug "Parts found: $($parts.Count) - [$($parts -join '] [')]"
+            
+            if ($parts.Count -ge 2) {
                 $packageName = $parts[0].Trim()
                 $packageId = $parts[1].Trim()
-                $version = $parts[2].Trim()
+                $version = if ($parts.Count -ge 3) { $parts[2].Trim() } else { "Unknown" }
                 
-                $packages += @{
-                    Name    = $packageName
-                    Id      = $packageId
-                    Version = $version
+                # Validate package ID format (should not contain spaces and should have dots or be a single word)
+                if ($packageId -match '^\S+$' -and $packageId -notmatch '\s') {
+                    Write-Debug "Valid package found: Name='$packageName', Id='$packageId', Version='$version'"
+                    $packages += @{
+                        Name    = $packageName
+                        Id      = $packageId
+                        Version = $version
+                    }
                 }
+                else {
+                    Write-Debug "Skipping invalid package ID: '$packageId'"
+                }
+            }
+            else {
+                Write-Debug "Skipping line with insufficient parts: $($parts.Count)"
             }
         }
         
@@ -249,6 +269,10 @@ function Install-Applications {
                     Write-Debug "✓ $appId installed successfully"
                     $installedApplications += $appId
                 }
+                elseif ($LASTEXITCODE -eq -1978335189) {
+                    Write-Debug "✓ $appId already installed and up to date"
+                    $installedApplications += $appId
+                }
                 else {
                     Write-Warning "Failed to install $appId (exit code: $LASTEXITCODE)"
                 }
@@ -262,7 +286,7 @@ function Install-Applications {
     return $installedApplications
 }
 
-function Add-Application([string[]]$Application, [string]$FileName = (Join-Path $PSScriptRoot, "Install" 'All-Applications.txt'),
+function Add-Application([string[]]$Application, [string]$FileName = (Join-Path $PSScriptRoot "Install" 'All-Applications.txt'),
     [switch]$NoPersist,
     [switch]$NoCache,
     [switch]$SkipValidation,
@@ -425,5 +449,105 @@ function Ensure-Applications {
     
     if ($missingApplications.Count -eq 0) {
         Write-Debug "All required applications are available"
+    }
+}
+
+function Add-ToPath {
+    <#
+    .SYNOPSIS
+    Permanently adds a path to the current user's PATH environment variable.
+    
+    .DESCRIPTION
+    This function adds a specified path to the current user's PATH environment variable 
+    and persists the change to the registry. It checks if the path already exists to 
+    avoid duplicates and validates that the path exists on the filesystem.
+    
+    .PARAMETER Path
+    The directory path to add to the PATH environment variable.
+    
+    .PARAMETER Force
+    If specified, adds the path even if it doesn't exist on the filesystem.
+    
+    .EXAMPLE
+    Add-ToPath "C:\MyTools"
+    Adds C:\MyTools to the current user's PATH if it exists.
+    
+    .EXAMPLE
+    Add-ToPath "C:\MyTools" -Force
+    Adds C:\MyTools to the current user's PATH even if the directory doesn't exist.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        
+        [switch]$Force
+    )
+    
+    # Normalize the path
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
+    
+    # Check if path exists (unless Force is specified)
+    if (-not $Force -and -not (Test-Path $normalizedPath)) {
+        Write-Error "Path does not exist: $normalizedPath. Use -Force to add anyway."
+        return
+    }
+    
+    # Get current user's PATH from registry
+    $registryPath = "HKCU:\Environment"
+    $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+    
+    if (-not $currentPath) {
+        $currentPath = ""
+    }
+    
+    # Split path into array and check if our path already exists
+    $pathArray = $currentPath -split ';' | Where-Object { $_ -ne '' }
+    $pathExists = $pathArray | Where-Object { 
+        [System.IO.Path]::GetFullPath($_) -eq $normalizedPath 
+    }
+    
+    if ($pathExists) {
+        Write-Warning "Path already exists in user PATH: $normalizedPath"
+        return
+    }
+    
+    # Add new path to the array
+    $pathArray += $normalizedPath
+    $newPath = $pathArray -join ';'
+    
+    try {
+        # Update registry for persistence
+        Set-ItemProperty -Path $registryPath -Name "PATH" -Value $newPath
+        
+        # Update current session
+        [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+        $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + $newPath
+        
+        Write-Host "Successfully added to user PATH: $normalizedPath" -ForegroundColor Green
+        Write-Debug "New user PATH: $newPath"
+        
+        # Notify other processes of environment change
+        try {
+            Add-Type -TypeDefinition @"
+                using System;
+                using System.Runtime.InteropServices;
+                public class EnvironmentNotifier {
+                    [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+                    public static extern int SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+                }
+"@ -ErrorAction SilentlyContinue
+            
+            $HWND_BROADCAST = [IntPtr]0xffff
+            $WM_SETTINGCHANGE = 0x1a
+            $result = [IntPtr]::Zero
+            [EnvironmentNotifier]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [IntPtr]::Zero, "Environment", 2, 5000, [ref]$result) | Out-Null
+            Write-Debug "Broadcasted environment change notification"
+        }
+        catch {
+            Write-Debug "Could not broadcast environment change notification: $_"
+        }
+    }
+    catch {
+        Write-Error "Failed to update PATH: $_"
     }
 }
