@@ -10,6 +10,26 @@ $manifestPath = Join-Path $ModuleRoot 'JumpshellPs.psd1'
 & (Join-Path $PSScriptRoot 'Install-HomeAssistantModule.ps1') -ModulePath (Split-Path $ModuleRoot)
 
 if (Test-Path $manifestPath) {
+    # Check if we can skip processing based on manifest file timestamp and cache
+    if ((Test-Path $CacheFilePath)) {
+        try {
+            $cache = Get-Content $CacheFilePath -Raw | ConvertFrom-Json
+            $manifestLastWrite = (Get-Item $manifestPath).LastWriteTime
+            
+            # If cache is valid and manifest hasn't been modified since last check, skip processing
+            if ($cache.CheckDate -and $manifestLastWrite -le $cache.CheckDate -and $cache.CheckDate -gt (Get-Date).AddDays(-7) -and $cache.Hash) {
+                Write-Debug "Manifest '$manifestPath' hasn't changed since last check ($($cache.CheckDate)). Skipping module check."
+                return
+            }
+            else {
+                Write-Debug "Manifest '$manifestPath' was modified at $manifestLastWrite, cache date is $($cache.CheckDate). Will process modules."
+            }
+        }
+        catch {
+            Write-Debug "Could not read cache or manifest timestamp, will process modules."
+        }
+    }
+    
     $manifest = Import-PowerShellDataFile -Path $manifestPath
     $requiredModules = $manifest.RequiredModules
     
@@ -29,12 +49,12 @@ if (Test-Path $manifestPath) {
         if (Test-Path $CacheFilePath) {
             try {
                 $cache = Get-Content $CacheFilePath -Raw | ConvertFrom-Json
-                if ($cache.Hash -ne $moduleHash -or $cache.CheckDate -gt (Get-Date).AddDays(-7)) {
+                if ($cache.Hash -eq $moduleHash -and $cache.CheckDate -gt (Get-Date).AddDays(-7)) {
                     $installedModules = if ($cache.InstalledModules) { $cache.InstalledModules } else { @() }
                     $needsCheck = $false
                     Write-Debug "Using cached module list (valid until $($cache.CheckDate.AddDays(7)))"
                 } else {
-                    Write-Debug "Cache file outdated, will regenerate"
+                    Write-Debug "Cache file outdated or hash mismatch, will regenerate"
                 }
             }
             catch {

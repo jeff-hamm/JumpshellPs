@@ -1,2 +1,6 @@
 Microsoft.VisualStudioCode
 OpenJS.NodeJS
+Python.Python.3.10
+Docker.Dockerdesktop
+Microsoft.PowerToys
+GitHub.cli

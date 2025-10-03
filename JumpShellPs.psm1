@@ -18,7 +18,7 @@ $files = Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' |
 
 foreach ($file in $files) {
     if ($file.FullName -ne $MyInvocation.MyCommand.Definition) {
-        Write-Debug "Loading script: $($file.FullName)"
+        Write-Debug "Loading script: $($file.FullName) ($PWD)"
         . $file.FullName
     }
 }
@@ -45,6 +45,7 @@ foreach ($file in $files) {
 $publicFunctions = $script:FunctionFileMap.Keys | sort
 Write-Debug "Exporting public functions: $($publicFunctions -join ', ')"
 Export-ModuleMember -Function $publicFunctions
+Export-ModuleMember -Alias *
 # Optionally, export the map as a variable for user inspection
 Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
 

@@ -180,12 +180,10 @@ function Resolve-WingetApplicationId {
                         Id      = $packageId
                         Version = $version
                     }
-                }
-                else {
+                } else {
                     Write-Debug "Skipping invalid package ID: '$packageId'"
                 }
-            }
-            else {
+            } else {
                 Write-Debug "Skipping line with insufficient parts: $($parts.Count)"
             }
         }
@@ -252,29 +250,45 @@ function Resolve-WingetApplicationIds {
 function Install-Applications {
     param(
         [Parameter(Mandatory = $true)]
-        [string[]]$ApplicationList
+        [string[]]$ApplicationList,
+        [switch]$Npm
     )
     
     $installedApplications = @()
     
     if ($ApplicationList.Count -gt 0) {
-        Write-Warning "Missing required applications: $($ApplicationList -join ', ')"
-        Write-Host "Installing missing applications..." -ForegroundColor Yellow
+        $installType = if ($Npm) { "npm packages" } else { "applications" }
+        Write-Warning "Missing required $installType`: $($ApplicationList -join ', ')"
+        Write-Host "Installing missing $installType..." -ForegroundColor Yellow
         
         foreach ($appId in $ApplicationList) {
             try {
                 Write-Debug "Installing $appId..."
-                winget install -e --id $appId --silent --accept-package-agreements --accept-source-agreements
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Debug "✓ $appId installed successfully"
-                    $installedApplications += $appId
-                }
-                elseif ($LASTEXITCODE -eq -1978335189) {
-                    Write-Debug "✓ $appId already installed and up to date"
-                    $installedApplications += $appId
+                if ($Npm) {
+                    # Install npm package globally
+                    npm install -g $appId
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Debug "✓ $appId installed successfully"
+                        $installedApplications += $appId
+                    }
+                    else {
+                        Write-Warning "Failed to install npm package $appId (exit code: $LASTEXITCODE)"
+                    }
                 }
                 else {
-                    Write-Warning "Failed to install $appId (exit code: $LASTEXITCODE)"
+                    # Install using winget
+                    winget install -e --id $appId --silent --accept-package-agreements --accept-source-agreements
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Debug "✓ $appId installed successfully"
+                        $installedApplications += $appId
+                    }
+                    elseif ($LASTEXITCODE -eq -1978335189) {
+                        Write-Debug "✓ $appId already installed and up to date"
+                        $installedApplications += $appId
+                    }
+                    else {
+                        Write-Warning "Failed to install $appId (exit code: $LASTEXITCODE)"
+                    }
                 }
             }
             catch {
@@ -290,10 +304,11 @@ function Add-Application([string[]]$Application, [string]$FileName = (Join-Path 
     [switch]$NoPersist,
     [switch]$NoCache,
     [switch]$SkipValidation,
+    [switch]$Npm,
     [string]$CacheFilePath = (Join-Path $PSScriptRoot '.module-deps-cache')
 ) {
-    # Resolve and validate winget application IDs (unless SkipValidation is set)
-    if (-not $SkipValidation) {
+    # Resolve and validate winget application IDs (unless SkipValidation is set or using npm)
+    if (-not $SkipValidation -and -not $Npm) {
         Write-Debug "Resolving winget application IDs..."
         $Application = Resolve-WingetApplicationIds -Applications $Application
         
@@ -305,10 +320,15 @@ function Add-Application([string[]]$Application, [string]$FileName = (Join-Path 
         Write-Debug "Resolved $($Application.Count) valid application(s)"
     }
     else {
-        Write-Debug "Skipping winget ID validation"
+        if ($Npm) {
+            Write-Debug "Skipping winget ID validation for npm packages"
+        }
+        else {
+            Write-Debug "Skipping winget ID validation"
+        }
     }
 
-    Ensure-Applications -Applications $Application -FileName $FileName -Persist:(!$NoPersist) -NoCache:$NoCache -SkipValidation -CacheFilePath $CacheFilePath
+    Ensure-Applications -Applications $Application -FileName $FileName -Persist:(!$NoPersist) -NoCache:$NoCache -SkipValidation -Npm:$Npm -CacheFilePath $CacheFilePath
 }
 
 # Ensure-Applications function
@@ -320,11 +340,32 @@ function Ensure-Applications {
         [switch]$Persist,
         [switch]$NoCache,
         [switch]$SkipValidation,
+        [switch]$Npm,
         [string]$CacheFilePath = (Join-Path $PSScriptRoot '.module-deps-cache')
     )
     
     # Handle the FileName parameter set
     if ($FileName) {
+        # Check if we can skip processing based on file timestamp and cache
+        if (-not $NoCache -and (Test-Path $CacheFilePath) -and (Test-Path $FileName)) {
+            try {
+                $cache = Get-Content $CacheFilePath -Raw | ConvertFrom-Json
+                $fileLastWrite = (Get-Item $FileName).LastWriteTime
+                
+                # If cache is valid and file hasn't been modified since last check, skip processing
+                if ($cache.CheckDate -and $fileLastWrite -le $cache.CheckDate -and $cache.CheckDate -gt (Get-Date).AddDays(-7)) {
+                    Write-Debug "File '$FileName' hasn't changed since last check ($($cache.CheckDate)). Skipping application check."
+                    return
+                }
+                else {
+                    Write-Debug "File '$FileName' was modified at $fileLastWrite, cache date is $($cache.CheckDate). Will process applications."
+                }
+            }
+            catch {
+                Write-Debug "Could not read cache or file timestamp, will process applications."
+            }
+        }
+        
         $FileApplications = Get-ApplicationsFromFile -FileName $FileName
         
         # If Applications parameter is provided, merge with file applications
@@ -354,8 +395,8 @@ function Ensure-Applications {
         return
     }
     
-    # Resolve and validate winget application IDs (unless SkipValidation is set)
-    if (-not $SkipValidation) {
+    # Resolve and validate winget application IDs (unless SkipValidation is set or using npm)
+    if (-not $SkipValidation -and -not $Npm) {
         Write-Debug "Resolving winget application IDs..."
         $Applications = Resolve-WingetApplicationIds -Applications $Applications
         
@@ -367,10 +408,16 @@ function Ensure-Applications {
         Write-Debug "Resolved $($Applications.Count) valid application(s)"
     }
     else {
-        Write-Debug "Skipping winget ID validation"
+        if ($Npm) {
+            Write-Debug "Skipping winget ID validation for npm packages"
+        }
+        else {
+            Write-Debug "Skipping winget ID validation"
+        }
     }
     
-    $appHash = ($Applications | Sort-Object | ConvertTo-Json -Compress | Get-FileHash -Algorithm SHA256).Hash
+    $appHashString = ($Applications | Sort-Object | ConvertTo-Json -Compress)
+    $appHash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($appHashString)) | ForEach-Object { $_.ToString("X2") } | Join-String
     $installedApplications = @()
     $needsAppCheck = $true
     
@@ -402,9 +449,19 @@ function Ensure-Applications {
         $installedApplications = @()
         foreach ($appId in $Applications) {
             try {
-                $result = winget list --id $appId --exact 2>$null
-                if ($LASTEXITCODE -eq 0 -and $result -match $appId) {
-                    $installedApplications += $appId
+                if ($Npm) {
+                    # Check if npm package is installed globally
+                    $result = npm list -g --depth=0 $appId 2>$null
+                    if ($LASTEXITCODE -eq 0 -and $result -match $appId) {
+                        $installedApplications += $appId
+                    }
+                }
+                else {
+                    # Check if winget application is installed
+                    $result = winget list --id $appId --exact 2>$null
+                    if ($LASTEXITCODE -eq 0 -and $result -match $appId) {
+                        $installedApplications += $appId
+                    }
                 }
             }
             catch {
@@ -417,7 +474,7 @@ function Ensure-Applications {
     $missingApplications = $Applications | Where-Object { $_ -notin $installedApplications }
     
     if ($missingApplications.Count -gt 0) {
-        $installedApplications += Install-Applications -ApplicationList $missingApplications
+        $installedApplications += Install-Applications -ApplicationList $missingApplications -Npm:$Npm
     }
     
     # Update cache with both modules and applications (unless NoCache is set)
@@ -449,105 +506,5 @@ function Ensure-Applications {
     
     if ($missingApplications.Count -eq 0) {
         Write-Debug "All required applications are available"
-    }
-}
-
-function Add-ToPath {
-    <#
-    .SYNOPSIS
-    Permanently adds a path to the current user's PATH environment variable.
-    
-    .DESCRIPTION
-    This function adds a specified path to the current user's PATH environment variable 
-    and persists the change to the registry. It checks if the path already exists to 
-    avoid duplicates and validates that the path exists on the filesystem.
-    
-    .PARAMETER Path
-    The directory path to add to the PATH environment variable.
-    
-    .PARAMETER Force
-    If specified, adds the path even if it doesn't exist on the filesystem.
-    
-    .EXAMPLE
-    Add-ToPath "C:\MyTools"
-    Adds C:\MyTools to the current user's PATH if it exists.
-    
-    .EXAMPLE
-    Add-ToPath "C:\MyTools" -Force
-    Adds C:\MyTools to the current user's PATH even if the directory doesn't exist.
-    #>
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        
-        [switch]$Force
-    )
-    
-    # Normalize the path
-    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
-    
-    # Check if path exists (unless Force is specified)
-    if (-not $Force -and -not (Test-Path $normalizedPath)) {
-        Write-Error "Path does not exist: $normalizedPath. Use -Force to add anyway."
-        return
-    }
-    
-    # Get current user's PATH from registry
-    $registryPath = "HKCU:\Environment"
-    $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-    
-    if (-not $currentPath) {
-        $currentPath = ""
-    }
-    
-    # Split path into array and check if our path already exists
-    $pathArray = $currentPath -split ';' | Where-Object { $_ -ne '' }
-    $pathExists = $pathArray | Where-Object { 
-        [System.IO.Path]::GetFullPath($_) -eq $normalizedPath 
-    }
-    
-    if ($pathExists) {
-        Write-Warning "Path already exists in user PATH: $normalizedPath"
-        return
-    }
-    
-    # Add new path to the array
-    $pathArray += $normalizedPath
-    $newPath = $pathArray -join ';'
-    
-    try {
-        # Update registry for persistence
-        Set-ItemProperty -Path $registryPath -Name "PATH" -Value $newPath
-        
-        # Update current session
-        [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-        $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + $newPath
-        
-        Write-Host "Successfully added to user PATH: $normalizedPath" -ForegroundColor Green
-        Write-Debug "New user PATH: $newPath"
-        
-        # Notify other processes of environment change
-        try {
-            Add-Type -TypeDefinition @"
-                using System;
-                using System.Runtime.InteropServices;
-                public class EnvironmentNotifier {
-                    [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
-                    public static extern int SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
-                }
-"@ -ErrorAction SilentlyContinue
-            
-            $HWND_BROADCAST = [IntPtr]0xffff
-            $WM_SETTINGCHANGE = 0x1a
-            $result = [IntPtr]::Zero
-            [EnvironmentNotifier]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [IntPtr]::Zero, "Environment", 2, 5000, [ref]$result) | Out-Null
-            Write-Debug "Broadcasted environment change notification"
-        }
-        catch {
-            Write-Debug "Could not broadcast environment change notification: $_"
-        }
-    }
-    catch {
-        Write-Error "Failed to update PATH: $_"
     }
 }

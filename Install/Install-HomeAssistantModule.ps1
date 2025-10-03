@@ -6,9 +6,8 @@ param(
 )
 
 function Install-HaModule() {
-    Set-Location $ModulePath
     if (!(Test-Path "$ModulePath\HomeAssistantPs")) {
-        git clone https://github.com/serialscriptr/HomeAssistantPS.git
+        git clone https://github.com/serialscriptr/HomeAssistantPS.git "$ModulePath\HomeAssistantPs"
     }
     if(!(Test-Path "$ModulePath\HomeAssistantPs\HomeAssistantPs.psd1")) {
     @'

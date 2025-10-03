@@ -12,7 +12,6 @@ if (-not (Test-Path "$ModulePath\JumpshellPs")) {
         popd
     }
 }
-
 # Check if we're already running PowerShell 7, if not launch it
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host "Launching PowerShell 7..." -ForegroundColor Yellow

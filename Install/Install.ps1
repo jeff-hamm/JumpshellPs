@@ -8,7 +8,6 @@ param(
 
 # Source the Applications.ps1 file to load the application management functions
 . (Join-Path (Split-Path $PSScriptRoot) 'Applications.ps1')
-
 $cacheFilePath = Join-Path $PSScriptRoot '.module-deps-cache'
 # Install required applications
 Ensure-Applications -FileName (Join-Path $PSScriptRoot 'Required-Applications.txt') -CacheFilePath $cacheFilePath
