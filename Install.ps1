@@ -2,7 +2,7 @@ param(
     [string]$ModuleRoot = $PSScriptRoot
 )
 
-$ModulePath=($env:PSModulePath -split ';' | Where-Object { $_ -like "$HOME*" })
+$ModulePath = ($env:PSModulePath -split ';' | select -First 1)
 if (-not (Test-Path "$ModulePath\JumpshellPs")) {
     pushd $ModulePath
     try {

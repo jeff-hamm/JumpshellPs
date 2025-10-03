@@ -1,0 +1,7 @@
+SSHFS-Win.SSHFS-Win
+Rclone.Rclone
+Git.Git
+Microsoft.PowerShell
+Microsoft.PowerToys
+GitHub.cli
+Microsoft.VisualStudioCode
