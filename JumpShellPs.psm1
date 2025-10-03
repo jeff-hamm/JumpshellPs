@@ -50,3 +50,5 @@ Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -S
 
 # Clear import flag - module loading complete
 $global:JumpshellPs_ImportInProgress = $false
+
+Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView

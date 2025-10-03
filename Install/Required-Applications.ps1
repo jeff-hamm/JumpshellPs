@@ -6,5 +6,7 @@
     "Rclone.Rclone",
     "Git.Git",
     "Microsoft.PowerShell",
-    "Microsoft.VisualStudioCode"
+    "Microsoft.VisualStudioCode",
+    "Microsoft.PowerToys",
+    "GitHub.cli"
 )
