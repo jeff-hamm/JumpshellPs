@@ -4,3 +4,6 @@
 Install/.module-deps-cache
 **/obj
 **/bin
+
+# Per-host environment cache files
+.jumpshell/

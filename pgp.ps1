@@ -113,6 +113,7 @@ function Pgp-Address([Parameter(mandatory=$true)]$Name) {
 
 	$FullHomeAddress="$Env:MyName
     $Env:HomeAddress"	
+	echo $FullHomeAddress
 	return Pgp -Name "$name" -String "$FullHomeAddress"
 }
 

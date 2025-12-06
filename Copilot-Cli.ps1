@@ -1,3 +1,18 @@
+if ($env:TERM_PROGRAM -eq "vscode" -and -not $global:__VSCodeShellIntegrationLoaded) { 
+    # Load cached values and get VS Code shell integration path
+    # If not cached, the scriptblock will be executed and the result persisted
+    $integrationPath = Get-JumpValue -Name "VSCODE_SHELL_INTEGRATION_PATH" -Default {
+        code --locate-shell-integration-path pwsh
+    }
+    
+    # Source the shell integration script in GLOBAL scope
+    # This is important because the script defines the 'prompt' function
+    # which must be in global scope for PowerShell to use it
+    if ($integrationPath -and (Test-Path $integrationPath)) {
+        $global:__VSCodeShellIntegrationLoaded = $true
+        & ([scriptblock]::Create(". '$integrationPath'"))
+    }
+}
 
 function Get-ConfigFile() {
     if ($Env:XDG_CONFIG_HOME) {
@@ -171,7 +186,7 @@ function Invoke-Copilot {
         
         [Parameter(ParameterSetName = 'Version')]
         [switch]$Version
-    )
+ )
     
     # Check if copilot is available
     if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
@@ -446,6 +461,353 @@ function Prompt-Copilot {
     finally {
         if ($CP_PATH) {
             Pop-Location
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Installs npm and GitHub Copilot CLI on a remote Linux machine via SSH
+
+.DESCRIPTION
+    This function connects to a Linux machine via SSH and automatically installs:
+    - npm (if not already installed)
+    - GitHub Copilot CLI (if not already installed)
+    - Sets up the GH_TOKEN environment variable from the local machine
+
+.PARAMETER Host
+    The hostname or IP address of the remote Linux machine
+
+.PARAMETER User
+    The username to use for SSH connection (defaults to current user)
+
+.PARAMETER Port
+    The SSH port to use (defaults to 22)
+
+.PARAMETER KeyFile
+    Path to SSH private key file (optional)
+
+.PARAMETER Password
+    Password for SSH connection (optional, will prompt if needed)
+
+.PARAMETER GHToken
+    GitHub token to set on remote machine (defaults to $ENV:GH_TOKEN)
+
+.EXAMPLE
+    Install-CopilotOnRemote -Host "192.168.1.100" -User "ubuntu"
+    
+.EXAMPLE
+    Install-CopilotOnRemote -Host "myserver.com" -User "admin" -KeyFile "~/.ssh/id_rsa"
+
+.EXAMPLE
+    Install-CopilotOnRemote -Host "server" -User "user" -GHToken "ghp_xxxxxxxxxxxx"
+#>
+function Install-CopilotOnRemote {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Host,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$User = $env:USERNAME,
+        
+        [Parameter(Mandatory = $false)]
+        [int]$Port = 22,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$KeyFile,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$Password,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$GHToken = $env:GH_TOKEN
+    )
+
+    if (-not $GHToken) {
+        throw "GH_TOKEN environment variable is not set and no token provided"
+    }
+
+    # Build SSH command
+    $sshArgs = @()
+    if ($Port -ne 22) {
+        $sshArgs += "-p", $Port
+    }
+    if ($KeyFile) {
+        $sshArgs += "-i", $KeyFile
+    }
+    
+    $sshTarget = "${User}@${Host}"
+    
+    Write-Host "Connecting to $sshTarget..." -ForegroundColor Cyan
+
+    # Create installation script
+    $installScript = @'
+#!/bin/bash
+set -e
+
+echo "=== Remote Installation Script Started ==="
+
+# Function to detect the Linux distribution
+detect_distro() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo $ID
+    elif type lsb_release >/dev/null 2>&1; then
+        lsb_release -si | tr '[:upper:]' '[:lower:]'
+    elif [ -f /etc/redhat-release ]; then
+        echo "rhel"
+    else
+        echo "unknown"
+    fi
+}
+
+# Function to install Node.js and npm
+install_npm() {
+    echo "=== Checking for npm installation ==="
+    
+    if command -v npm >/dev/null 2>&1; then
+        echo "npm is already installed: $(npm --version)"
+        return 0
+    fi
+    
+    echo "npm not found. Installing Node.js and npm..."
+    
+    DISTRO=$(detect_distro)
+    echo "Detected distribution: $DISTRO"
+    
+    case $DISTRO in
+        ubuntu|debian)
+            echo "Installing Node.js via apt..."
+            sudo apt update
+            sudo apt install -y curl
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt install -y nodejs
+            ;;
+        centos|rhel|fedora)
+            echo "Installing Node.js via yum/dnf..."
+            if command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y curl
+                curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+                sudo dnf install -y nodejs npm
+            else
+                sudo yum install -y curl
+                curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+                sudo yum install -y nodejs npm
+            fi
+            ;;
+        arch)
+            echo "Installing Node.js via pacman..."
+            sudo pacman -Sy --noconfirm nodejs npm
+            ;;
+        alpine)
+            echo "Installing Node.js via apk..."
+            sudo apk add --no-cache nodejs npm
+            ;;
+        *)
+            echo "Unsupported distribution: $DISTRO"
+            echo "Attempting to install via NodeSource universal installer..."
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt install -y nodejs || {
+                echo "Failed to install Node.js. Please install manually."
+                exit 1
+            }
+            ;;
+    esac
+    
+    # Verify installation
+    if command -v npm >/dev/null 2>&1; then
+        echo "npm successfully installed: $(npm --version)"
+        echo "Node.js version: $(node --version)"
+    else
+        echo "Failed to install npm"
+        exit 1
+    fi
+}
+
+# Function to install GitHub Copilot CLI
+install_copilot_cli() {
+    echo "=== Checking for GitHub Copilot CLI installation ==="
+    
+    if command -v copilot >/dev/null 2>&1; then
+        echo "GitHub Copilot CLI is already installed: $(copilot --version)"
+        return 0
+    fi
+    
+    echo "GitHub Copilot CLI not found. Installing..."
+    
+    # Install npm if needed
+    install_npm
+
+    # Install via npm
+    npm install -g @githubnext/github-copilot-cli
+    
+    # Verify installation
+    if command -v copilot >/dev/null 2>&1; then
+        echo "GitHub Copilot CLI successfully installed: $(copilot --version)"
+    else
+        echo "Failed to install GitHub Copilot CLI"
+        exit 1
+    fi
+}
+
+# Function to set up GitHub token environment variable
+setup_gh_token() {
+    echo "=== Setting up GitHub token environment variable ==="
+    
+    local token="$1"
+    if [ -z "$token" ]; then
+        echo "No GitHub token provided"
+        return 1
+    fi
+    
+    # Detect shell and set up environment variable accordingly
+    local shell_name=$(basename "$SHELL")
+    local profile_file=""
+    
+    case $shell_name in
+        bash)
+            if [ -f "$HOME/.bashrc" ]; then
+                profile_file="$HOME/.bashrc"
+            elif [ -f "$HOME/.bash_profile" ]; then
+                profile_file="$HOME/.bash_profile"
+            else
+                profile_file="$HOME/.profile"
+            fi
+            ;;
+        zsh)
+            profile_file="$HOME/.zshrc"
+            ;;
+        fish)
+            # For fish shell, use a different approach
+            if command -v fish >/dev/null 2>&1; then
+                fish -c "set -Ux GH_TOKEN $token"
+                echo "GitHub token set for fish shell"
+                return 0
+            fi
+            profile_file="$HOME/.profile"
+            ;;
+        *)
+            profile_file="$HOME/.profile"
+            ;;
+    esac
+    
+    # Check if GH_TOKEN is already set in the profile
+    if [ -f "$profile_file" ] && grep -q "GH_TOKEN" "$profile_file"; then
+        echo "GH_TOKEN already exists in $profile_file. Updating..."
+        # Remove existing GH_TOKEN lines and add new one
+        grep -v "GH_TOKEN" "$profile_file" > "${profile_file}.tmp" && mv "${profile_file}.tmp" "$profile_file"
+    fi
+    
+    # Add the GitHub token to the profile
+    echo "" >> "$profile_file"
+    echo "# GitHub Token for Copilot CLI" >> "$profile_file"
+    echo "export GH_TOKEN=\"$token\"" >> "$profile_file"
+    
+    echo "GitHub token added to $profile_file"
+    
+    # Also try systemd user environment (for systemd-based systems)
+    if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; then
+        local env_dir="$HOME/.config/environment.d"
+        mkdir -p "$env_dir"
+        echo "GH_TOKEN=$token" > "$env_dir/gh_token.conf"
+        echo "GitHub token also added to systemd user environment"
+    fi
+    
+    # Set for current session
+    export GH_TOKEN="$token"
+    echo "GitHub token set for current session"
+}
+
+# Main execution
+main() {
+    local gh_token="$1"
+    
+    echo "Starting installation process..."
+    
+    # Install GitHub Copilot CLI if needed
+    install_copilot_cli
+    
+    # Set up GitHub token
+    if [ -n "$gh_token" ]; then
+        setup_gh_token "$gh_token"
+    else
+        echo "No GitHub token provided, skipping token setup"
+    fi
+    
+    echo "=== Installation completed successfully! ==="
+    echo ""
+    echo "To use GitHub Copilot CLI:"
+    echo "1. Source your profile: source ~/.bashrc (or ~/.zshrc, etc.)"
+    echo "2. Or start a new shell session"
+    echo "3. Run: github-copilot-cli"
+    echo ""
+    echo "Installed versions:"
+    echo "- Node.js: $(node --version)"
+    echo "- npm: $(npm --version)"
+    echo "- GitHub Copilot CLI: $(github-copilot-cli --version)"
+}
+
+# Run main function with GitHub token as argument
+main "$1"
+'@
+
+    # Save the script to a temporary file with Linux line endings
+    $tempScript = [System.IO.Path]::GetTempFileName() + ".sh"
+    $installScript  -replace "`r`n", "`n" | Out-File -FilePath $tempScript -NoNewline
+    try {
+        Write-Host "Copying installation script to remote host..." -ForegroundColor Yellow
+        
+        # Copy the script to remote host
+        $scpArgs = @()
+        if ($Port -ne 22) {
+            $scpArgs += "-P", $Port
+        }
+        if ($KeyFile) {
+            $scpArgs += "-i", $KeyFile
+        }
+        
+        $scpCommand = "scp"
+        $scpCommand += " " + ($scpArgs -join " ")
+        $scpCommand += " `"$tempScript`" `"${sshTarget}:install_copilot.sh`""
+        
+        Write-Debug "SCP Command: $scpCommand"
+        Invoke-Expression $scpCommand
+        
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to copy installation script to remote host"
+        }
+        
+        Write-Host "Executing installation script on remote host..." -ForegroundColor Yellow
+        
+        # Execute the script on remote host
+        $sshCommand = "ssh"
+        $sshCommand += " " + ($sshArgs -join " ")
+        $sshCommand += " `"$sshTarget`" `"chmod +x ./install_copilot.sh && ./install_copilot.sh '$GHToken'`""
+        
+        Write-Debug "SSH Command: $sshCommand"
+        Invoke-Expression $sshCommand
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Installation completed successfully!" -ForegroundColor Green
+            Write-Host "GitHub Copilot CLI is now available on $Host" -ForegroundColor Green
+            
+            # Clean up the remote script
+            $cleanupCommand = "ssh"
+            $cleanupCommand += " " + ($sshArgs -join " ")
+            $cleanupCommand += " `"$sshTarget`" `"rm -f /tmp/install_copilot.sh`""
+            Invoke-Expression $cleanupCommand | Out-Null
+        } else {
+            throw "Installation script failed with exit code $LASTEXITCODE"
+        }
+        
+    } catch {
+        Write-Error "Failed to install Copilot CLI on remote host: $_"
+        throw
+    } finally {
+        # Clean up local temp file
+        if (Test-Path $tempScript) {
+            Remove-Item $tempScript -Force
         }
     }
 }

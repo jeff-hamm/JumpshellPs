@@ -2,6 +2,92 @@
 # Copilot
 # Create a PowerShell function named Set-LogLevel that takes a parameter $Level with valid values "Verbose", "Debug", "Information", "Warning", and "Error". The function should set the appropriate log preference variables ($VerbosePreference, $DebugPreference, $InformationPreference, $WarningPreference, and $ErrorActionPreference) based on the specified log level. Ensure that the specified log level and all higher levels are visible by only overwriting the current value if it is set to SilentlyContinue or Ignore. Use the ActionPreference enum values instead of strings.
 
+function From-Shell {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string]$InputString,
+        [switch]$Exec
+    )
+    
+    process {
+        # Replace backslash continuation with backtick continuation
+        $newline = "`r`n"
+        $result = $InputString -replace '\\\s*\r?\n', " ``$newline"
+        if ($Exec) {
+            Write-Information "Executing: $result" -InformationAction Continue
+            Invoke-Expression $result
+        } else {
+            $result
+        }
+    }
+}
+
+function To-Shell {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string]$InputString,
+        [switch]$Exec
+    )
+    
+    process {
+        $result = $InputString -replace '`\s+', " `\r`n"
+        if ($Exec) {
+            Write-Information "Executing: $result" -InformationAction Continue
+            Invoke-Expression $result
+        } else {
+            $result
+        }
+    }
+}
+
+function Convert-Multiline {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string]$InputString,
+        [switch]$Exec
+    )
+    
+    process {
+        $result = $null
+        # Check if the string contains shell-style continuation (backslash followed by newline)
+        if ($InputString -match '\\[\s]*[\r]?[\n]') {
+            # Convert from shell to PowerShell
+            $result = From-Shell -InputString $InputString
+        }
+        # Check if the string contains PowerShell-style continuation (backtick followed by whitespace)
+        elseif ($InputString -match '`[\s]+') {
+            # Convert from PowerShell to shell
+            $result = To-Shell -InputString $InputString
+        }
+        else {
+            # No continuation characters found, return as-is
+            $result = $InputString
+        }
+        
+        if ($Exec) {
+            Write-Information "Executing: $result" -InformationAction Continue
+            Invoke-Expression $result
+        } else {
+            $result
+        }
+    }
+}
+
+function Exec-Multiline {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string]$InputString
+    )
+    
+    process {
+        Convert-Multiline -InputString $InputString -Exec
+    }
+}
+
 function Set-LogLevel {
     param (
         [ValidateSet("Verbose", "Debug", "Information", "Warning", "Error")]
@@ -90,3 +176,10 @@ function Make-Ln($Target, $Link, [Alias("s")][switch]$Symbolic, [Alias("f")][swi
 New-Alias -Name "mklink" -Value "Make-Link" -ErrorAction SilentlyContinue
 
 New-Alias -Name "ln" -Value "Make-Ln" -ErrorAction SilentlyContinue
+
+New-Alias -Name "multiline" -Value "Convert-Multiline" -ErrorAction SilentlyContinue
+New-Alias -Name "multiline-exec" -Value "Exec-Multiline" -ErrorAction SilentlyContinue
+
+# Export functions and aliases (only when used as a module)
+# Export-ModuleMember -Function From-Shell, To-Shell, Convert-Multiline, Exec-Multiline, Set-LogLevel, Format-Size, ToSplatString, Make-Link, Make-Ln
+# Export-ModuleMember -Alias mklink, ln, multiline

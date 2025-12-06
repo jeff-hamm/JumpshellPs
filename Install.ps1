@@ -2,6 +2,11 @@ param(
     [string]$ModuleRoot = $PSScriptRoot
 )
 
+# Skip installation checks during module import - only run when explicitly called
+if ($global:JumpshellPs_ImportInProgress) {
+    return
+}
+
 $ModulePath = ($env:PSModulePath -split ';' | select -First 1)
 if (-not (Test-Path "$ModulePath\JumpshellPs")) {
     pushd $ModulePath
@@ -23,10 +28,11 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 & (Join-Path $PSScriptRoot 'Install\Install.ps1') -ModuleRoot $PSScriptRoot
 
 # Import JumpshellPs module if not already imported or being imported
+# Skip this during module load (when dot-sourced from .psm1) to avoid recursion
 $jumpshellModule = Get-Module -Name "JumpshellPs" -ErrorAction SilentlyContinue
 $isCurrentlyImporting = $global:JumpshellPs_ImportInProgress -eq $true
 
-if (-not $jumpshellModule -and -not $isCurrentlyImporting) {
+if (-not $isCurrentlyImporting -and -not $jumpshellModule) {
     Write-Host "Importing JumpshellPs module..." -ForegroundColor Cyan
     Import-Module "$ModulePath\JumpshellPs\JumpshellPs.psm1" -Force
 } elseif ($jumpshellModule) {

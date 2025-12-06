@@ -7,5 +7,5 @@ $global:ProfileHistory=(Get-PSReadlineOption).HistorySavePath
 
 function Load-Secrets() {
     Ensure-Module pwsh-dotenv
-    dotenv "$PSScriptRoot\secret.env"
+    Load-JumpValues -Types Secret
 }
