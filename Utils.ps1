@@ -183,3 +183,151 @@ New-Alias -Name "multiline-exec" -Value "Exec-Multiline" -ErrorAction SilentlyCo
 # Export functions and aliases (only when used as a module)
 # Export-ModuleMember -Function From-Shell, To-Shell, Convert-Multiline, Exec-Multiline, Set-LogLevel, Format-Size, ToSplatString, Make-Link, Make-Ln
 # Export-ModuleMember -Alias mklink, ln, multiline
+
+
+
+function ConvertTo-HtmlTable {
+    <#
+    .SYNOPSIS
+        Converts delimited text to HTML table and copies to clipboard
+    .DESCRIPTION
+        Auto-detects delimiter (tab, pipe, comma, or space) and converts to HTML table format
+    .PARAMETER InputData
+        The table data to convert. If not provided, reads from clipboard.
+    .EXAMPLE
+        ConvertTo-HtmlTable
+        # Converts clipboard content to HTML table
+    .EXAMPLE
+        Get-Clipboard | ConvertTo-HtmlTable
+        # Converts clipboard via pipeline
+    .EXAMPLE
+        ConvertTo-HtmlTable -InputData $myData
+        # Converts specific data
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline = $true)]
+        [string]$InputData
+    )
+    
+    begin {
+        $lines = @()
+    }
+    
+    process {
+        if ($InputData) {
+            $lines += $InputData
+        }
+    }
+    
+    end {
+        # If no input provided, get from clipboard
+        if ($lines.Count -eq 0) {
+            $clipboardContent = Get-Clipboard | Out-String
+            if ([string]::IsNullOrWhiteSpace($clipboardContent)) {
+                Write-Error "No data provided and clipboard is empty"
+                return
+            }
+            $lines = $clipboardContent -split "`r?`n" | Where-Object { $_.Trim() -ne '' }
+        }
+        
+        if ($lines.Count -eq 0) {
+            Write-Error "No data to convert"
+            return
+        }
+        
+        # Detect delimiter
+        $firstLine = $lines[0]
+        $delimiter = "`t"  # Default to tab
+        
+        if ($firstLine -match "`t") {
+            $delimiter = "`t"
+            Write-Verbose "Detected tab delimiter"
+        }
+        elseif ($firstLine -match '\|') {
+            $delimiter = '|'
+            Write-Verbose "Detected pipe delimiter"
+        }
+        elseif ($firstLine -match ',') {
+            $delimiter = ','
+            Write-Verbose "Detected comma delimiter"
+        }
+        elseif ($firstLine -match '\s{2,}') {
+            # Multiple spaces (space-delimited)
+            $delimiter = '\s+'
+            Write-Verbose "Detected space delimiter"
+        }
+        
+        # Parse rows
+        $rows = @()
+        foreach ($line in $lines) {
+            if ($delimiter -eq '\s+') {
+                # For space-delimited, split on multiple spaces
+                $cells = $line -split '\s{2,}' | ForEach-Object { $_.Trim() }
+            }
+            else {
+                $cells = $line -split [regex]::Escape($delimiter) | ForEach-Object { $_.Trim() }
+            }
+            $rows += ,@($cells)
+        }
+        # Handle markdown tables: trim leading/trailing empty cells
+        if ($rows.Count -gt 0) {
+            $firstRow = $rows[0]
+            $trimStart = ($firstRow[0] -eq '' -or [string]::IsNullOrWhiteSpace($firstRow[0]))
+            $trimEnd = ($firstRow[$firstRow.Count - 1] -eq '' -or [string]::IsNullOrWhiteSpace($firstRow[$firstRow.Count - 1]))
+            
+            if ($trimStart -or $trimEnd) {
+                Write-Verbose "Trimming markdown table delimiters"
+                $rows = $rows | ForEach-Object {
+                    $row = $_
+                    if ($trimStart -and $row.Count -gt 0) { $row = $row[1..($row.Count - 1)] }
+                    if ($trimEnd -and $row.Count -gt 0) { $row = $row[0..($row.Count - 2)] }
+                    , $row
+                }
+            }
+        }
+        
+        # Filter out markdown separator rows (all dashes)
+        $rows = $rows | Where-Object {
+            $row = $_
+            $allDashes = $true
+            foreach ($cell in $row) {
+                if ($cell -notmatch '^[-\s]+$') {
+                    $allDashes = $false
+                    break
+                }
+            }
+            -not $allDashes
+        }
+        # Build HTML table
+        $html = @"
+<table border="1" style="border-collapse: collapse;">
+
+"@
+        
+        # Header row (first row)
+        $html += "<tr>"
+        foreach ($cell in $rows[0]) {
+            $escapedCell = [System.Web.HttpUtility]::HtmlEncode($cell)
+            $html += "<th>$escapedCell</th>"
+        }
+        $html += "</tr>`n"
+        
+        # Data rows
+        for ($i = 1; $i -lt $rows.Count; $i++) {
+            $html += "<tr>"
+            foreach ($cell in $rows[$i]) {
+                $escapedCell = [System.Web.HttpUtility]::HtmlEncode($cell)
+                $html += "<td>$escapedCell</td>"
+            }
+            $html += "</tr>`n"
+        }
+        
+        $html += "</table>"
+        
+        # Copy to clipboard as HTML
+        Set-Clipboard -Html $html
+        Write-Host "HTML table copied to clipboard! ($($rows.Count) rows, $($rows[0].Count) columns)" -ForegroundColor Green
+    }
+}
+

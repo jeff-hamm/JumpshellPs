@@ -4,6 +4,9 @@
 # Set import flag to prevent circular imports
 $global:JumpshellPs_ImportInProgress = $true
 
+$Env:JumpShellPath = $global:JumpShellPath = "$PSscriptRoot"
+$global:UserName = $env:UserName
+
 # Check for required modules
 
 # Helper: Get all .ps1 files in Init.ps1 order
@@ -49,7 +52,8 @@ Export-ModuleMember -Alias *
 # Optionally, export the map as a variable for user inspection
 Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
 
+
+Configure-Profile "$env:TERM_PROGRAM"
+
 # Clear import flag - module loading complete
 $global:JumpshellPs_ImportInProgress = $false
-
-Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView

@@ -504,4 +504,7 @@ function Load-JumpValues {
     }
 }
 
-# No aliases needed - function is already named Load-JumpValues
+function Load-Secrets() {
+    Ensure-Module pwsh-dotenv
+    Load-JumpValues -Types Secret
+}
