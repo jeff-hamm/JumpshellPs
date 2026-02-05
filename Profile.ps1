@@ -115,7 +115,7 @@ function Set-Prompt {
                 $relativePath = $path.Substring($targetPath.Length).TrimStart('\')
                 $path = "$global:promptAliasStyle${alias}$($PSStyle.Reset)"
                 if ($relativePath) {
-                    $path += "$relativePath"
+                    $path += "\$relativePath"
                 }
                 return "$path> "
             }
