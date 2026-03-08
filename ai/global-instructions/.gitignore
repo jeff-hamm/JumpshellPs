@@ -1,0 +1,13 @@
+*
+!.gitignore
+!instructions/
+!instructions/**
+!dist/
+!dist/**
+!copilot-instructions.md
+!README.md
+!.agents/
+!.agents/**
+!src/
+!src/**
+*.bak

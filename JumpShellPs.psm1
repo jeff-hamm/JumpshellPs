@@ -28,10 +28,34 @@ foreach ($file in $files) {
 
 # Build a mapping of function name to file name
 $script:FunctionFileMap = @{}
-foreach ($file in $files) {
-    $content = Get-Content $file.FullName -Raw
+
+$functionDefinitionFiles = @(
+    $files | ForEach-Object {
+        [PSCustomObject]@{
+            FullName = $_.FullName
+            MapKey = $_.BaseName
+        }
+    }
+)
+
+$vsCodeScriptsPath = Join-Path $PSScriptRoot 'vscode'
+if (Test-Path -LiteralPath $vsCodeScriptsPath) {
+    Get-ChildItem -LiteralPath $vsCodeScriptsPath -Filter '*.ps1' -File |
+        Sort-Object Name |
+        ForEach-Object {
+            $relativePath = [System.IO.Path]::GetRelativePath($PSScriptRoot, $_.FullName)
+            $relativeNoExtension = [System.IO.Path]::ChangeExtension($relativePath, $null).TrimEnd('.')
+            $functionDefinitionFiles += [PSCustomObject]@{
+                FullName = $_.FullName
+                MapKey = $relativeNoExtension
+            }
+        }
+}
+
+foreach ($definitionFile in $functionDefinitionFiles) {
+    $content = Get-Content $definitionFile.FullName -Raw
     if (!$content) {
-        Write-Verbose "Skipping empty file: $($file.FullName)"
+        Write-Verbose "Skipping empty file: $($definitionFile.FullName)"
         continue
     }
     # Match function definitions: function Name { ... } or function Name() { ... }
@@ -39,7 +63,7 @@ foreach ($file in $files) {
     foreach ($match in $matches) {
         $funcName = $match.Groups[1].Value
         if ($funcName -notmatch '^_') {
-            $script:FunctionFileMap[$funcName] = $file.BaseName
+            $script:FunctionFileMap[$funcName] = $definitionFile.MapKey
         }
     }
 }
@@ -53,7 +77,16 @@ Export-ModuleMember -Alias *
 Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
 
 
-Configure-Profile "$env:TERM_PROGRAM"
+Configure-Profile
+
+if (Get-Command -Name Start-JumpShellMcpServer -ErrorAction SilentlyContinue) {
+    try {
+        Start-JumpShellMcpServer -OnImport -Quiet | Out-Null
+    }
+    catch {
+        Write-Verbose "JumpShell MCP autostart skipped: $($_.Exception.Message)"
+    }
+}
 
 # Clear import flag - module loading complete
 $global:JumpshellPs_ImportInProgress = $false

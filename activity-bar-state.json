@@ -1,0 +1,226 @@
+[
+  {
+    "id": "workbench.view.explorer",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.search",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.debug",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extensions",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.scm",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.remote",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.vnc-explorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.editor-layouts",
+    "visible": false
+  },
+  {
+    "id": "workbench.views.service.sidebar.ff1e01de-c099-4de1-8d95-48d04e788074",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.kubernetesView",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.containersView",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.objectExplorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.chat.sessions",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.references-view",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlab-workflow",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.dataworkspace",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.powerShellProTools",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.fortify-remediation-extension-main-view-container",
+    "visible": true
+  },
+  {
+    "id": "workbench.views.service.auxiliarybar.1a900272-448e-4f4c-8021-7a0920d5ea4a",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.test",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.github-pull-requests",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.flutterPropertyEditor",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.claude-sidebar",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.github-pull-request",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.sidebarDevTools",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.ot-hybrid-scan-main-view",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.remoteManagerSidebar",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.dockerView",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.github-copilot-completions-debugger-panel",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.context-inspector",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.platformio",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.package-explorer",
+    "visible": true
+  },
+  {
+    "id": "workbench.view.extension.dockerComposeView",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.visual-studio-code-plugin-for-alm-octane-explorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.copilot-chat",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.localHistory",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlens",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlensInspect",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlensPatch",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.sidebar-panel",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.fortify",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.python",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.hexExplorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.cspell-info-explorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.cspell-regexp-explorer",
+    "visible": false
+  },
+  {
+    "id": "workbench.panel.chatSidebar",
+    "visible": false
+  },
+  {
+    "id": "userDataProfiles",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.sync",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.jupyter",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.editSessions",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.ocpCadHome",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlab-duo",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlab-agent-platform",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.gitlab-agent-platform-next",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.github-actions",
+    "visible": false
+  },
+  {
+    "id": "workbench.view.extension.PowerShell",
+    "visible": false
+  }
+]

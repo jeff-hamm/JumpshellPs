@@ -1,4 +1,137 @@
 
+function ConvertFrom-JsonStream {
+    <#
+    .SYNOPSIS
+    Extracts specific properties from a JSON file using System.Text.Json streaming parser.
+    
+    .DESCRIPTION
+    Uses JsonDocument to parse JSON efficiently. Extracts specific properties via path notation
+    (including nested properties and array indexes) without deserializing the entire object graph.
+    More memory-efficient than ConvertFrom-Json for large files where you only need select data.
+    
+    .PARAMETER Path
+    Path to the JSON file.
+    
+    .PARAMETER CountArrayProperty
+    Property path of an array to count elements in. Supports dot notation (e.g., "data.requests").
+    
+    .PARAMETER Properties
+    Array of property paths to extract. Supports:
+    - Simple properties: "sessionId"
+    - Nested properties: "user.profile.name"
+    - Array indexes: "items[0]", "users[2].email"
+    - Mixed: "data.items[0].nested.value"
+    
+    .EXAMPLE
+    ConvertFrom-JsonStream -Path "session.json" -CountArrayProperty "requests" -Properties @("sessionId", "customTitle")
+    
+    .EXAMPLE
+    ConvertFrom-JsonStream -Path "data.json" -Properties @("user.name", "items[0].id", "metadata.tags[1]")
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+        
+        [string]$CountArrayProperty,
+        
+        [string[]]$Properties
+    )
+    
+    # Helper to navigate property paths like "foo.bar[0].baz"
+    function Get-ElementByPath($element, $path) {
+        $current = $element
+        
+        # Parse path segments: "foo.bar[0].baz" -> @("foo", "bar[0]", "baz")
+        $segments = $path -split '\.'
+        
+        foreach ($segment in $segments) {
+            # Check for array index: "items[2]"
+            if ($segment -match '^([^\[]+)\[(\d+)\]$') {
+                $propName = $matches[1]
+                $index = [int]$matches[2]
+                
+                # Navigate to property
+                $current = $current.GetProperty($propName)
+                
+                # Index into array
+                if ($current.ValueKind -eq 'Array' -and $index -lt $current.GetArrayLength()) {
+                    $current = $current[$index]
+                } else {
+                    return $null
+                }
+            }
+            else {
+                # Simple property access
+                $current = $current.GetProperty($segment)
+            }
+        }
+        
+        return $current
+    }
+    
+    # Helper to extract scalar value from JsonElement
+    function Get-ScalarValue($element) {
+        switch ($element.ValueKind) {
+            'String'  { return $element.GetString() }
+            'Number'  { 
+                $longVal = 0
+                if ($element.TryGetInt64([ref]$longVal)) {
+                    return $longVal
+                } else {
+                    return $element.GetDouble()
+                }
+            }
+            'True'    { return $true }
+            'False'   { return $false }
+            'Null'    { return $null }
+            default   { return $null }
+        }
+    }
+    
+    $result = @{}
+    $stream = $null
+    $doc = $null
+    
+    try {
+        $stream = [System.IO.File]::OpenRead($Path)
+        $doc = [System.Text.Json.JsonDocument]::Parse($stream)
+        $root = $doc.RootElement
+        
+        # Extract requested properties
+        foreach ($propPath in $Properties) {
+            try {
+                $element = Get-ElementByPath $root $propPath
+                if ($null -ne $element) {
+                    $result[$propPath] = Get-ScalarValue $element
+                }
+            }
+            catch {
+                # Property path doesn't exist or is invalid, skip
+            }
+        }
+        
+        # Count array elements without deserializing contents
+        if ($CountArrayProperty) {
+            try {
+                $arrayElement = Get-ElementByPath $root $CountArrayProperty
+                if ($null -ne $arrayElement -and $arrayElement.ValueKind -eq 'Array') {
+                    $result["${CountArrayProperty}Count"] = $arrayElement.GetArrayLength()
+                }
+            }
+            catch {
+                # Array property doesn't exist
+            }
+        }
+    }
+    finally {
+        if ($doc) { $doc.Dispose() }
+        if ($stream) { $stream.Dispose() }
+    }
+    
+    return [PSCustomObject]$result
+}
+
 # Copilot
 # Create a PowerShell function named Set-LogLevel that takes a parameter $Level with valid values "Verbose", "Debug", "Information", "Warning", and "Error". The function should set the appropriate log preference variables ($VerbosePreference, $DebugPreference, $InformationPreference, $WarningPreference, and $ErrorActionPreference) based on the specified log level. Ensure that the specified log level and all higher levels are visible by only overwriting the current value if it is set to SilentlyContinue or Ignore. Use the ActionPreference enum values instead of strings.
 

@@ -1,0 +1,1503 @@
+{
+  "_version": 2,
+  "_description": "VS Code layout export - includes database state and settings.json",
+  "settings": {
+    "terminal.integrated.defaultLocation": "panel",
+    "breadcrumbs.enabled": false,
+    "workbench.panel.defaultLocation": "bottom",
+    "editor.minimap.enabled": false,
+    "zenMode.fullScreen": false,
+    "workbench.sideBar.location": "left",
+    "workbench.editor.enablePreview": false,
+    "terminal.integrated.tabs.enabled": true
+  },
+  "database": {
+    "workbench.view.extension.PowerShell.state": {
+      "PowerShellCommands": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.editor-layouts.state": {
+      "layouts_list": {
+        "collapsed": false,
+        "isHidden": false
+      }
+    },
+    "workbench.view.extension.editor-layouts.numberOfVisibleViews": 1,
+    "workbench.view.explorer.numberOfVisibleViews": 4,
+    "workbench.editor.hidden": false,
+    "workbench.search.history": {
+      "search": [
+        "Required-Applications.ps1",
+        "Install-Applic",
+        "Required-Application",
+        "CompilerParameters",
+        "git clone",
+        "Add-App",
+        "Required-Applications.txt",
+        "All-Applications.txt",
+        "path",
+        "prompt",
+        "Elevate",
+        "TERM_PROGRAM",
+        "DefaultBackupRoot",
+        "D:\\OneDrive",
+        "Set-PSReadLineOption",
+        "$Env:HomeAddress",
+        "Load-Secr",
+        "Load-JumpValues",
+        "Pre",
+        "Get-JumpDir",
+        "Get-JumpEnvFiles",
+        "Load-JumpValue",
+        "$env:APPDATA",
+        "profiles",
+        "Apply-Workspace",
+        "Apply-WorkspaceLayout"
+      ]
+    },
+    "workbench.panelpart.activepanelid": "workbench.views.service.panel.e7432f9f-de91-4a8a-aa87-c9ed1bd07f4f",
+    "workbench.view.extension.gitlab-agent-platform.state": {
+      "gl.webview.agentic-tabs": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.wasLastMaximized": false,
+    "workbench.view.extension.azure.state": {
+      "azureFocusView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "azureResourceGroups": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "azureWorkspace": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "azureTenantsView": {
+        "collapsed": true,
+        "isHidden": false
+      },
+      "ms-azuretools.helpAndFeedback": {
+        "collapsed": true,
+        "isHidden": false
+      }
+    },
+    "workbench.view.extension.remoteManagerSidebar.state": {
+      "remoteManager.menuBar": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "remoteManagerConnections": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "remoteManagerCredentials": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.test.state": {
+      "workbench.view.testing": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.view.testCoverage": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.dockerComposeView.state": {
+      "dockerComposeProjects": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "dockerComposeServices": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.markers": {
+      "workbench.panel.markers.view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.fortify.state": {
+      "fortifyView": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.position": 2,
+    "workbench.panel.repl": {
+      "workbench.panel.repl.view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.ot-hybrid-scan-main-view.state": {
+      "opentext.hybrid.MainView": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.search.numberOfVisibleViews": 1,
+    "workbench.view.extension.ai-toolkit-explorer.state": {
+      "aiToolkitMyModels": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "aiToolkitModels": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "aiToolkitTools": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "aiToolkitMCPWorkflow": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "aiToolkitHelpAndFeedback": {
+        "collapsed": false,
+        "isHidden": false
+      }
+    },
+    "workbench.replace.history": [
+      "Applications",
+      "/",
+      "alias"
+    ],
+    "workbench.panel.hidden": false,
+    "workbench.editor.languageDetectionOpenedLanguages.workspace": [
+      [
+        "dotenv",
+        true
+      ],
+      [
+        "ignore",
+        true
+      ],
+      [
+        "csv (pipe)",
+        true
+      ],
+      [
+        "jsonc",
+        true
+      ],
+      [
+        "json",
+        true
+      ],
+      [
+        "plaintext",
+        true
+      ],
+      [
+        "powershell",
+        true
+      ],
+      [
+        "shellscript",
+        true
+      ],
+      [
+        "markdown",
+        true
+      ]
+    ],
+    "workbench.view.extensions.state": {
+      "workbench.views.extensions.marketplaceAccess": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.installed": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 436
+      },
+      "workbench.views.extensions.searchOutdated": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.workspaceRecommendations": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.popular": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.searchRecentlyUpdated": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.otherRecommendations": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "extensions.recommendedList": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 174
+      },
+      "workbench.views.extensions.enabled": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.mcp.installed": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.mcp.default.marketplace": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 174
+      },
+      "workbench.views.extensions.disabled": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.marketplace": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 784
+      },
+      "workbench.views.extensions.searchInstalled": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.searchEnabled": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.searchDisabled": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.searchBuiltin": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.searchWorkspaceUnsupported": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.builtinFeatureExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.builtinThemeExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.builtinProgrammingLanguageExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.untrustedUnsupportedExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.untrustedPartiallySupportedExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.virtualUnsupportedExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.virtualPartiallySupportedExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.extensions.deprecatedExtensions": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.mcp.marketplace": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.mcp.default.welcomeView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.views.mcp.welcomeView": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.auxiliaryBar.wasLastMaximized": false,
+    "workbench.view.debug.state": {
+      "workbench.debug.welcome": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 201
+      },
+      "workbench.debug.variablesView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.debug.watchExpressionsView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.debug.callStackView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.debug.loadedScriptsView": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "workbench.debug.breakPointsView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "jsBrowserBreakpoints": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "jsExcludedCallers": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "jsDebugNetworkTree": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "CppSshTargetsView": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "platformio-debug.peripherals": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "platformio-debug.registers": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "platformio-debug.memory": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "platformio-debug.disassembly": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "workbench.view.search": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 531
+      },
+      "workbench.view.testing": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.view.testCoverage": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.chat": {
+      "workbench.panel.chat.view.copilot": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 820
+      }
+    },
+    "workbench.view.chat.sessions.state": {
+      "workbench.view.chat.sessions.local": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.view.chat.sessions.copilot-cloud-agent": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.view.chat.sessions.copilotcli": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.view.chat.sessions.gettingStarted": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "codex-placeholder": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "copilot-agents-placeholder": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.sidebar.ff1e01de-c099-4de1-8d95-48d04e788074.state": {
+      "workbench.scm": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 196
+      },
+      "workbench.scm.repositories": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "gitlens.views.pullRequest": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.commitDetails": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 142
+      },
+      "gitlens.views.lineHistory": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "gitlens.views.fileHistory": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 142
+      },
+      "gitlens.views.timeline": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.searchAndCompare": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 142
+      },
+      "gitlens.views.home": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 142
+      },
+      "gitlens.views.drafts": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.workspaces": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.launchpad": {
+        "collapsed": true,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.kubernetesView.state": {
+      "extension.vsKubernetesExplorer": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "extension.vsKubernetesHelmRepoExplorer": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "kubernetes.cloudExplorer": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.chat.numberOfVisibleViews": 0,
+    "workbench.view.extension.sidebar-panel.state": {
+      "postman-for-vscode.sidebar-panel": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.azurePanel.state": {
+      "azureActivityLog": {
+        "collapsed": true,
+        "isHidden": false
+      }
+    },
+    "workbench.view.extension.azure-ai-foundry.state": {
+      "azure-ai-foundry-resources": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "azure-ai-foundry-tools": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "azure-ai-foundry-help-and-feedback": {
+        "collapsed": false,
+        "isHidden": false
+      }
+    },
+    "workbench.view.extension.gitlab-workflow.state": {
+      "issuesAndMrs": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "remoteSecurityScanning": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "currentBranchInfo": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "github-actions.current-branch": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "github-actions.workflows": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "github-actions.settings": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "github-actions.empty-view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.panel.output.numberOfVisibleViews": 5,
+    "workbench.sideBar.position": 0,
+    "workbench.editor.centered": false,
+    "workbench.scm.views.state": {
+      "workbench.scm.repositories": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.scm": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.scm.history": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.repositories": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.commits": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.branches": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.remotes": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.stashes": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.tags": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.worktrees": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.contributors": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.scm.grouped": {
+        "collapsed": true,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.queryResult.state": {
+      "queryResult": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.auxiliarybar.ccd50f72-87db-45c4-b00e-eb3453b9c3ca.state": {
+      "workbench.panel.chat.view.copilot": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 820
+      }
+    },
+    "workbench.zenMode.active": false,
+    "workbench.view.extension.containersView.state": {
+      "vscode-containers.views.containers": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "vscode-containers.views.images": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "vscode-containers.views.registries": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "vscode-containers.views.networks": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "vscode-containers.views.volumes": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "vscode-containers.views.dockerContexts": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "vscode-containers.views.help": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "dockerComposeProjects": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "dockerComposeServices": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.auxiliarybar.6c7924a6-1403-45f4-9d53-5ba2232dd926.state": {
+      "restoreEditors.views.layouts": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 792
+      }
+    },
+    "workbench.find.history": [
+      "RequiredApplications",
+      "search",
+      "Set",
+      "Set=",
+      "Set=;",
+      "Set-",
+      "cd ",
+      "Reason",
+      "scp",
+      "installScript",
+      "Init",
+      "Set-VariableScopes",
+      "////",
+      "driveLetter",
+      "Get-JumpEnvFile",
+      "AliasStyle",
+      "files.ex",
+      "files.exc",
+      "layout",
+      "globalStorage/storage.json",
+      "globalStorage",
+      "Get-",
+      "Get-V",
+      "Get-Vs",
+      "-E",
+      "break",
+      "ConvertT",
+      "ConvertT-",
+      "ConvertT=",
+      "ConvertTo",
+      "ConvertTo-",
+      "requestId",
+      "Get-JsonMetadataStreaming",
+      "Convert",
+      "Convert-",
+      "ConvertFrom",
+      "Apply-WorkspaceLayout",
+      "WorkspaceDbPath",
+      "terminal",
+      "Export"
+    ],
+    "workbench.views.service.auxiliarybar.86f0f082-ba3e-410a-be11-cf2b467dbc8d.numberOfVisibleViews": 1,
+    "workbench.view.extension.platformio.state": {
+      "platformio-ide.projectTasks": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "platformio-ide.quickAccess": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.fortify-remediation-extension-audit-view-container.state": {
+      "fortify-remediation-extension-audit-view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.powerShellProTools.state": {
+      "astView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "customView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "historyView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "hostProcessView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "jobView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "moduleView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "providerView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "reflectionView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "sessionsView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "quickScriptView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "variableView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "infoView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "newsView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "PowerShellCommands": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.debug.numberOfVisibleViews": 6,
+    "workbench.views.service.sidebar.ff1e01de-c099-4de1-8d95-48d04e788074.numberOfVisibleViews": 7,
+    "workbench.view.extensions.numberOfVisibleViews": 1,
+    "workbench.view.extension.dataworkspace.state": {
+      "dataworkspace.views.main": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "objectExplorer": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "queryHistory": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.activity.viewletsWorkspaceState": [
+      {
+        "id": "workbench.view.explorer",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.search",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.debug",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extensions",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.scm",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.remote",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.vnc-explorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.editor-layouts",
+        "visible": false
+      },
+      {
+        "id": "workbench.views.service.sidebar.ff1e01de-c099-4de1-8d95-48d04e788074",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.kubernetesView",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.containersView",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.objectExplorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.chat.sessions",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.references-view",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlab-workflow",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.dataworkspace",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.powerShellProTools",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.fortify-remediation-extension-main-view-container",
+        "visible": true
+      },
+      {
+        "id": "workbench.views.service.auxiliarybar.1a900272-448e-4f4c-8021-7a0920d5ea4a",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.test",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.github-pull-requests",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.flutterPropertyEditor",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.claude-sidebar",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.github-pull-request",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.sidebarDevTools",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.ot-hybrid-scan-main-view",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.remoteManagerSidebar",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.dockerView",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.github-copilot-completions-debugger-panel",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.context-inspector",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.platformio",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.package-explorer",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.dockerComposeView",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.visual-studio-code-plugin-for-alm-octane-explorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.copilot-chat",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.localHistory",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlens",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlensInspect",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlensPatch",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.sidebar-panel",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.fortify",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.python",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.hexExplorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.cspell-info-explorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.cspell-regexp-explorer",
+        "visible": false
+      },
+      {
+        "id": "workbench.panel.chatSidebar",
+        "visible": false
+      },
+      {
+        "id": "userDataProfiles",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.sync",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.jupyter",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.editSessions",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.ocpCadHome",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlab-duo",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlab-agent-platform",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlab-agent-platform-next",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.github-actions",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.PowerShell",
+        "visible": false
+      }
+    ],
+    "workbench.statusBar.hidden": false,
+    "workbench.view.extension.kubernetesView.numberOfVisibleViews": 3,
+    "workbench.auxiliaryBar.hidden": false,
+    "workbench.explorer.views.state": {
+      "outline": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "timeline": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "workbench.explorer.openEditorsView": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "workbench.explorer.fileView": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 754
+      },
+      "npm": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "dartDependencyTree": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "redisXplorer": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "commitViewProvider": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "compareCommitViewProvider": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "dockerExplorerContainers": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "dockerExplorerImages": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "azureRegistries": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "DockerHubTreeView": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "suggestedDockerImages": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "solutionExplorer": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "dockerRegistryExplorer": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "treeLocalHistoryExplorer": {
+        "collapsed": true,
+        "isHidden": true,
+        "size": 22
+      },
+      "fortifyView": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 186
+      },
+      "workbench.scm.history": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.repositories": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.commits": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.branches": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.remotes": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.stashes": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.tags": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.worktrees": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.contributors": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.scm.grouped": {
+        "collapsed": true,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.auxiliarybar.ccd50f72-87db-45c4-b00e-eb3453b9c3ca.numberOfVisibleViews": 1,
+    "workbench.view.extension.fortify-remediation-extension-main-view-container.state": {
+      "fortify-remediation-extension-main-view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.package-explorer.state": {
+      "workspaceEnvironments": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "pythonEnvironments": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.auxiliarybar.86f0f082-ba3e-410a-be11-cf2b467dbc8d.state": {
+      "redisXplorer": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 1153
+      }
+    },
+    "workbench.panel.output": {
+      "workbench.panel.output": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 234
+      },
+      "timeline": {
+        "collapsed": false,
+        "isHidden": false,
+        "size": 222
+      },
+      "workbench.panel.markers.view": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 142
+      },
+      "ocpCadStatus": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 142
+      },
+      "ocpCadSetup": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 165
+      },
+      "queryResult": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 142
+      }
+    },
+    "workbench.panel.repl.numberOfVisibleViews": 1,
+    "workbench.view.extension.vnc-explorer.state": {
+      "vncServers": {
+        "collapsed": true,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.objectExplorer.state": {
+      "objectExplorer": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "queryHistory": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.views.service.auxiliarybar.6c7924a6-1403-45f4-9d53-5ba2232dd926.numberOfVisibleViews": 1,
+    "workbench.view.extension.gitlensInspect.state": {
+      "gitlens.views.commitDetails": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.pullRequest": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.lineHistory": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.fileHistory": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.timeline": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.searchAndCompare": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.view.extension.cspellPanel.state": {
+      "cSpellIssuesViewByFile": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "cSpellIssuesViewByIssue": {
+        "collapsed": false,
+        "isHidden": false
+      }
+    },
+    "workbench.view.extension.postman-console-view-container.state": {
+      "postman-console-view": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.sideBar.hidden": false,
+    "workbench.view.search.state": {
+      "workbench.view.search": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 808
+      }
+    },
+    "workbench.view.remote.state": {
+      "targetsContainers": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "detailsContainers": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "devVolumes": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "targetsWsl": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "remoteTargets": {
+        "collapsed": false,
+        "isHidden": false
+      },
+      "vncServers": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "~remote.forwardedPorts": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.auxiliarybar.viewContainersWorkspaceState": [
+      {
+        "id": "workbench.views.service.auxiliarybar.ccd50f72-87db-45c4-b00e-eb3453b9c3ca",
+        "visible": true
+      },
+      {
+        "id": "workbench.panel.chat",
+        "visible": false
+      },
+      {
+        "id": "workbench.viewContainer.agentSessions",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.claude-sidebar-secondary",
+        "visible": false
+      },
+      {
+        "id": "workbench.panel.chatEditing",
+        "visible": false
+      },
+      {
+        "id": "terminal",
+        "visible": false
+      },
+      {
+        "id": "workbench.panel.markers",
+        "visible": false
+      },
+      {
+        "id": "workbench.panel.output",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.cspellPanel",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.postman-console-view-container",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.gitlensPanel",
+        "visible": true
+      },
+      {
+        "id": "~remote.forwardedPortsContainer",
+        "visible": false
+      },
+      {
+        "id": "workbench.views.service.auxiliarybar.56cf8b31-4844-4c3b-af5e-367286055056",
+        "visible": false
+      },
+      {
+        "id": "workbench.views.service.auxiliarybar.659e4917-cbcb-4336-99db-9626cd6524fd",
+        "visible": false
+      }
+    ],
+    "workbench.views.service.panel.e7432f9f-de91-4a8a-aa87-c9ed1bd07f4f.state": {
+      "terminal": {
+        "collapsed": false,
+        "isHidden": true,
+        "size": 956
+      }
+    },
+    "workbench.view.extension.gitlensPanel.state": {
+      "gitlens.views.graph": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.graphDetails": {
+        "collapsed": false,
+        "isHidden": true
+      }
+    },
+    "workbench.zenMode.exitInfo": {
+      "transitionedToCenteredEditorLayout": false,
+      "transitionedToFullScreen": false,
+      "handleNotificationsDoNotDisturbMode": false,
+      "wasVisible": {
+        "auxiliaryBar": false,
+        "panel": false,
+        "sideBar": false
+      }
+    },
+    "workbench.explorer.treeViewState": {
+      "focus": [
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+      ],
+      "selection": [
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+      ],
+      "expanded": [
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/vscode-workspaces",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Install",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/docs",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+      ],
+      "scrollTop": 0
+    },
+    "workbench.view.extension.fortify-remediation-extension-audit-view-container.numberOfVisibleViews": 1,
+    "workbench.auxiliarybar.activepanelid": "workbench.views.service.auxiliarybar.ccd50f72-87db-45c4-b00e-eb3453b9c3ca",
+    "workbench.activityBar.hidden": false,
+    "workbench.panel.viewContainersWorkspaceState": [
+      {
+        "id": "workbench.views.service.panel.e7432f9f-de91-4a8a-aa87-c9ed1bd07f4f",
+        "visible": true
+      },
+      {
+        "id": "workbench.panel.testResults",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.fortify-remediation-extension-audit-view-container",
+        "visible": true
+      },
+      {
+        "id": "workbench.panel.repl",
+        "visible": true
+      },
+      {
+        "id": "workbench.view.extension.queryResult",
+        "visible": false
+      },
+      {
+        "id": "workbench.views.service.auxiliarybar.86f0f082-ba3e-410a-be11-cf2b467dbc8d",
+        "visible": true
+      },
+      {
+        "id": "workbench.views.service.auxiliarybar.6c7924a6-1403-45f4-9d53-5ba2232dd926",
+        "visible": true
+      },
+      {
+        "id": "workbench.panel.comments",
+        "visible": false
+      },
+      {
+        "id": "refactorPreview",
+        "visible": false
+      },
+      {
+        "id": "workbench.view.extension.jupyter-variables",
+        "visible": false
+      }
+    ],
+    "workbench.views.service.panel.e7432f9f-de91-4a8a-aa87-c9ed1bd07f4f.numberOfVisibleViews": 1,
+    "workbench.auxiliaryBar.lastNonMaximizedVisibility": {
+      "sideBarVisible": false,
+      "editorVisible": false,
+      "panelVisible": false,
+      "auxiliaryBarVisible": false
+    },
+    "workbench.view.extension.gitlens.state": {
+      "gitlens.views.home": {
+        "collapsed": false,
+        "isHidden": true
+      },
+      "gitlens.views.launchpad": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.drafts": {
+        "collapsed": true,
+        "isHidden": true
+      },
+      "gitlens.views.workspaces": {
+        "collapsed": true,
+        "isHidden": true
+      }
+    }
+  }
+}
