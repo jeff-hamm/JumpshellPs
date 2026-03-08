@@ -1,6 +1,6 @@
 ---
 name: update-jumper-instructions
-description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".'
+description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".'
 argument-hint: 'Optional: branch=<branch>(default:main)'
 ---
 
@@ -9,18 +9,20 @@ argument-hint: 'Optional: branch=<branch>(default:main)'
 Download and run this repo's bootstrap setup file from raw GitHub.
 ## Use When
 - You need a quick bootstrap/update entrypoint for this repo.
-- You want to fetch and run `dist/initial-setup.readonly.prompt.md` without relying on local profile setup.
+- You want to fetch and run `ai/global-instructions/dist/initial-setup.readonly.prompt.md` without relying on local profile setup.
 - You want a platform-agnostic update flow.
 
 ## Required Workflow
-1. Build the raw URL using this repo path template:
-  - `https://raw.githubusercontent.com/jeff-hamm/copilot-instructions/<branch>/dist/initial-setup.readonly.prompt.md`
+1. Build the raw URL using this fixed repo path template:
+  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
   - Default `<branch>` is `main`.
-2. If `resources/initial-setup.readonly.prompt.md` exists, compute it's hash and save it.
-3. Download the raw file `resources/initial-setup.readonly.prompt.md`
-4. If the downloaded filed does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask if they want to run it anyways. If they say no, stop the flow. If they say yes, continue to the next step.
-5. Run the downloaded file as a prompt
-6. Summarize the update and include the raw URL and path used.
+2. If step 1 returns 404, try the legacy fallback path:
+  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
+3. If `resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
+4. Download the raw file to `resources/initial-setup.readonly.prompt.md`.
+5. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
+6. Run the downloaded file as a prompt.
+7. Summarize the update and include the raw URL, branch, and local path used.
 
 ## Safety Rules
 - If download fails, surface the exact URL and error.
