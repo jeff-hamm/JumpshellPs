@@ -76,9 +76,15 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
      - Array-style edits (`keybinding`): `--value` and optional `--match`.
 
 3. Use `scripts/patch-json{{SHELL_EXT}}` to apply the patch when the request maps to a structured JSON change:
+
+   > **`--value` must be valid JSON.** Numbers: `'2'`. Booleans: `'true'`. Strings: `'"value"'` (outer single-quotes, inner double-quotes in pwsh) or `'"value"'` in bash.
+
    ```{{SHELL_NAME}}
-   # Example: edit a setting
+   # Example: edit a setting (number)
    {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path editor.tabSize --value '2'
+
+   # Example: edit a setting (string) — note inner double-quotes for JSON string encoding
+   {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path github.copilot.chat.responsesApiReasoningEffort --value '"high"'
 
    # Example: add a VS Code task (workspace scoped)
    {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type task --action edit --path tasks --value '[{"label":"build","type":"shell","command":"npm run build"}]' --workspace

@@ -27,11 +27,8 @@ Two installer variants are available:
    - Default `<branch>` is `main`.
 4. If step 3 returns 404 and the variant is **full**, try the legacy fallback path:
    - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
-5. If `<skill-dir>/resources/<filename>` exists, compute its hash and save it.
-6. Download the raw file to `<skill-dir>/resources/<filename>` (create the `resources/` directory if needed).
-7. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
-8. Run the downloaded file as a prompt.
-9. Summarize the update and include the variant used, the raw URL, branch, and local path.
+5. Download the raw file to `<skill-dir>/resources/<filename>` (create the `resources/` directory if needed).
+6. Run the downloaded file as a prompt.
 
 ## Safety Rules
 - If download fails, surface the exact URL and error.

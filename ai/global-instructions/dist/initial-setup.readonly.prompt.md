@@ -704,11 +704,8 @@ Two installer variants are available:
    - Default `<branch>` is `main`.
 4. If step 3 returns 404 and the variant is **full**, try the legacy fallback path:
    - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
-5. If `<skill-dir>/resources/<filename>` exists, compute its hash and save it.
-6. Download the raw file to `<skill-dir>/resources/<filename>` (create the `resources/` directory if needed).
-7. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
-8. Run the downloaded file as a prompt.
-9. Summarize the update and include the variant used, the raw URL, branch, and local path.
+5. Download the raw file to `<skill-dir>/resources/<filename>` (create the `resources/` directory if needed).
+6. Run the downloaded file as a prompt.
 
 ## Safety Rules
 - If download fails, surface the exact URL and error.
@@ -1676,9 +1673,15 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
      - Array-style edits (`keybinding`): `--value` and optional `--match`.
 
 3. Use `scripts/patch-json{{SHELL_EXT}}` to apply the patch when the request maps to a structured JSON change:
+
+   > **`--value` must be valid JSON.** Numbers: `'2'`. Booleans: `'true'`. Strings: `'"value"'` (outer single-quotes, inner double-quotes in pwsh) or `'"value"'` in bash.
+
    ```{{SHELL_NAME}}
-   # Example: edit a setting
+   # Example: edit a setting (number)
    {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path editor.tabSize --value '2'
+
+   # Example: edit a setting (string) — note inner double-quotes for JSON string encoding
+   {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path github.copilot.chat.responsesApiReasoningEffort --value '"high"'
 
    # Example: add a VS Code task (workspace scoped)
    {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type task --action edit --path tasks --value '[{"label":"build","type":"shell","command":"npm run build"}]' --workspace
