@@ -38,13 +38,15 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 3. Review the diff and approve or reject:
    ```{{SHELL_NAME}}
-   file_path=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --settings setting)
+   # Resolve settings file path first
+   {{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --settings setting
+   # Use the returned path as <file_path> in the commands below
    # Review only (returns diff JSON, does not commit)
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path"
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>"
    # Approve: git add + commit + remove backup
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path" --approve --message "settings: update <key>"
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>" --approve --message "settings: update <key>"
    # Reject: restore from backup
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path" --reject
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>" --reject
    ```
 
 ## Safety Rules

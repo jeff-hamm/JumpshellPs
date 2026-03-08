@@ -10,7 +10,7 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Prefer user-profile skills under `~/.agents/skills/`.
 - Route requests to these slash commands when applicable:
   - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/create-instruction` for "global rules" or "your instructions"
+  - `/rule` for "global rules" or "your instructions"
   - `/create-skill-global` for "global skills", "your skills", or "slash skills"
   - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
 - Use this file as a fallback only when those skills are missing.
@@ -123,7 +123,7 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Detect whether this profile was initialized by that legacy setup flow:
   - One or more required user-skill files are missing:
     - `~/.agents/skills/setting/SKILL.md`
-    - `~/.agents/skills/create-instruction/SKILL.md`
+    - `~/.agents/skills/rule/SKILL.md`
     - `~/.agents/skills/create-skill-global/SKILL.md`
     - `~/.agents/skills/update-jumper-instructions/SKILL.md`
     - `~/.agents/skills/git-workflow/SKILL.md`
@@ -163,7 +163,7 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Prefer user-profile skills under `~/.agents/skills/`.
 - Route requests to these slash commands when applicable:
   - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/create-instruction` for "global rules" or "your instructions"
+  - `/rule` for "global rules" or "your instructions"
   - `/create-skill-global` for "global skills", "your skills", or "slash skills"
   - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
 - Use this file as a fallback only when those skills are missing.
@@ -2659,7 +2659,7 @@ You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
 - Prefer user-profile skills in `~/.agents/skills/` for global file edits.
 - Preferred commands:
   - `/setting`
-  - `/create-instruction`
+  - `/rule`
   - `/create-skill-global`
   - `/update-jumper-instructions`
 - Use `global.readonly.instructions.md` as fallback guidance when those skills are not available.
@@ -2677,7 +2677,7 @@ You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
 
 ## What To Do
 1. **Explore** `~/.agents/skills/` for existing skills
-2. **Use** preferred user skills (`/setting`, `/create-instruction`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
+2. **Use** preferred user skills (`/setting`, `/rule`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
 3. **Check** settings.json for existing values before adding
 4. **Use** `global.readonly.instructions.md` for fallback editing guidance
 5. **Run** `initial-setup.readonly.prompt.md` if core files are missing

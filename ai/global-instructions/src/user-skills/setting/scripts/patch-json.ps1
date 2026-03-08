@@ -21,7 +21,7 @@ Options:
 "@
 }
 
-function Parse-JsonInput {
+function ConvertFrom-JsonInput {
   param(
     [string]$JsonText,
     [string]$FieldName
@@ -35,7 +35,7 @@ function Parse-JsonInput {
     return ($JsonText | ConvertFrom-Json -AsHashtable -Depth 100)
   }
   catch {
-    throw "Invalid JSON for $FieldName: $($_.Exception.Message)"
+    throw ('Invalid JSON for {0}: {1}' -f $FieldName, $_.Exception.Message)
   }
 }
 
@@ -50,7 +50,7 @@ function ConvertTo-CompactJson {
   }
 }
 
-function Values-AreEqual {
+function Test-ValuesEqual {
   param(
     [object]$A,
     [object]$B
@@ -79,7 +79,7 @@ function Split-JsonPath {
   return $parts
 }
 
-function Ensure-DictionaryRoot {
+function Get-DictionaryRoot {
   param([object]$Root)
 
   if ($null -eq $Root) { return @{} }
@@ -87,7 +87,7 @@ function Ensure-DictionaryRoot {
   throw 'Expected a JSON object as root.'
 }
 
-function Ensure-ArrayRoot {
+function Get-ArrayRoot {
   param([object]$Root)
 
   if ($null -eq $Root) {
@@ -163,7 +163,7 @@ function Get-PathState {
   }
 }
 
-function Ensure-PathParent {
+function Get-PathParent {
   param(
     [System.Collections.IDictionary]$Root,
     [string[]]$Segments
@@ -232,13 +232,13 @@ function Test-KeybindingMatch {
 
     foreach ($entry in $Matcher.GetEnumerator()) {
       if (-not $Item.Contains($entry.Key)) { return $false }
-      if (-not (Values-AreEqual -A $Item[$entry.Key] -B $entry.Value)) { return $false }
+      if (-not (Test-ValuesEqual -A $Item[$entry.Key] -B $entry.Value)) { return $false }
     }
 
     return $true
   }
 
-  return (Values-AreEqual -A $Item -B $Matcher)
+  return (Test-ValuesEqual -A $Item -B $Matcher)
 }
 
 $validTypes = @('setting', 'task', 'mcp', 'keybinding')
@@ -373,14 +373,14 @@ $valueObject = $null
 $matchObject = $null
 
 if (-not [string]::IsNullOrWhiteSpace($valueJson)) {
-  $valueObject = Parse-JsonInput -JsonText $valueJson -FieldName '--value'
+  $valueObject = ConvertFrom-JsonInput -JsonText $valueJson -FieldName '--value'
 }
 if (-not [string]::IsNullOrWhiteSpace($matchJson)) {
-  $matchObject = Parse-JsonInput -JsonText $matchJson -FieldName '--match'
+  $matchObject = ConvertFrom-JsonInput -JsonText $matchJson -FieldName '--match'
 }
 
 if ($type -eq 'keybinding') {
-  $doc = Ensure-ArrayRoot -Root $existing
+  $doc = Get-ArrayRoot -Root $existing
 
   if (($action -eq 'add' -or $action -eq 'edit') -and $null -eq $valueObject) {
     throw "--value is required for keybinding $action"
@@ -407,7 +407,7 @@ if ($type -eq 'keybinding') {
   elseif ($action -eq 'edit') {
     if ($indexes.Count -gt 0) {
       $first = $indexes[0]
-      if (-not (Values-AreEqual -A $doc[$first] -B $valueObject)) {
+      if (-not (Test-ValuesEqual -A $doc[$first] -B $valueObject)) {
         $doc[$first] = $valueObject
         $changed = $true
       }
@@ -430,7 +430,7 @@ if ($type -eq 'keybinding') {
   $existing = $doc
 }
 else {
-  $doc = Ensure-DictionaryRoot -Root $existing
+  $doc = Get-DictionaryRoot -Root $existing
   $segments = Split-JsonPath -PathText $path
 
   if ($segments.Count -eq 0) {
@@ -445,18 +445,18 @@ else {
 
   if ($action -eq 'add') {
     if (-not $state.Exists) {
-      $target = Ensure-PathParent -Root $doc -Segments $segments
+      $target = Get-PathParent -Root $doc -Segments $segments
       $target.Parent[$target.Leaf] = $valueObject
       $changed = $true
     }
   }
   elseif ($action -eq 'edit') {
-    $target = Ensure-PathParent -Root $doc -Segments $segments
+    $target = Get-PathParent -Root $doc -Segments $segments
     $current = $null
     $hasCurrent = $target.Parent.Contains($target.Leaf)
     if ($hasCurrent) { $current = $target.Parent[$target.Leaf] }
 
-    if (-not $hasCurrent -or -not (Values-AreEqual -A $current -B $valueObject)) {
+    if (-not $hasCurrent -or -not (Test-ValuesEqual -A $current -B $valueObject)) {
       $target.Parent[$target.Leaf] = $valueObject
       $changed = $true
     }

@@ -1,5 +1,5 @@
 ---
-name: skill
+name: new-skill
 description: 'Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.'
 argument-hint: 'scope=[workspace|user](default:profile) name=<skill-name>'
 ---

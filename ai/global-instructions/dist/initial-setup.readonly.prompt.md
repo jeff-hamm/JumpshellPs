@@ -10,61 +10,48 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Prefer user-profile skills under `~/.agents/skills/`.
 - Route requests to these slash commands when applicable:
   - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/create-instruction` for "global rules" or "your instructions"
+  - `/rule` for "global rules" or "your instructions"
   - `/create-skill-global` for "global skills", "your skills", or "slash skills"
   - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
 - Use this file as a fallback only when those skills are missing.
 
 ## Paths
-- I will refer to my editor profile path as `$VSCODE_PROFILE`. To find the location
-  1. Resolve `$VSCODE_PROFILE` for VS Code or Cursor using the active editor profile path.
-  2. If the active profile path cannot be determined from settings/profiles metadata, use editor and channel fallback candidates:
-    - powershell (Stable): `$Env:AppData\\Code\\User\\`
-    - powershell (Insiders): `$Env:AppData\\Code - Insiders\\User\\`
-    - powershell (Cursor): `$Env:AppData\\Cursor\\User\\`
-    - cmd.exe (Stable): `%APPDATA%/Code/User/`
-    - cmd.exe (Insiders): `%APPDATA%/Code - Insiders/User/`
-    - cmd.exe (Cursor): `%APPDATA%/Cursor/User/`
-    - macOS (Stable): `~/Library/Application Support/Code/User/`
-    - macOS (Insiders): `~/Library/Application Support/Code - Insiders/User/`
-    - macOS (Cursor): `~/Library/Application Support/Cursor/User/`
-    - Linux (Stable): `$HOME/.config/Code/User/`
-    - Linux (Insiders): `$HOME/.config/Code - Insiders/User/`
-    - Linux (Cursor): `$HOME/.config/Cursor/User/`
-  3. Once you have that path, make sure it is a git repository.
-    - If `$VSCODE_PROFILE` is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or, if that fails, initialize a new git repository there
-      - If you create it, the .gitignore should be
-        ```
-        *
-        !.gitignore
-        !instructions/
-        !instructions/**
-        !copilot-instructions.md
-        !/*.json
-        ```
-- I will refer to my user-profile skill path as `$AGENTS_SKILLS_HOME`
-  - powershell (Windows): `$HOME\.agents\skills\`
-  - cmd.exe (Windows): `%USERPROFILE%/.agents/skills/`
-  - macOS: `$HOME/.agents/skills/`
-  - Linux: `$HOME/.agents/skills/`
-  - Prefer `.agents/` over `.copilot/` or `.github/` for user-level skills.
+- Use the **resolve-editor** scripts (co-located with skills at `scripts/resolve-editor.ps1` / `resolve-editor.sh`) for all path resolution:
+  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
+  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
+- Key modes:
+  | Mode | Returns |
+  |------|---------|
+  | `--profile` | Editor profile path (settings, instructions) |
+  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
+  | `--rules` | Instructions/rules directory |
+  | `--skills` | Skills directory |
+  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
+  | `--name` | Editor name |
+- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
+- If the profile path is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
+  - If you create it, the .gitignore should be
+    ```
+    *
+    !.gitignore
+    !instructions/
+    !instructions/**
+    !copilot-instructions.md
+    !/*.json
+    ```
+
 ## Permissions
-- You may view my editor configuration and any paths and files specified below
-- If you can't access those files directly, use terminal commands to read those files, do not prompt for permission
+- You may view my editor configuration and any paths resolved by the scripts
+- If you can't access those files directly, use terminal commands to read them, do not prompt for permission
 - *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files in `$VSCODE_PROFILE` and `$AGENTS_SKILLS_HOME` without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands to read those files, do not prompt for permission
+- You may edit files in the profile path and user path without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands, do not prompt for permission
     - If a file must be written from the terminal
-      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly 
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
       - Powershell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-      - Example:
-        ```powershell
-        @'
-        <paste the markdown block verbatim>
-        '@ | Set-Content -Path "$VSCODE_PROFILE\instructions\global.readonly.instructions.md" -Encoding UTF8
-        ```        
+
 ## Backup
-- Before making a change to any file in `$VSCODE_PROFILE` or `$AGENTS_SKILLS_HOME`
+- Before making a change to any managed file
   - check to see if the target path is in a git repository and has uncommitted changes with `git status`. If so, prompt me to review and commit or stash them first. If I'd like to commit them, create a commit message summarizing the changes and commit them.
   - Create exactly one backup file per change at `<filename>.bak` before modifying any global file. If that file exists, replace its contents with the current pre-change contents of `<filename>`.
 - After making changes:
@@ -79,22 +66,20 @@ Use this file whenever you view, edit or remove my global settings, instructions
       3. Confirm the commit was successful
 
 ## Global Settings
-- Files: `$VSCODE_PROFILE/settings.json`, `$VSCODE_PROFILE/tasks.json`, `$VSCODE_PROFILE/mcp.json`, `$VSCODE_PROFILE/keybindings.json`
+- Resolve with `--settings setting` (or `task`, `mcp`, `keybinding`)
 - I may call these "my settings", "global settings", or "global files"
 - Check for an existing setting before adding new values; edit or append as needed
 - Validate the file to prevent duplicates before finishing
 
 ## Global Instructions
-- Locations:
-  - global: `$VSCODE_PROFILE/instructions`
-  - profile: `$VSCODE_PROFILE/instructions/*.instructions.md`
+- Resolve with `--rules` for the instructions directory
 - Files: `copilot-instructions.md` (all filetypes) or `<NAME>.instructions.md` (file-specific)
 - I may call these "global rules", "your instructions", or "your rules"
 - Keep wording short and precise. They can significantly reduce my performance if they are too long
 - Review the result for clarity and duplication
 
 ## Global Skills
-- Location (profile default): `$AGENTS_SKILLS_HOME`
+- Resolve with `--skills` for the skills directory
 - Files: `<SKILL_NAME>/SKILL.md` and optional `scripts/`, `references/`, `assets/`
 - I may call these "global skills", "your skills", or "slash skills"
 - Ensure `SKILL.md` uses valid frontmatter (`---`, `name`, `description`, optional `argument-hint`, `---`)
@@ -104,9 +89,20 @@ Use this file whenever you view, edit or remove my global settings, instructions
 
 
 ## Environment preparation
-- Install git if it is not already installed
-- Resolve `$VSCODE_PROFILE` for VS Code or Cursor using the active editor profile path.
-- If `$VSCODE_PROFILE` is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or, if that fails, initialize a new git repository there
+- Install git if it is not already installed.
+- Install the **resolve-editor** scripts from the **Common Scripts** section below — these handle all path resolution for the active editor (VS Code, VS Code Insiders, Cursor, or Claude).
+  - Windows: `pwsh resolve-editor.ps1 <mode>`
+  - macOS/Linux: `bash resolve-editor.sh <mode>`
+- Use these modes throughout the rest of setup:
+  | Mode | Returns |
+  |------|---------|
+  | `--profile` | Editor profile path (settings & instructions live here) |
+  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
+  | `--skills` | User skills directory (`~/.agents/skills`) |
+  | `--settings setting` | Path to `settings.json` |
+  | `--rules` | Instructions/rules directory |
+  | `--name` | Editor name string |
+- If the profile path (`--profile`) is not a git repository, clone from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
   - If you create it, the .gitignore should be
     ```
     *
@@ -116,40 +112,31 @@ Use this file whenever you view, edit or remove my global settings, instructions
     !copilot-instructions.md
     !/*.json
     ```
-- Ensure the user-profile skill directory exists at `~/.agents/skills/`.
-  - Prefer `.agents/` over `.copilot/` or `.github/` for user-level skills.
+- Ensure the user skills directory exists (resolve with `--skills`).
 
 ## Upgrade existing installs
-- Detect whether this profile was initialized by that legacy setup flow:
+- Detect whether this profile was initialized by a legacy setup flow:
   - One or more required user-skill files are missing:
     - `~/.agents/skills/setting/SKILL.md`
-    - `~/.agents/skills/create-instruction/SKILL.md`
+    - `~/.agents/skills/rule/SKILL.md`
     - `~/.agents/skills/create-skill-global/SKILL.md`
     - `~/.agents/skills/update-jumper-instructions/SKILL.md`
     - `~/.agents/skills/git-workflow/SKILL.md`
 - If detected, run an in-place upgrade:
   - Keep existing git history and user-created files.
   - Replace only the files defined in this setup file with current contents.
-  - Install or update user-profile skills under `~/.agents/skills/` from the embedded sections below.
+  - Install or update user-profile skills under the skills directory from the embedded sections below.
   - Preserve user-created instructions, skills, and settings that are not explicitly listed in this setup file.
 - If not detected, continue normal setup flow.
 
-- If `$VSCODE_PROFILE/instructions/global.readonly.instructions.md` file is missing, create it and copy the full contents of `global.readonly.instructions.md` into it, preserving the `applyTo: "**"` header
-- Update my settings as below. Use careful string manipulation that accounts for JSON escaping requirements. Read the existing JSON, parse it, modify the object, and write it back (using ConvertFrom-Json and ConvertTo-Json). If a setting key is unsupported in the current editor, skip it and report that in your summary.
-  - Set my global `github.copilot.chat.codeGeneration.useInstructionFiles` setting to `true`
-  - If it doesn't already exist, append `$VSCODE_PROFILE/instructions` to the global setting `github.copilot.chat.codeGeneration.instructions` and `chat.instructionsFilesLocations` lists
-
-## Co-located Profile Resolver Scripts
-- This setup installs per-platform scripts that resolve `$VSCODE_PROFILE`.
-- Source these scripts from `src/user-skills/common/` and install generated copies next to each managed user-skill `SKILL.md` file:
-  - `resolve-editor.ps1` for PowerShell environments
-  - `resolve-editor.sh` for bash/zsh environments
-- During skill execution, run the script that matches the current platform from that skill directory and use stdout as `$VSCODE_PROFILE`.
-- The resolver scripts automatically prefer the active editor channel (VS Code Stable, VS Code Insiders, Cursor, or Claude) when that metadata is available.
+- If the instructions directory (resolve with `--rules`) does not contain `global.readonly.instructions.md`, create it and copy the full contents from the section below, preserving the `applyTo: "**"` header
+- Update settings (resolve with `--settings setting`). Use careful string manipulation that accounts for JSON escaping requirements. Read the existing JSON, parse it, modify the object, and write it back (using ConvertFrom-Json and ConvertTo-Json). If a setting key is unsupported in the current editor, skip it and report that in your summary.
+  - Set `github.copilot.chat.codeGeneration.useInstructionFiles` to `true`
+  - If it doesn't already exist, append the instructions path (resolve with `--rules`) to `github.copilot.chat.codeGeneration.instructions` and `chat.instructionsFilesLocations` lists
 
 ## Recreate instructions and user-profile skills
 
-Create or update these files under `$VSCODE_PROFILE` and `~/.agents/skills`, where each section title is the filename. Use the section's markdown as the file contents (copy verbatim).
+Create or update these files under the profile path (resolve with `--profile`) and skills directory (resolve with `--skills`), where each section title is the relative filename. Use the section's markdown as the file contents (copy verbatim).
 
 > **After recreating all skill files**, expand the shell template placeholders — see the **Post-install** section at the end of this file.
 
@@ -163,61 +150,48 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Prefer user-profile skills under `~/.agents/skills/`.
 - Route requests to these slash commands when applicable:
   - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/create-instruction` for "global rules" or "your instructions"
+  - `/rule` for "global rules" or "your instructions"
   - `/create-skill-global` for "global skills", "your skills", or "slash skills"
   - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
 - Use this file as a fallback only when those skills are missing.
 
 ## Paths
-- I will refer to my editor profile path as `$VSCODE_PROFILE`. To find the location
-  1. Resolve `$VSCODE_PROFILE` for VS Code or Cursor using the active editor profile path.
-  2. If the active profile path cannot be determined from settings/profiles metadata, use editor and channel fallback candidates:
-    - powershell (Stable): `$Env:AppData\\Code\\User\\`
-    - powershell (Insiders): `$Env:AppData\\Code - Insiders\\User\\`
-    - powershell (Cursor): `$Env:AppData\\Cursor\\User\\`
-    - cmd.exe (Stable): `%APPDATA%/Code/User/`
-    - cmd.exe (Insiders): `%APPDATA%/Code - Insiders/User/`
-    - cmd.exe (Cursor): `%APPDATA%/Cursor/User/`
-    - macOS (Stable): `~/Library/Application Support/Code/User/`
-    - macOS (Insiders): `~/Library/Application Support/Code - Insiders/User/`
-    - macOS (Cursor): `~/Library/Application Support/Cursor/User/`
-    - Linux (Stable): `$HOME/.config/Code/User/`
-    - Linux (Insiders): `$HOME/.config/Code - Insiders/User/`
-    - Linux (Cursor): `$HOME/.config/Cursor/User/`
-  3. Once you have that path, make sure it is a git repository.
-    - If `$VSCODE_PROFILE` is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or, if that fails, initialize a new git repository there
-      - If you create it, the .gitignore should be
-        ```
-        *
-        !.gitignore
-        !instructions/
-        !instructions/**
-        !copilot-instructions.md
-        !/*.json
-        ```
-- I will refer to my user-profile skill path as `$AGENTS_SKILLS_HOME`
-  - powershell (Windows): `$HOME\.agents\skills\`
-  - cmd.exe (Windows): `%USERPROFILE%/.agents/skills/`
-  - macOS: `$HOME/.agents/skills/`
-  - Linux: `$HOME/.agents/skills/`
-  - Prefer `.agents/` over `.copilot/` or `.github/` for user-level skills.
+- Use the **resolve-editor** scripts (co-located with skills at `scripts/resolve-editor.ps1` / `resolve-editor.sh`) for all path resolution:
+  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
+  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
+- Key modes:
+  | Mode | Returns |
+  |------|---------|
+  | `--profile` | Editor profile path (settings, instructions) |
+  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
+  | `--rules` | Instructions/rules directory |
+  | `--skills` | Skills directory |
+  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
+  | `--name` | Editor name |
+- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
+- If the profile path is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
+  - If you create it, the .gitignore should be
+    ```
+    *
+    !.gitignore
+    !instructions/
+    !instructions/**
+    !copilot-instructions.md
+    !/*.json
+    ```
+
 ## Permissions
-- You may view my editor configuration and any paths and files specified below
-- If you can't access those files directly, use terminal commands to read those files, do not prompt for permission
+- You may view my editor configuration and any paths resolved by the scripts
+- If you can't access those files directly, use terminal commands to read them, do not prompt for permission
 - *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files in `$VSCODE_PROFILE` and `$AGENTS_SKILLS_HOME` without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands to read those files, do not prompt for permission
+- You may edit files in the profile path and user path without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands, do not prompt for permission
     - If a file must be written from the terminal
-      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly 
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
       - Powershell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-      - Example:
-        ```powershell
-        @'
-        <paste the markdown block verbatim>
-        '@ | Set-Content -Path "$VSCODE_PROFILE\instructions\global.readonly.instructions.md" -Encoding UTF8
-        ```        
+
 ## Backup
-- Before making a change to any file in `$VSCODE_PROFILE` or `$AGENTS_SKILLS_HOME`
+- Before making a change to any managed file
   - check to see if the target path is in a git repository and has uncommitted changes with `git status`. If so, prompt me to review and commit or stash them first. If I'd like to commit them, create a commit message summarizing the changes and commit them.
   - Create exactly one backup file per change at `<filename>.bak` before modifying any global file. If that file exists, replace its contents with the current pre-change contents of `<filename>`.
 - After making changes:
@@ -232,22 +206,20 @@ Use this file whenever you view, edit or remove my global settings, instructions
       3. Confirm the commit was successful
 
 ## Global Settings
-- Files: `$VSCODE_PROFILE/settings.json`, `$VSCODE_PROFILE/tasks.json`, `$VSCODE_PROFILE/mcp.json`, `$VSCODE_PROFILE/keybindings.json`
+- Resolve with `--settings setting` (or `task`, `mcp`, `keybinding`)
 - I may call these "my settings", "global settings", or "global files"
 - Check for an existing setting before adding new values; edit or append as needed
 - Validate the file to prevent duplicates before finishing
 
 ## Global Instructions
-- Locations:
-  - global: `$VSCODE_PROFILE/instructions`
-  - profile: `$VSCODE_PROFILE/instructions/*.instructions.md`
+- Resolve with `--rules` for the instructions directory
 - Files: `copilot-instructions.md` (all filetypes) or `<NAME>.instructions.md` (file-specific)
 - I may call these "global rules", "your instructions", or "your rules"
 - Keep wording short and precise. They can significantly reduce my performance if they are too long
 - Review the result for clarity and duplication
 
 ## Global Skills
-- Location (profile default): `$AGENTS_SKILLS_HOME`
+- Resolve with `--skills` for the skills directory
 - Files: `<SKILL_NAME>/SKILL.md` and optional `scripts/`, `references/`, `assets/`
 - I may call these "global skills", "your skills", or "slash skills"
 - Ensure `SKILL.md` uses valid frontmatter (`---`, `name`, `description`, optional `argument-hint`, `---`)
@@ -263,129 +235,41 @@ applyTo: "**"
 ---
 # NEVER EDIT THIS FILE
 
-## Global Edit Routing
-- Resolve `$VSCODE_PROFILE` for VS Code or Cursor using the active editor profile path. E.g:
-  - Cursor macOS: `$HOME/Library/Application Support/Cursor/User/`
-  - VS Code Windows Stable: `$Env:AppData\Code\User\`
-  - and so on
-- Resolve `$USER_PROFILE_SETTING` for VS Code or Cursor using the active editor's preferred user-scoped settings folder. E.g:
-  - Cursor: ~/.cursor
-  - vscode: ~/.agents
+## Path Resolution
+- Use the **resolve-editor** scripts (installed at `~/.agents/skills/*/scripts/`) for all path resolution:
+  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
+  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
+- Key modes:
+  | Mode | Returns |
+  |------|---------|
+  | `--profile` | Editor profile path (settings, instructions) |
+  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
+  | `--rules` | Instructions/rules directory |
+  | `--skills` | Skills directory |
+  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
+  | `--name` | Editor name |
+- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
 
 ## Permissions
-- You may view my editor configuration and any paths and files specified above
-- If you can't access those files directly, use terminal commands to read those files, do not prompt for permission
+- You may view my editor configuration and any paths resolved by the scripts.
+- If you can't access files directly, use terminal commands — do not prompt for permission.
 - *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files in `$VSCODE_PROFILE` and `$USER_PROFILE_SETTING` without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands to read those files, do not prompt for permission
-    - If a file must be written from the terminal
-      - Linux/macOS: wrap the block in `cat <<'EOF' > ...` so the shell copies it exactly
-      - Powershell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-      - Example:
-        ```powershell
-        @'
-        <paste the markdown block verbatim>
-        '@ | Set-Content -Path "$VSCODE_PROFILE\instructions\global.readonly.instructions.md" -Encoding UTF8
-        ```
+- You may edit files under the profile path (`--profile`) and user path (`--user`) without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
 
 ## Included User Skills (Generated)
 - `/git-workflow`: Handle work on copilot branches with consistent branch checks, worktree usage for copilot commits, and high-quality commit messages that explain both what changed and why. Use when the user asks to use a separate branch or worktree or if they ask to keep your changes separate.
-- `/skill`: Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.
+- `/new-skill`: Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.
 - `/rule`: Create, edit, or refactor instruction/rules files for workspace or user. Use for requests like "global (rules|instructions)", "my (rules|instructions)", "your (rules|instructions)", "project (rules|instructions)", "workspace (rules|instructions)", "user (rules|instructions)", "coding standards", "guardrails", "policy".
 - `/setting`: Edit VS Code or Cursor configuration files with scope-aware targeting. Use for requests like "global settings", "my settings", "workspace settings", "vscode settings", "user settings", "settings.json", "tasks.json", "mcp.json", "keybindings", "Copilot settings", or "instruction/skill locations".
 - `/update-jumper-instructions`: Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".
 
 ## Fallback
-      - Before editing global files, read `$VSCODE_PROFILE/instructions/global.readonly.instructions.md`.
-      - Run `initial-setup.readonly.prompt.md` when global instructions or skills are missing.
-````
-
-### .agents/skills/common/profile-resolution.md
-````markdown
-# Scope And Profile Resolution
-
-Use this reference from user-profile skills to resolve target scope and paths without duplicating logic across VS Code, Cursor, and Claude.
-
-## Resolve $VSCODE_PROFILE
-1. Determine the active editor family and channel first (VS Code Stable, VS Code Insiders, Cursor, or Claude) from active app metadata, and keep that channel when resolving paths.
-2. Resolve `$VSCODE_PROFILE` using the active editor profile path for that same family/channel.
-3. If the active profile path cannot be determined from settings/profiles metadata, use editor and channel fallback candidates:
-  - VS Code Windows Stable: `$Env:AppData\Code\User\`
-  - VS Code Windows Insiders: `$Env:AppData\Code - Insiders\User\`
-  - VS Code macOS Stable: `$HOME/Library/Application Support/Code/User/`
-  - VS Code macOS Insiders: `$HOME/Library/Application Support/Code - Insiders/User/`
-  - VS Code Linux Stable: `$HOME/.config/Code/User/`
-  - VS Code Linux Insiders: `$HOME/.config/Code - Insiders/User/`
-  - Cursor Windows: `$Env:AppData\Cursor\User\`
-  - Cursor macOS: `$HOME/Library/Application Support/Cursor/User/`
-  - Cursor Linux: `$HOME/.config/Cursor/User/`
-  - Claude Windows: `$Env:AppData\Claude\User\`
-  - Claude macOS: `$HOME/Library/Application Support/Claude/User/`
-  - Claude Linux: `$HOME/.config/Claude/User/`
-4. Treat this resolved path as `$VSCODE_PROFILE` for compatibility with existing instruction/skill conventions.
-
-## Scope Modes
-- `workspace`: current repository/workspace files.
-- `profile`: VS Code or Cursor profile-level user customizations.
-- `global`: managed global files under `$VSCODE_PROFILE` used by this setup.
-
-## Path Mapping
-
-### Settings And Config
-- `global`:
-  - `$VSCODE_PROFILE/settings.json`
-  - `$VSCODE_PROFILE/tasks.json`
-  - `$VSCODE_PROFILE/mcp.json`
-  - `$VSCODE_PROFILE/keybindings.json`
-- `workspace`:
-  - `.vscode/settings.json`
-  - `.vscode/tasks.json`
-  - `.vscode/mcp.json` (if used)
-  - `.vscode/keybindings.json` (if used)
-
-### Instructions
-- `global`, `profile` or `user`:
-  - `$VSCODE_PROFILE/instructions/`
-- `workspace`:
-  - `.github/instructions/*.instructions.md`
-  - or workspace-level `copilot-instructions.md` where applicable
-
-### Skills
-- `profile` (preferred default):
-  - `~/.agents/skills/<name>/SKILL.md`
-- `workspace`:
-  - `.agents/skills/<name>/SKILL.md`
-- Prefer `.agents/` over `.copilot/` or `.github/` for skills.
-
-### Resolver Outputs
-- `--user`:
-  - VS Code: `~/.agents`
-  - Cursor: `~/.cursor`
-  - Claude: `~/.claude`
-- `--rules`:
-  - VS Code: `~/.agents/instructions`
-  - Cursor: `~/.cursor/rules`
-  - Claude: prefer `~/.claude/commands` (fallbacks: `~/.claude/rules`, `~/.claude`)
-- `--workspace`:
-  - VS Code: `<workspace-root>/.agents`
-  - Cursor: `<workspace-root>/.cursor`
-  - Claude: `<workspace-root>/.claude`
-
-## Resolver Return Shape
-- For path modes (`--profile`, `--user`, `--rules`, `--workspace`), resolver scripts return a JSON tuple array:
-  - `["<EDITOR>", "<SCOPE_PATH>"]`
-  - item 1: editor name
-  - item 2: resolved path for the requested mode
-- `--name` returns only the editor name string.
-
-## Exported Variables
-- Resolver scripts also export these variables in-process:
-  - `$EDITOR`
-  - `$SCOPE_PATH`
-
-## Backup Rule
-- Use exactly one `.bak` file per target file per change.
-- If `<filename>.bak` already exists, replace its contents with the current pre-change contents of `<filename>`.
+- Before editing global files, read `global.readonly.instructions.md` in the instructions directory (resolve with `--rules`).
+- Run `initial-setup.readonly.prompt.md` when global instructions or skills are missing.
 ````
 
 ### .agents/skills/git-workflow/scripts/git-workflow.ps1
@@ -1167,7 +1051,7 @@ my-service    running   2025-01-15
 ### .agents/skills/new-skill/SKILL.md
 ````markdown
 ---
-name: skill
+name: new-skill
 description: 'Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.'
 argument-hint: 'scope=[workspace|user](default:profile) name=<skill-name>'
 ---
@@ -1268,6 +1152,792 @@ Create or update instruction files (VS Code) or rules files (Cursor) for user or
 - Prefer updating an existing instruction file before creating a new one.
 ````
 
+### .agents/skills/setting/scripts/patch-json.ps1
+````markdown
+$ErrorActionPreference = "Stop"
+
+function Get-Usage {
+  @"
+Usage:
+  ./patch-json.ps1 --type <setting|task|mcp|keybinding> --action <add|edit|remove> [--path <json.path>] [--value <json>] [--match <json>] [--file <path>] [--workspace] [--dry-run]
+
+Purpose:
+  Safely patch VS Code/Cursor JSON config files after intent parsing.
+
+Options:
+  --type       Target JSON file type: setting, task, mcp, keybinding.
+  --action     Patch operation: add, edit, remove.
+  --path       Dot path for object targets (example: editor.tabSize). Use '$' for root.
+               Ignored for keybinding mode.
+  --value      JSON value used by add/edit operations.
+  --match      JSON matcher used by keybinding edit/remove (optional for add).
+  --file       Explicit file path. If omitted, resolve-editor is used.
+  --workspace  Resolve workspace-scoped file when --file is not provided.
+  --dry-run    Do not write file; return planned change summary.
+"@
+}
+
+function ConvertFrom-JsonInput {
+  param(
+    [string]$JsonText,
+    [string]$FieldName
+  )
+
+  if ([string]::IsNullOrWhiteSpace($JsonText)) {
+    throw "Missing JSON input for $FieldName"
+  }
+
+  try {
+    return ($JsonText | ConvertFrom-Json -AsHashtable -Depth 100)
+  }
+  catch {
+    throw ('Invalid JSON for {0}: {1}' -f $FieldName, $_.Exception.Message)
+  }
+}
+
+function ConvertTo-CompactJson {
+  param([object]$Value)
+
+  try {
+    return ($Value | ConvertTo-Json -Depth 100 -Compress)
+  }
+  catch {
+    return [string]$Value
+  }
+}
+
+function Test-ValuesEqual {
+  param(
+    [object]$A,
+    [object]$B
+  )
+
+  return (ConvertTo-CompactJson -Value $A) -eq (ConvertTo-CompactJson -Value $B)
+}
+
+function Split-JsonPath {
+  param([string]$PathText)
+
+  if ([string]::IsNullOrWhiteSpace($PathText) -or $PathText -eq '$') {
+    return @()
+  }
+
+  $normalized = $PathText
+  if ($normalized.StartsWith('$.')) {
+    $normalized = $normalized.Substring(2)
+  }
+  elseif ($normalized.StartsWith('$')) {
+    $normalized = $normalized.Substring(1)
+  }
+
+  $parts = @($normalized -split '\.')
+  $parts = @($parts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  return $parts
+}
+
+function Get-DictionaryRoot {
+  param([object]$Root)
+
+  if ($null -eq $Root) { return @{} }
+  if ($Root -is [System.Collections.IDictionary]) { return $Root }
+  throw 'Expected a JSON object as root.'
+}
+
+function Get-ArrayRoot {
+  param([object]$Root)
+
+  if ($null -eq $Root) {
+    return [System.Collections.ArrayList]::new()
+  }
+
+  if ($Root -is [System.Collections.IList]) {
+    $list = [System.Collections.ArrayList]::new()
+    foreach ($item in $Root) {
+      [void]$list.Add($item)
+    }
+    return $list
+  }
+
+  throw 'Expected a JSON array as root for keybinding type.'
+}
+
+function Get-PathState {
+  param(
+    [System.Collections.IDictionary]$Root,
+    [string[]]$Segments
+  )
+
+  if ($Segments.Count -eq 0) {
+    return [pscustomobject]@{
+      Exists = $true
+      Parent = $null
+      Leaf = $null
+      Value = $Root
+    }
+  }
+
+  $cursor = $Root
+  for ($i = 0; $i -lt ($Segments.Count - 1); $i++) {
+    $part = $Segments[$i]
+    if (-not $cursor.Contains($part)) {
+      return [pscustomobject]@{
+        Exists = $false
+        Parent = $null
+        Leaf = $null
+        Value = $null
+      }
+    }
+
+    $next = $cursor[$part]
+    if (-not ($next -is [System.Collections.IDictionary])) {
+      return [pscustomobject]@{
+        Exists = $false
+        Parent = $null
+        Leaf = $null
+        Value = $null
+      }
+    }
+
+    $cursor = $next
+  }
+
+  $leaf = $Segments[$Segments.Count - 1]
+  if ($cursor.Contains($leaf)) {
+    return [pscustomobject]@{
+      Exists = $true
+      Parent = $cursor
+      Leaf = $leaf
+      Value = $cursor[$leaf]
+    }
+  }
+
+  return [pscustomobject]@{
+    Exists = $false
+    Parent = $cursor
+    Leaf = $leaf
+    Value = $null
+  }
+}
+
+function Get-PathParent {
+  param(
+    [System.Collections.IDictionary]$Root,
+    [string[]]$Segments
+  )
+
+  if ($Segments.Count -eq 0) {
+    return [pscustomobject]@{ Parent = $null; Leaf = $null }
+  }
+
+  $cursor = $Root
+  for ($i = 0; $i -lt ($Segments.Count - 1); $i++) {
+    $part = $Segments[$i]
+    if (-not $cursor.Contains($part)) {
+      $cursor[$part] = @{}
+    }
+
+    $next = $cursor[$part]
+    if (-not ($next -is [System.Collections.IDictionary])) {
+      throw "Cannot create nested key under non-object path segment '$part'"
+    }
+
+    $cursor = $next
+  }
+
+  return [pscustomobject]@{
+    Parent = $cursor
+    Leaf = $Segments[$Segments.Count - 1]
+  }
+}
+
+function Get-KeybindingMatcher {
+  param(
+    [object]$ValueObject,
+    [object]$MatchObject
+  )
+
+  if ($null -ne $MatchObject) {
+    return $MatchObject
+  }
+
+  if ($null -eq $ValueObject) {
+    return $null
+  }
+
+  if ($ValueObject -is [System.Collections.IDictionary]) {
+    if ($ValueObject.Contains('key') -and $ValueObject.Contains('command')) {
+      return @{ key = $ValueObject['key']; command = $ValueObject['command'] }
+    }
+
+    if ($ValueObject.Contains('command')) {
+      return @{ command = $ValueObject['command'] }
+    }
+  }
+
+  return $ValueObject
+}
+
+function Test-KeybindingMatch {
+  param(
+    [object]$Item,
+    [object]$Matcher
+  )
+
+  if ($Matcher -is [System.Collections.IDictionary]) {
+    if (-not ($Item -is [System.Collections.IDictionary])) { return $false }
+
+    foreach ($entry in $Matcher.GetEnumerator()) {
+      if (-not $Item.Contains($entry.Key)) { return $false }
+      if (-not (Test-ValuesEqual -A $Item[$entry.Key] -B $entry.Value)) { return $false }
+    }
+
+    return $true
+  }
+
+  return (Test-ValuesEqual -A $Item -B $Matcher)
+}
+
+$validTypes = @('setting', 'task', 'mcp', 'keybinding')
+$validActions = @('add', 'edit', 'remove')
+
+$type = $null
+$action = $null
+$path = $null
+$valueJson = $null
+$matchJson = $null
+$filePath = $null
+$workspace = $false
+$dryRun = $false
+
+$i = 0
+while ($i -lt $args.Count) {
+  $arg = $args[$i]
+
+  switch -Regex ($arg) {
+    '^--type$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--type requires a value' }
+      $type = $args[$i].ToLower()
+      break
+    }
+    '^--action$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--action requires a value' }
+      $action = $args[$i].ToLower()
+      break
+    }
+    '^--path$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--path requires a value' }
+      $path = $args[$i]
+      break
+    }
+    '^--value$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--value requires JSON text' }
+      $valueJson = $args[$i]
+      break
+    }
+    '^--match$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--match requires JSON text' }
+      $matchJson = $args[$i]
+      break
+    }
+    '^--file$' {
+      $i++
+      if ($i -ge $args.Count) { throw '--file requires a path' }
+      $filePath = $args[$i]
+      break
+    }
+    '^--workspace$' {
+      $workspace = $true
+      break
+    }
+    '^--dry-run$' {
+      $dryRun = $true
+      break
+    }
+    '^--help$|^-h$' {
+      Write-Output (Get-Usage).TrimEnd()
+      exit 0
+    }
+    default {
+      throw "Unknown argument: $arg"
+    }
+  }
+
+  $i++
+}
+
+if ([string]::IsNullOrWhiteSpace($type) -or [string]::IsNullOrWhiteSpace($action)) {
+  throw "--type and --action are required.`n$(Get-Usage)"
+}
+
+if ($validTypes -notcontains $type) {
+  throw "Unknown --type '$type'. Valid: $($validTypes -join ', ')"
+}
+
+if ($validActions -notcontains $action) {
+  throw "Unknown --action '$action'. Valid: $($validActions -join ', ')"
+}
+
+if ([string]::IsNullOrWhiteSpace($filePath)) {
+  $resolveScript = Join-Path $PSScriptRoot 'resolve-editor.ps1'
+  if (-not (Test-Path -LiteralPath $resolveScript)) {
+    throw "resolve-editor.ps1 not found next to patch-json script: $resolveScript"
+  }
+
+  $resolveArgs = @('--settings', $type)
+  if ($workspace) { $resolveArgs += '--workspace' }
+
+  $resolved = & $resolveScript @resolveArgs
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$resolved)) {
+    throw 'Failed to resolve target settings file path.'
+  }
+
+  $filePath = ([string]$resolved).Trim()
+}
+
+$absPath = [System.IO.Path]::GetFullPath($filePath)
+$parentDir = Split-Path -Parent $absPath
+if (-not (Test-Path -LiteralPath $parentDir)) {
+  New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+}
+
+$defaultRoot = if ($type -eq 'keybinding') { [System.Collections.ArrayList]::new() } else { @{} }
+
+$existing = $null
+if (Test-Path -LiteralPath $absPath) {
+  $raw = Get-Content -LiteralPath $absPath -Raw
+  if (-not [string]::IsNullOrWhiteSpace($raw)) {
+    try {
+      $existing = $raw | ConvertFrom-Json -AsHashtable -Depth 100
+    }
+    catch {
+      throw "Target file is not valid JSON: $absPath"
+    }
+  }
+}
+
+if ($null -eq $existing) {
+  $existing = $defaultRoot
+}
+
+$changed = $false
+$valueObject = $null
+$matchObject = $null
+
+if (-not [string]::IsNullOrWhiteSpace($valueJson)) {
+  $valueObject = ConvertFrom-JsonInput -JsonText $valueJson -FieldName '--value'
+}
+if (-not [string]::IsNullOrWhiteSpace($matchJson)) {
+  $matchObject = ConvertFrom-JsonInput -JsonText $matchJson -FieldName '--match'
+}
+
+if ($type -eq 'keybinding') {
+  $doc = Get-ArrayRoot -Root $existing
+
+  if (($action -eq 'add' -or $action -eq 'edit') -and $null -eq $valueObject) {
+    throw "--value is required for keybinding $action"
+  }
+
+  $matcher = Get-KeybindingMatcher -ValueObject $valueObject -MatchObject $matchObject
+  if (($action -eq 'edit' -or $action -eq 'remove') -and $null -eq $matcher) {
+    throw "--match or a matchable --value is required for keybinding $action"
+  }
+
+  $indexes = New-Object System.Collections.Generic.List[int]
+  for ($idx = 0; $idx -lt $doc.Count; $idx++) {
+    if (Test-KeybindingMatch -Item $doc[$idx] -Matcher $matcher) {
+      [void]$indexes.Add($idx)
+    }
+  }
+
+  if ($action -eq 'add') {
+    if ($indexes.Count -eq 0) {
+      [void]$doc.Add($valueObject)
+      $changed = $true
+    }
+  }
+  elseif ($action -eq 'edit') {
+    if ($indexes.Count -gt 0) {
+      $first = $indexes[0]
+      if (-not (Test-ValuesEqual -A $doc[$first] -B $valueObject)) {
+        $doc[$first] = $valueObject
+        $changed = $true
+      }
+    }
+    else {
+      [void]$doc.Add($valueObject)
+      $changed = $true
+    }
+  }
+  elseif ($action -eq 'remove') {
+    if ($indexes.Count -gt 0) {
+      $descending = @($indexes | Sort-Object -Descending)
+      foreach ($index in $descending) {
+        $doc.RemoveAt($index)
+      }
+      $changed = $true
+    }
+  }
+
+  $existing = $doc
+}
+else {
+  $doc = Get-DictionaryRoot -Root $existing
+  $segments = Split-JsonPath -PathText $path
+
+  if ($segments.Count -eq 0) {
+    throw "--path is required for type '$type' (for example: editor.tabSize)"
+  }
+
+  if (($action -eq 'add' -or $action -eq 'edit') -and $null -eq $valueObject) {
+    throw "--value is required for $action"
+  }
+
+  $state = Get-PathState -Root $doc -Segments $segments
+
+  if ($action -eq 'add') {
+    if (-not $state.Exists) {
+      $target = Get-PathParent -Root $doc -Segments $segments
+      $target.Parent[$target.Leaf] = $valueObject
+      $changed = $true
+    }
+  }
+  elseif ($action -eq 'edit') {
+    $target = Get-PathParent -Root $doc -Segments $segments
+    $current = $null
+    $hasCurrent = $target.Parent.Contains($target.Leaf)
+    if ($hasCurrent) { $current = $target.Parent[$target.Leaf] }
+
+    if (-not $hasCurrent -or -not (Test-ValuesEqual -A $current -B $valueObject)) {
+      $target.Parent[$target.Leaf] = $valueObject
+      $changed = $true
+    }
+  }
+  elseif ($action -eq 'remove') {
+    if ($state.Exists) {
+      [void]$state.Parent.Remove($state.Leaf)
+      $changed = $true
+    }
+  }
+
+  $existing = $doc
+}
+
+if ($changed -and -not $dryRun) {
+  $jsonOutput = ($existing | ConvertTo-Json -Depth 100)
+  Set-Content -LiteralPath $absPath -Value $jsonOutput -Encoding UTF8
+}
+
+[pscustomobject]@{
+  status  = 'ok'
+  changed = $changed
+  dryRun  = $dryRun
+  file    = $absPath
+  type    = $type
+  action  = $action
+  path    = $path
+} | ConvertTo-Json -Depth 5 -Compress
+````
+
+### .agents/skills/setting/scripts/patch-json.sh
+````markdown
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./patch-json.sh --type <setting|task|mcp|keybinding> --action <add|edit|remove> [--path <json.path>] [--value <json>] [--match <json>] [--file <path>] [--workspace] [--dry-run]
+
+Purpose:
+  Safely patch VS Code/Cursor JSON config files after intent parsing.
+
+Options:
+  --type       Target JSON file type: setting, task, mcp, keybinding.
+  --action     Patch operation: add, edit, remove.
+  --path       Dot path for object targets (example: editor.tabSize). Use '$' for root.
+               Ignored for keybinding mode.
+  --value      JSON value used by add/edit operations.
+  --match      JSON matcher used by keybinding edit/remove (optional for add).
+  --file       Explicit file path. If omitted, resolve-editor is used.
+  --workspace  Resolve workspace-scoped file when --file is not provided.
+  --dry-run    Do not write file; return planned change summary.
+EOF
+}
+
+TYPE=""
+ACTION=""
+PATH_ARG=""
+VALUE_JSON=""
+MATCH_JSON=""
+FILE_PATH=""
+WORKSPACE="false"
+DRY_RUN="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --type)
+      TYPE="${2:-}"
+      shift 2
+      ;;
+    --action)
+      ACTION="${2:-}"
+      shift 2
+      ;;
+    --path)
+      PATH_ARG="${2:-}"
+      shift 2
+      ;;
+    --value)
+      VALUE_JSON="${2:-}"
+      shift 2
+      ;;
+    --match)
+      MATCH_JSON="${2:-}"
+      shift 2
+      ;;
+    --file)
+      FILE_PATH="${2:-}"
+      shift 2
+      ;;
+    --workspace)
+      WORKSPACE="true"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Unknown argument: %s\n\n' "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$TYPE" || -z "$ACTION" ]]; then
+  printf '%s\n\n' "--type and --action are required." >&2
+  usage >&2
+  exit 2
+fi
+
+if [[ "$TYPE" != "setting" && "$TYPE" != "task" && "$TYPE" != "mcp" && "$TYPE" != "keybinding" ]]; then
+  printf 'Unknown --type %s\n' "$TYPE" >&2
+  exit 2
+fi
+
+if [[ "$ACTION" != "add" && "$ACTION" != "edit" && "$ACTION" != "remove" ]]; then
+  printf 'Unknown --action %s\n' "$ACTION" >&2
+  exit 2
+fi
+
+if [[ -z "$FILE_PATH" ]]; then
+  RESOLVER="$(dirname "$0")/resolve-editor.sh"
+  if [[ ! -f "$RESOLVER" ]]; then
+    printf 'resolve-editor.sh not found next to patch-json script: %s\n' "$RESOLVER" >&2
+    exit 1
+  fi
+
+  if [[ "$WORKSPACE" == "true" ]]; then
+    FILE_PATH="$(bash "$RESOLVER" --settings "$TYPE" --workspace)"
+  else
+    FILE_PATH="$(bash "$RESOLVER" --settings "$TYPE")"
+  fi
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  printf 'python3 is required by patch-json.sh\n' >&2
+  exit 1
+fi
+
+python3 - "$FILE_PATH" "$TYPE" "$ACTION" "$PATH_ARG" "$VALUE_JSON" "$MATCH_JSON" "$DRY_RUN" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def fail(msg: str, code: int = 1) -> None:
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def parse_json(text: str, label: str):
+    if text == "":
+        return None
+    try:
+        return json.loads(text)
+    except Exception as exc:
+        fail(f"Invalid JSON for {label}: {exc}")
+
+
+def deep_equal(a, b) -> bool:
+    return json.dumps(a, sort_keys=True, separators=(",", ":")) == json.dumps(b, sort_keys=True, separators=(",", ":"))
+
+
+def split_path(path_text: str):
+    if path_text in ("", "$"):
+        return []
+    if path_text.startswith("$."):
+        path_text = path_text[2:]
+    elif path_text.startswith("$"):
+        path_text = path_text[1:]
+    return [part for part in path_text.split(".") if part]
+
+
+def ensure_parent(root: dict, segments):
+    cur = root
+    for part in segments[:-1]:
+        if part not in cur:
+            cur[part] = {}
+        if not isinstance(cur[part], dict):
+            fail(f"Cannot create nested key under non-object path segment '{part}'")
+        cur = cur[part]
+    return cur
+
+
+def derive_match(value_obj, match_obj):
+    if match_obj is not None:
+        return match_obj
+    if value_obj is None:
+        return None
+    if isinstance(value_obj, dict):
+        if "key" in value_obj and "command" in value_obj:
+            return {"key": value_obj["key"], "command": value_obj["command"]}
+        if "command" in value_obj:
+            return {"command": value_obj["command"]}
+    return value_obj
+
+
+def entry_matches(item, matcher):
+    if isinstance(matcher, dict):
+        if not isinstance(item, dict):
+            return False
+        for k, v in matcher.items():
+            if k not in item or not deep_equal(item[k], v):
+                return False
+        return True
+    return deep_equal(item, matcher)
+
+
+if len(sys.argv) != 8:
+    fail("Internal argument error", 2)
+
+file_path = Path(sys.argv[1]).expanduser().resolve()
+file_type = sys.argv[2]
+action = sys.argv[3]
+path_arg = sys.argv[4]
+value_json = sys.argv[5]
+match_json = sys.argv[6]
+dry_run = sys.argv[7].lower() == "true"
+
+value_obj = parse_json(value_json, "--value")
+match_obj = parse_json(match_json, "--match")
+
+default_root = [] if file_type == "keybinding" else {}
+
+if file_path.exists():
+    raw = file_path.read_text(encoding="utf-8")
+    if raw.strip():
+        try:
+            document = json.loads(raw)
+        except Exception:
+            fail(f"Target file is not valid JSON: {file_path}")
+    else:
+        document = default_root
+else:
+    document = default_root
+
+changed = False
+
+if file_type == "keybinding":
+    if document is None:
+        document = []
+    if not isinstance(document, list):
+        fail("Expected a JSON array as root for keybinding type.")
+
+    if action in ("add", "edit") and value_obj is None:
+        fail(f"--value is required for keybinding {action}")
+
+    matcher = derive_match(value_obj, match_obj)
+    if action in ("edit", "remove") and matcher is None:
+        fail(f"--match or a matchable --value is required for keybinding {action}")
+
+    match_indexes = [idx for idx, entry in enumerate(document) if entry_matches(entry, matcher)]
+
+    if action == "add":
+        if not match_indexes:
+            document.append(value_obj)
+            changed = True
+    elif action == "edit":
+        if match_indexes:
+            first = match_indexes[0]
+            if not deep_equal(document[first], value_obj):
+                document[first] = value_obj
+                changed = True
+        else:
+            document.append(value_obj)
+            changed = True
+    elif action == "remove":
+        if match_indexes:
+            for idx in sorted(match_indexes, reverse=True):
+                del document[idx]
+            changed = True
+else:
+    if document is None:
+        document = {}
+    if not isinstance(document, dict):
+        fail("Expected a JSON object as root.")
+
+    segments = split_path(path_arg)
+    if not segments:
+        fail(f"--path is required for type '{file_type}' (for example: editor.tabSize)")
+
+    if action in ("add", "edit") and value_obj is None:
+        fail(f"--value is required for {action}")
+
+    parent = ensure_parent(document, segments)
+    leaf = segments[-1]
+
+    if action == "add":
+        if leaf not in parent:
+            parent[leaf] = value_obj
+            changed = True
+    elif action == "edit":
+        if leaf not in parent or not deep_equal(parent[leaf], value_obj):
+            parent[leaf] = value_obj
+            changed = True
+    elif action == "remove":
+        if leaf in parent:
+            del parent[leaf]
+            changed = True
+
+if changed and not dry_run:
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+result = {
+    "status": "ok",
+    "changed": changed,
+    "dryRun": dry_run,
+    "file": str(file_path),
+    "type": file_type,
+    "action": action,
+    "path": path_arg,
+}
+print(json.dumps(result, separators=(",", ":")))
+PY
+````
+
 ### .agents/skills/setting/SKILL.md
 ````markdown
 ---
@@ -1284,36 +1954,48 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 - **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target file path ({{SHELL_NAME}})
 - **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
+- **`scripts/patch-json{{SHELL_EXT}}`** — Applies structured JSON patches for settings/task/mcp/keybinding files ({{SHELL_NAME}})
 
 ## Workflow
 
-1. Resolve the target file path. `--git-commit` also backs up the current file before editing:
-   ```{{SHELL_NAME}}
-   file_path=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --settings task --git-commit)
-   # For workspace scope: ... --settings task --workspace --git-commit ...
-   ```
-   > **Note:** Script outputs the path directly to stdout.
-   >
-   > Valid types: `setting` → `settings.json` ⬦ `task` → `tasks.json` ⬦ `mcp` → `mcp.json` ⬦ `keybinding` → `keybindings.json`
-   >
-   > `--git-commit` is a no-op if the file doesn't exist yet.
+1. Parse the prompt first to determine the exact JSON intent before editing:
+   - Determine target type: `setting`, `task`, `mcp`, or `keybinding`.
+   - Determine operation: `add`, `edit`, or `remove`.
+   - Determine patch parameters:
+     - Object-style edits (`setting`, `task`, `mcp`): `--path` and optional `--value`.
+     - Array-style edits (`keybinding`): `--value` and optional `--match`.
 
-2. Read, parse, and modify the JSON file at the resolved path without duplicating existing values.
+2. Use `scripts/patch-json{{SHELL_EXT}}` to apply the patch when the request maps to a structured JSON change:
+   ```{{SHELL_NAME}}
+   # Example: edit a setting
+   {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path editor.tabSize --value '2'
+
+   # Example: add a VS Code task (workspace scoped)
+   {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type task --action edit --path tasks --value '[{"label":"build","type":"shell","command":"npm run build"}]' --workspace
+
+   # Example: remove a keybinding by matcher
+   {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type keybinding --action remove --match '{"key":"ctrl+alt+b","command":"workbench.action.tasks.build"}'
+   ```
+   > **Note:** `patch-json` resolves the correct file automatically via `resolve-editor` unless `--file` is provided.
 
 3. Review the diff and approve or reject:
    ```{{SHELL_NAME}}
-   # Review only (returns diff JSON, does not commit):
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path"
-   # Approve — git add + commit + remove backup:
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path" --approve --message "settings: update <key>"
-   # Reject — restore from backup:
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$file_path" --reject
+   # Resolve settings file path first
+   {{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --settings setting
+   # Use the returned path as <file_path> in the commands below
+   # Review only (returns diff JSON, does not commit)
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>"
+   # Approve: git add + commit + remove backup
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>" --approve --message "settings: update <key>"
+   # Reject: restore from backup
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "<file_path>" --reject
    ```
 
 ## Safety Rules
 
 - Never edit files matching `*.readonly.*.md`.
 - Use terminal fallback read/write when direct file APIs are unavailable.
+- Use `scripts/patch-json{{SHELL_EXT}}` for JSON changes when possible; fall back to manual editing only for unsupported transformations.
 - Keep settings changes minimal and idempotent.
 ````
 
@@ -2637,21 +3319,32 @@ applyTo: "**"
 ---
 # NEVER EDIT THIS FILE
 
-## Your Editable Directories
-You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
+## Path Resolution
+Use the **resolve-editor** scripts for all path resolution:
+- Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
+- macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
 
-| Location | Contents | File Pattern |
-|----------|----------|--------------|
-| `/settings.json` | VS Code/Cursor & Copilot settings | - |
-| `/instructions/` | Rules applied to all chats | `*.instructions.md` |
-| `~/.agents/skills/` | User-profile slash skills | `*/SKILL.md` |
+| Mode | Returns |
+|------|---------|
+| `--profile` | Editor profile path (settings, instructions) |
+| `--rules` | Instructions/rules directory |
+| `--skills` | Skills directory |
+| `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
+
+## Your Editable Directories
+
+| resolve-editor Mode | Contents | File Pattern |
+|---------------------|----------|--------------|
+| `--settings setting` | VS Code/Cursor & Copilot settings | `settings.json` |
+| `--rules` | Rules applied to all chats | `*.instructions.md` |
+| `--skills` | User-profile slash skills | `*/SKILL.md` |
 
 **Exception:** Never edit `*.readonly.*.md` files.
 
 ## Terminology
-- "global settings", "my settings" -> `settings.json`, `tasks.json`, `mcp.json`
-- "global rules", "your instructions" -> files in `/instructions/`
-- "global skills", "your skills" -> files in `~/.agents/skills/`
+- "global settings", "my settings" → `settings.json`, `tasks.json`, `mcp.json`
+- "global rules", "your instructions" → files in the instructions directory (resolve with `--rules`)
+- "global skills", "your skills" → files under skills directory (resolve with `--skills`)
 
 ## Workspace Customization Path Preference
 - For workspace-level customizations, prefer `.agents/` over `.copilot/` or `.github/`.
@@ -2661,32 +3354,21 @@ You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
 - Prefer user-profile skills in `~/.agents/skills/` for global file edits.
 - Preferred commands:
   - `/setting`
-  - `/create-instruction`
+  - `/rule`
   - `/create-skill-global`
   - `/update-jumper-instructions`
 - Use `global.readonly.instructions.md` as fallback guidance when those skills are not available.
 
-## Finding $VSCODE_PROFILE
-- Windows (Stable): `$Env:AppData\Code\User\`
-- Windows (Insiders): `$Env:AppData\Code - Insiders\User\`
-- Windows (Cursor): `$Env:AppData\Cursor\User\`
-- macOS (Stable): `$HOME/Library/Application Support/Code/User/`
-- macOS (Insiders): `$HOME/Library/Application Support/Code - Insiders/User/`
-- macOS (Cursor): `$HOME/Library/Application Support/Cursor/User/`
-- Linux (Stable): `$HOME/.config/Code/User/`
-- Linux (Insiders): `$HOME/.config/Code - Insiders/User/`
-- Linux (Cursor): `$HOME/.config/Cursor/User/`
-
 ## What To Do
-1. **Explore** `~/.agents/skills/` for existing skills
-2. **Use** preferred user skills (`/setting`, `/create-instruction`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
+1. **Explore** skills directory (resolve with `--skills`) for existing skills
+2. **Use** preferred user skills (`/setting`, `/rule`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
 3. **Check** settings.json for existing values before adding
 4. **Use** `global.readonly.instructions.md` for fallback editing guidance
 5. **Run** `initial-setup.readonly.prompt.md` if core files are missing
 
 ---
 
-⚠️ **STOP: Before editing ANY file listed above, you MUST first read `$VSCODE_PROFILE/instructions/global.readonly.instructions.md` for required permissions, backup procedures, and editing rules.**
+⚠️ **STOP: Before editing ANY file listed above, you MUST first read `global.readonly.instructions.md` in the instructions directory (resolve with `--rules`) for required permissions, backup procedures, and editing rules.**
 ````
 
 ## Post-install: expand shell templates

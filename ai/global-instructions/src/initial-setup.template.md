@@ -4,8 +4,6 @@
 
 {{environment-setup.readonly.prompt.md}}
 
-{{profile-resolution-scripts.readonly.prompt.md}}
-
 {{initial-setup-recreate.md}}
 
 ### prompts/edit-global-files.readonly.prompt.md

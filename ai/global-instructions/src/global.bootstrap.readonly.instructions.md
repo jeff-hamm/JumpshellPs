@@ -3,21 +3,32 @@ applyTo: "**"
 ---
 # NEVER EDIT THIS FILE
 
-## Your Editable Directories
-You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
+## Path Resolution
+Use the **resolve-editor** scripts for all path resolution:
+- Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
+- macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
 
-| Location | Contents | File Pattern |
-|----------|----------|--------------|
-| `/settings.json` | VS Code/Cursor & Copilot settings | - |
-| `/instructions/` | Rules applied to all chats | `*.instructions.md` |
-| `~/.agents/skills/` | User-profile slash skills | `*/SKILL.md` |
+| Mode | Returns |
+|------|---------|
+| `--profile` | Editor profile path (settings, instructions) |
+| `--rules` | Instructions/rules directory |
+| `--skills` | Skills directory |
+| `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
+
+## Your Editable Directories
+
+| resolve-editor Mode | Contents | File Pattern |
+|---------------------|----------|--------------|
+| `--settings setting` | VS Code/Cursor & Copilot settings | `settings.json` |
+| `--rules` | Rules applied to all chats | `*.instructions.md` |
+| `--skills` | User-profile slash skills | `*/SKILL.md` |
 
 **Exception:** Never edit `*.readonly.*.md` files.
 
 ## Terminology
-- "global settings", "my settings" -> `settings.json`, `tasks.json`, `mcp.json`
-- "global rules", "your instructions" -> files in `/instructions/`
-- "global skills", "your skills" -> files in `~/.agents/skills/`
+- "global settings", "my settings" → `settings.json`, `tasks.json`, `mcp.json`
+- "global rules", "your instructions" → files in the instructions directory (resolve with `--rules`)
+- "global skills", "your skills" → files under skills directory (resolve with `--skills`)
 
 ## Workspace Customization Path Preference
 - For workspace-level customizations, prefer `.agents/` over `.copilot/` or `.github/`.
@@ -27,29 +38,18 @@ You can read, create, and edit files in these `$VSCODE_PROFILE` locations:
 - Prefer user-profile skills in `~/.agents/skills/` for global file edits.
 - Preferred commands:
   - `/setting`
-  - `/create-instruction`
+  - `/rule`
   - `/create-skill-global`
   - `/update-jumper-instructions`
 - Use `global.readonly.instructions.md` as fallback guidance when those skills are not available.
 
-## Finding $VSCODE_PROFILE
-- Windows (Stable): `$Env:AppData\Code\User\`
-- Windows (Insiders): `$Env:AppData\Code - Insiders\User\`
-- Windows (Cursor): `$Env:AppData\Cursor\User\`
-- macOS (Stable): `$HOME/Library/Application Support/Code/User/`
-- macOS (Insiders): `$HOME/Library/Application Support/Code - Insiders/User/`
-- macOS (Cursor): `$HOME/Library/Application Support/Cursor/User/`
-- Linux (Stable): `$HOME/.config/Code/User/`
-- Linux (Insiders): `$HOME/.config/Code - Insiders/User/`
-- Linux (Cursor): `$HOME/.config/Cursor/User/`
-
 ## What To Do
-1. **Explore** `~/.agents/skills/` for existing skills
-2. **Use** preferred user skills (`/setting`, `/create-instruction`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
+1. **Explore** skills directory (resolve with `--skills`) for existing skills
+2. **Use** preferred user skills (`/setting`, `/rule`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
 3. **Check** settings.json for existing values before adding
 4. **Use** `global.readonly.instructions.md` for fallback editing guidance
 5. **Run** `initial-setup.readonly.prompt.md` if core files are missing
 
 ---
 
-⚠️ **STOP: Before editing ANY file listed above, you MUST first read `$VSCODE_PROFILE/instructions/global.readonly.instructions.md` for required permissions, backup procedures, and editing rules.**
+⚠️ **STOP: Before editing ANY file listed above, you MUST first read `global.readonly.instructions.md` in the instructions directory (resolve with `--rules`) for required permissions, backup procedures, and editing rules.**

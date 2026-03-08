@@ -66,7 +66,7 @@ pwsh ./ai/global-instructions/scripts/check-initial-setup-drift/check-drift.ps1
 The `edit-global-files` concept is now split into multiple focused slash skills (installed under `~/.agents/skills`):
 
 - `/setting`
-- `/create-instruction`
+- `/rule`
 - `/create-prompt-global`
 - `/create-skill-global`
 - `/update-jumper-prompts`
@@ -106,7 +106,7 @@ The compiled prompt is assembled in this order:
 	- discovered files in `src/user-skills`
 7. Embedded copy of `src/user-skills/common/profile-resolution.md`
 8. Embedded copy of `src/user-skills/setting/SKILL.md`
-9. Embedded copy of `src/user-skills/create-instruction/SKILL.md`
+9. Embedded copy of `src/user-skills/rule/SKILL.md`
 10. Embedded copy of `src/user-skills/create-prompt-global/SKILL.md`
 11. Embedded copy of `src/user-skills/create-skill-global/SKILL.md`
 12. Embedded copy of `src/user-skills/update-jumper-prompts/SKILL.md`
@@ -147,7 +147,7 @@ What should stay as prompts/instructions:
 - Fallback guardrails (`edit-global-files.readonly.prompt.md`) for environments where skills are missing.
 
 What should be skills:
-- User-profile global edit workflows (`/setting`, `/create-instruction`, `/create-prompt-global`, `/create-skill-global`, `/update-jumper-prompts`).
+- User-profile global edit workflows (`/setting`, `/rule`, `/create-prompt-global`, `/create-skill-global`, `/update-jumper-prompts`).
 - Maintainer-only repo workflows (`regenerate-initial-setup`, `check-initial-setup-drift`, `verify-initial-setup`).
 
 Why not remove prompts/instructions entirely:
