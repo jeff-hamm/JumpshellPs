@@ -13,16 +13,16 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
-**Run the temp helpers** (written to `<TEMP_DIR>/copilot-instructions/` earlier in this file), then delete them:
+**Run the temp helpers** (from the `### expand-templates.ps1` / `### expand-templates.sh` sections in this file), then delete them:
 ```powershell
 # Windows
-pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
-Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
+pwsh "$env:TEMP/jumpshell/expand-templates.ps1"
+Remove-Item "$env:TEMP/jumpshell/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash /tmp/copilot-instructions/expand-templates.sh
-rm /tmp/copilot-instructions/expand-templates.sh
+bash /tmp/jumpshell/expand-templates.sh
+rm /tmp/jumpshell/expand-templates.sh
 ```
 
 **Create Symlinks** 

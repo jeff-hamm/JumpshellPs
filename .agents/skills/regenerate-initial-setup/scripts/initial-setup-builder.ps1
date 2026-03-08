@@ -215,7 +215,7 @@ function Build-FileManifest {
   $lines += "schema: jumpshell/manifest/v1"
   $lines += "files:"
   $lines += "  # scope: profile — base path: `$(pwsh resolve-editor.ps1 --profile) | `$(bash resolve-editor.sh --profile)"
-  $lines += "  - scope: user -- base path --rules global.readonly.instructions.md"
+  $lines += "  - path: instructions/global.readonly.instructions.md"
 
   $userSources = @($SkillSources | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Section) })
   if ($userSources.Count -gt 0) {
@@ -287,12 +287,14 @@ function Build-CommonScriptsSection {
 
   if ($hasResolver) {
     $lines += "### common/scripts/resolve-editor.ps1"
-    $lines += '````powershell'
+    $lines += "<!-- copy to all paths listed under 'resolve-editor' in the Common scripts section above -->"
+    $lines += '````markdown'
     $lines += $SkillModel.ResolverPs1Content
     $lines += '````'
     $lines += ""
     $lines += "### common/scripts/resolve-editor.sh"
-    $lines += '````sh'
+    $lines += "<!-- copy to all paths listed under 'resolve-editor' in the Common scripts section above -->"
+    $lines += '````markdown'
     $lines += $SkillModel.ResolverShContent
     $lines += '````'
     $lines += ""
@@ -300,12 +302,14 @@ function Build-CommonScriptsSection {
 
   if ($hasChangeControl) {
     $lines += "### common/scripts/change-control.ps1"
-    $lines += '````powershell'
+    $lines += "<!-- copy to all paths listed under 'change-control' in the Common scripts section above -->"
+    $lines += '````markdown'
     $lines += $SkillModel.ChangeControlPs1Content
     $lines += '````'
     $lines += ""
     $lines += "### common/scripts/change-control.sh"
-    $lines += '````sh'
+    $lines += "<!-- copy to all paths listed under 'change-control' in the Common scripts section above -->"
+    $lines += '````markdown'
     $lines += $SkillModel.ChangeControlShContent
     $lines += '````'
     $lines += ""

@@ -8,15 +8,15 @@ The **setup manifest** below lists every file to create before you read any cont
 Use each `### path/to/file` section heading as the relative filename; copy the fenced content verbatim.
 
 **Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass.
-The `expand-templates` scripts are written to `<TEMP_DIR>/copilot-instructions/` earlier in this file — run from there, then delete them.
+Locate the `### expand-templates.ps1` and `### expand-templates.sh` sections in this file, write their fenced content to the paths below, run, then delete:
 ```powershell
-# Windows
-pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
-Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
+# Windows — write expand-templates.ps1 content to this path, then run:
+pwsh "$env:TEMP\jumpshell\expand-templates.ps1"
+Remove-Item "$env:TEMP\jumpshell\expand-templates.ps1"
 ```
 ```bash
-# macOS/Linux
-bash /tmp/copilot-instructions/expand-templates.sh
-rm /tmp/copilot-instructions/expand-templates.sh
+# macOS/Linux — write expand-templates.sh content to this path, then run:
+bash /tmp/jumpshell/expand-templates.sh
+rm /tmp/jumpshell/expand-templates.sh
 ```
-> If neither temp file is present, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.
+> If the expand-templates sections are not yet in scope, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.

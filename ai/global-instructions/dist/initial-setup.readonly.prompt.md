@@ -2,6 +2,8 @@
 
 Use this prompt when global instructions or skills are missing, or when preparing a fresh environment.
 
+> **Important:** Write this file to a local path first (e.g. `resources/initial-setup.readonly.prompt.md`) before running it as a prompt. Do not pass a raw URL to a web-fetch tool — those tools truncate or summarize remote content. The `/jumpdate` skill handles this automatically.
+
 
 ## Environment preparation
 - Install git if it is not already installed.
@@ -52,25 +54,25 @@ The **setup manifest** below lists every file to create before you read any cont
 Use each `### path/to/file` section heading as the relative filename; copy the fenced content verbatim.
 
 **Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass.
-The `expand-templates` scripts are written to `<TEMP_DIR>/copilot-instructions/` earlier in this file — run from there, then delete them.
+Locate the `### expand-templates.ps1` and `### expand-templates.sh` sections in this file, write their fenced content to the paths below, run, then delete:
 ```powershell
-# Windows
-pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
-Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
+# Windows — write expand-templates.ps1 content to this path, then run:
+pwsh "$env:TEMP\jumpshell\expand-templates.ps1"
+Remove-Item "$env:TEMP\jumpshell\expand-templates.ps1"
 ```
 ```bash
-# macOS/Linux
-bash /tmp/copilot-instructions/expand-templates.sh
-rm /tmp/copilot-instructions/expand-templates.sh
+# macOS/Linux — write expand-templates.sh content to this path, then run:
+bash /tmp/jumpshell/expand-templates.sh
+rm /tmp/jumpshell/expand-templates.sh
 ```
-> If neither temp file is present, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.
+> If the expand-templates sections are not yet in scope, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.
 
 <!-- setup-manifest: machine-readable file index — scan this first to plan your work -->
 ```yaml
 schema: jumpshell/manifest/v1
 files:
   # scope: profile — base path: $(pwsh resolve-editor.ps1 --profile) | $(bash resolve-editor.sh --profile)
-  - scope: user -- base path --rules global.readonly.instructions.md
+  - path: instructions/global.readonly.instructions.md
   # scope: user — base path: ~/ (e.g. .agents/skills/... installs to ~/.agents/skills/...)
   - path: .agents/skills/git-workflow/scripts/git-workflow.ps1
   - path: .agents/skills/git-workflow/scripts/git-workflow.sh
@@ -1903,9 +1905,9 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 
 
 
-### <TEMP_DIR>/copilot-instructions/expand-templates.ps1
-> Temporary helper — write, run, then delete. Do not install permanently.
-````powershell
+### expand-templates.ps1
+> **Temp only** — write to `$env:TEMP\jumpshell\expand-templates.ps1` (Windows), run via `pwsh`, then delete. Do not install permanently.
+````markdown
 #!/usr/bin/env pwsh
 # expand-templates.ps1 — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
 #
@@ -1977,9 +1979,9 @@ if (Test-Path -LiteralPath $SkillsDir) {
 } | ConvertTo-Json -Depth 3
 ````
 
-### <TEMP_DIR>/copilot-instructions/expand-templates.sh
-> Temporary helper — write, run, then delete. Do not install permanently.
-````sh
+### expand-templates.sh
+> **Temp only** — write to `/tmp/jumpshell/expand-templates.sh` (macOS/Linux), run via `bash`, then delete. Do not install permanently.
+````markdown
 #!/usr/bin/env bash
 # expand-templates.sh — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
 #
@@ -2087,7 +2089,8 @@ The following scripts are shared across multiple skills. Create each file at the
 - `.agents/skills/skill/scripts/change-control.sh`
 
 ### common/scripts/resolve-editor.ps1
-````powershell
+<!-- copy to all paths listed under 'resolve-editor' in the Common scripts section above -->
+````markdown
 $ErrorActionPreference = "Stop"
 
 function Get-Usage {
@@ -2622,7 +2625,8 @@ switch ($mode) {
 ````
 
 ### common/scripts/resolve-editor.sh
-````sh
+<!-- copy to all paths listed under 'resolve-editor' in the Common scripts section above -->
+````markdown
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -3078,7 +3082,8 @@ esac
 ````
 
 ### common/scripts/change-control.ps1
-````powershell
+<!-- copy to all paths listed under 'change-control' in the Common scripts section above -->
+````markdown
 <#
 .SYNOPSIS
   Run before/after file-edit safety checks for skills.
@@ -3214,7 +3219,8 @@ if ($Phase -eq 'after') {
 ````
 
 ### common/scripts/change-control.sh
-````sh
+<!-- copy to all paths listed under 'change-control' in the Common scripts section above -->
+````markdown
 #!/usr/bin/env bash
 # change-control.sh — Before/after file-edit safety checks for skills.
 #
@@ -3447,16 +3453,16 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
-**Run the temp helpers** (written to `<TEMP_DIR>/copilot-instructions/` earlier in this file), then delete them:
+**Run the temp helpers** (from the `### expand-templates.ps1` / `### expand-templates.sh` sections in this file), then delete them:
 ```powershell
 # Windows
-pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
-Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
+pwsh "$env:TEMP/jumpshell/expand-templates.ps1"
+Remove-Item "$env:TEMP/jumpshell/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash /tmp/copilot-instructions/expand-templates.sh
-rm /tmp/copilot-instructions/expand-templates.sh
+bash /tmp/jumpshell/expand-templates.sh
+rm /tmp/jumpshell/expand-templates.sh
 ```
 
 **Create Symlinks** 

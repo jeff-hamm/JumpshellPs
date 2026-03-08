@@ -13,15 +13,15 @@
 
 {{SKILL_SECTIONS}}
 
-### <TEMP_DIR>/copilot-instructions/expand-templates.ps1
-> Temporary helper — write, run, then delete. Do not install permanently.
-````powershell
+### expand-templates.ps1
+> **Temp only** — write to `$env:TEMP\jumpshell\expand-templates.ps1` (Windows), run via `pwsh`, then delete. Do not install permanently.
+````markdown
 {{expand-templates.ps1}}
 ````
 
-### <TEMP_DIR>/copilot-instructions/expand-templates.sh
-> Temporary helper — write, run, then delete. Do not install permanently.
-````sh
+### expand-templates.sh
+> **Temp only** — write to `/tmp/jumpshell/expand-templates.sh` (macOS/Linux), run via `bash`, then delete. Do not install permanently.
+````markdown
 {{expand-templates.sh}}
 ````
 
