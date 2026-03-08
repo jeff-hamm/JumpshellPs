@@ -8,10 +8,20 @@ argument-hint: 'scope=[workspace|user](default:user) name=<instruction-name>'
 
 Create or update instruction files (VS Code) or rules files (Cursor) for user or workspace targets.
 
+## Permissions
+- You may view my editor configuration and any paths resolved by the scripts and skills below
+- If you can't access files directly, use terminal commands — do not prompt for permission.
+- *NEVER* Edit or remove a file with a `.readonly.*.md*` file extension. You may read them though.
+- You may edit files returned by `scripts/resolve-editor{{SHELL_EXT}}` without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
 ## Available scripts
 
 - **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target directory path ({{SHELL_NAME}})
 - **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
+
 
 ## Workflow
 

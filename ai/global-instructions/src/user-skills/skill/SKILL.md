@@ -1,5 +1,5 @@
 ---
-name: new-skill
+name: skill
 description: 'Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.'
 argument-hint: 'scope=[workspace|user](default:profile) name=<skill-name>'
 ---
@@ -14,6 +14,16 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 - You need a dedicated skill for repeated multi-step tasks.
 - You need to refactor long procedures into skill instructions.
 
+## Permissions
+- You may view my editor configuration and any paths resolved by the scripts and skills below
+- If you can't access files directly, use terminal commands — do not prompt for permission.
+- *NEVER* Edit or remove a file with a `.readonly.*.md*` file extension. You may read them though.
+- You may edit files returned by `scripts/resolve-editor{{SHELL_EXT}}` without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
+      
 ## Available scripts
 
 - **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target directory path ({{SHELL_NAME}})

@@ -47,7 +47,7 @@ if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
 
 $ErrorActionPreference = "Stop"
 
-$builderPath = Join-Path $WorkspaceRoot "scripts/regenerate-initial-setup/initial-setup-builder.ps1"
+$builderPath = "$PSScriptRoot/initial-setup-builder.ps1"
 . $builderPath
 
 $model = Build-InitialSetupContent -WorkspaceRoot $WorkspaceRoot -EmitTemporaryGlobalInstructions

@@ -7,13 +7,16 @@ The **setup manifest** below lists every file to create before you read any cont
 
 Use each `### path/to/file` section heading as the relative filename; copy the fenced content verbatim.
 
-**Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass:
+**Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass.
+The `expand-templates` scripts are written to `<TEMP_DIR>/copilot-instructions/` earlier in this file — run from there, then delete them.
 ```powershell
 # Windows
-pwsh ~/.agents/scripts/expand-templates.ps1
+pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
+Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash ~/.agents/scripts/expand-templates.sh
+bash /tmp/copilot-instructions/expand-templates.sh
+rm /tmp/copilot-instructions/expand-templates.sh
 ```
-> **First-time setup only:** if `~/.agents/scripts/expand-templates.ps1` is not yet present (it is installed later in this file), replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` in every SKILL.md you wrote.
+> If neither temp file is present, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.

@@ -226,9 +226,7 @@ function Build-FileManifest {
     }
   }
 
-  $lines += "  # scope: user — expand-templates helper (run after writing all SKILL.md files)"
-  $lines += "  - path: .agents/scripts/expand-templates.ps1"
-  $lines += "  - path: .agents/scripts/expand-templates.sh"
+  $lines += "  # scope: temp — expand-templates helpers are written to <TEMP_DIR>/jumpshell/ and deleted after use"
 
   if ($HasResolver -or $HasChangeControl) {
     $lines += "  # scope: common — install at each referencing skill's scripts/ dir (see 'Common scripts' section)"
@@ -346,7 +344,7 @@ function Build-DynamicGlobalInstructions {
 function Write-TemporaryGlobalInstructions {
   param([string]$Content)
 
-  $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "copilot-instructions"
+  $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "jumpshell"
   if (-not (Test-Path -LiteralPath $tempRoot)) {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
   }
@@ -428,21 +426,9 @@ function Build-NewInstallPromptContent {
   )
 
   $origin = Resolve-OriginRawUrl -WorkspaceRoot $WorkspaceRoot -CanonicalRelativePath $CanonicalRelativePath
-  $tempPath = '<TEMP_DIR>/copilot-instructions/initial-setup.readonly.prompt.md'
-  $lines = @(
-    "# Install Initial Setup",
-    "Download and run the bootstrap prompt from this raw URL.",
-    "",
-    ('Raw URL: `{0}`' -f $origin.RawUrl),
-    ('Temp file: `{0}`' -f $tempPath),
-    "",
-    ('1. Create `{0}` if it does not exist.' -f '<TEMP_DIR>/copilot-instructions'),
-    ('2. Download `{0}` to `{1}`.' -f $origin.RawUrl, $tempPath),
-    '3. Confirm the downloaded file starts with `# Initial Copilot Setup`.',
-    ('4. Run `{0}` as a prompt.' -f $tempPath)
-  )
-
-  return ($lines -join "`n")
+  $templatePath = Join-Path $WorkspaceRoot "src/new-install.template.md"
+  $template = Read-Source -Path $templatePath
+  return $template.Replace('{{RAW_URL}}', $origin.RawUrl)
 }
 
 function Build-InitialSetupContent {

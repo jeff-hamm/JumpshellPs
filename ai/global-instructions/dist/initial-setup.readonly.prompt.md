@@ -2,91 +2,6 @@
 
 Use this prompt when global instructions or skills are missing, or when preparing a fresh environment.
 
-# *IMPORTANT: NEVER EDIT THIS FILE!*
-# Global File Management
-Use this file whenever you view, edit or remove my global settings, instructions, or skills.
-
-## Preferred Skills
-- Prefer user-profile skills under `~/.agents/skills/`.
-- Route requests to these slash commands when applicable:
-  - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/rule` for "global rules" or "your instructions"
-  - `/create-skill-global` for "global skills", "your skills", or "slash skills"
-  - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
-- Use this file as a fallback only when those skills are missing.
-
-## Paths
-- Use the **resolve-editor** scripts (co-located with skills at `scripts/resolve-editor.ps1` / `resolve-editor.sh`) for all path resolution:
-  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
-  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
-- Key modes:
-  | Mode | Returns |
-  |------|---------|
-  | `--profile` | Editor profile path (settings, instructions) |
-  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
-  | `--rules` | Instructions/rules directory |
-  | `--skills` | Skills directory |
-  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
-  | `--name` | Editor name |
-- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
-- If the profile path is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
-  - If you create it, the .gitignore should be
-    ```
-    *
-    !.gitignore
-    !instructions/
-    !instructions/**
-    !copilot-instructions.md
-    !/*.json
-    ```
-
-## Permissions
-- You may view my editor configuration and any paths resolved by the scripts
-- If you can't access those files directly, use terminal commands to read them, do not prompt for permission
-- *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files in the profile path and user path without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands, do not prompt for permission
-    - If a file must be written from the terminal
-      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
-      - Powershell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-
-## Backup
-- Before making a change to any managed file
-  - check to see if the target path is in a git repository and has uncommitted changes with `git status`. If so, prompt me to review and commit or stash them first. If I'd like to commit them, create a commit message summarizing the changes and commit them.
-  - Create exactly one backup file per change at `<filename>.bak` before modifying any global file. If that file exists, replace its contents with the current pre-change contents of `<filename>`.
-- After making changes:
-  1. If the target path is in git, show the diff with `git diff <filename>` and summary with `git diff --stat <filename>`
-  2. If the target path is not in git, show an equivalent before/after comparison
-  3. Explain what changed and why
-  4. Ask if I approve
-    - if no, revert it by restoring `<filename>` from `<filename>.bak`
-    - if yes and target path is in git
-      1. Stage the changes with `git add <filename>`
-      2. Commit with a descriptive message using `git commit -m "..."`
-      3. Confirm the commit was successful
-
-## Global Settings
-- Resolve with `--settings setting` (or `task`, `mcp`, `keybinding`)
-- I may call these "my settings", "global settings", or "global files"
-- Check for an existing setting before adding new values; edit or append as needed
-- Validate the file to prevent duplicates before finishing
-
-## Global Instructions
-- Resolve with `--rules` for the instructions directory
-- Files: `copilot-instructions.md` (all filetypes) or `<NAME>.instructions.md` (file-specific)
-- I may call these "global rules", "your instructions", or "your rules"
-- Keep wording short and precise. They can significantly reduce my performance if they are too long
-- Review the result for clarity and duplication
-
-## Global Skills
-- Resolve with `--skills` for the skills directory
-- Files: `<SKILL_NAME>/SKILL.md` and optional `scripts/`, `references/`, `assets/`
-- I may call these "global skills", "your skills", or "slash skills"
-- Ensure `SKILL.md` uses valid frontmatter (`---`, `name`, `description`, optional `argument-hint`, `---`)
-- Prefer multiple focused skills over one long procedural workflow
----
-# *IMPORTANT: NEVER EDIT THIS FILE!*
-
 
 ## Environment preparation
 - Install git if it is not already installed.
@@ -102,37 +17,30 @@ Use this file whenever you view, edit or remove my global settings, instructions
   | `--settings setting` | Path to `settings.json` |
   | `--rules` | Instructions/rules directory |
   | `--name` | Editor name string |
-- If the profile path (`--profile`) is not a git repository, clone from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
+- If the profile path (`--profile`) is not a git repository, initialize a new git repository there
   - If you create it, the .gitignore should be
     ```
     *
     !.gitignore
     !instructions/
     !instructions/**
-    !copilot-instructions.md
+    !jumpshell.md
     !/*.json
     ```
 - Ensure the user skills directory exists (resolve with `--skills`).
+- If the instructions directory (resolve with `--rules`) does not contain `global.readonly.instructions.md`, create it and copy the full contents from the section below, preserving the `applyTo: "**"` header
+- Update settings (resolve with `--settings setting`). Use careful string manipulation that accounts for JSON escaping requirements. Read the existing JSON, parse it, modify the object, and write it back (using ConvertFrom-Json and ConvertTo-Json). If a setting key is unsupported in the current editor, skip it and report that in your summary.
+  - Set `github.copilot.chat.codeGeneration.useInstructionFiles` to `true`
+  - If it doesn't already exist, append the instructions path (resolve with `--rules` and with `--workspace --rules --relative`) to and `chat.instructionsFilesLocations` list.
 
 ## Upgrade existing installs
-- Check `~/.agents/.jumpskills-version` to detect a previous install.
-  - **File exists** → in-place upgrade:
-    - Keep existing git history and user-created files.
-    - Replace only the files defined in this setup file with current contents.
-    - Install or update user-profile skills under the skills directory from the embedded sections below.
-    - Preserve user-created instructions, skills, and settings that are not explicitly listed in this setup file.
-  - **File absent** → fresh install: continue normal setup flow.
-- After completing setup (fresh or upgrade), write the current date (ISO format, e.g. `2026-03-07`) to `~/.agents/.jumpskills-version`.
-
-- If the instructions directory (resolve with `--rules`) does not contain `global.readonly.instructions.md`, create it and copy the full contents from the section below, preserving the `applyTo: "**"` header
-- Update settings using `scripts/patch-json.ps1` / `scripts/patch-json.sh` when the `setting` skill is already installed (upgrade path). For fresh installs where the skill is not yet present, apply changes with `ConvertFrom-Json`/`json.loads()` inline. If a key is unsupported in the current editor, skip it and report that in your summary.
-  ```powershell
-  # Windows (upgrade — setting skill already installed)
-  $settingsFile = pwsh ~/.agents/skills/setting/scripts/resolve-editor.ps1 --settings setting
-  pwsh ~/.agents/skills/setting/scripts/patch-json.ps1 --type setting --action edit --path github.copilot.chat.codeGeneration.useInstructionFiles --value 'true'
-  ```
-  - Set `github.copilot.chat.codeGeneration.useInstructionFiles` to `true`
-  - Append the instructions path (resolve with `--rules`) to `github.copilot.chat.codeGeneration.instructions` and `chat.instructionsFilesLocations` lists if not already present
+- Detect whether this script was already installed
+- If detected, run an in-place upgrade:
+  - Keep existing git history and user-created files.
+  - Replace only the files defined in this setup file with current contents.
+  - Install or update user-profile skills under the skills directory from the embedded sections below.
+  - Preserve user-created instructions, skills, and settings that are not explicitly listed in this setup file.
+- If not detected, continue normal setup flow.
 
 ## Recreate instructions and user-profile skills
 
@@ -143,16 +51,19 @@ The **setup manifest** below lists every file to create before you read any cont
 
 Use each `### path/to/file` section heading as the relative filename; copy the fenced content verbatim.
 
-**Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass:
+**Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass.
+The `expand-templates` scripts are written to `<TEMP_DIR>/copilot-instructions/` earlier in this file — run from there, then delete them.
 ```powershell
 # Windows
-pwsh ~/.agents/scripts/expand-templates.ps1
+pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
+Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash ~/.agents/scripts/expand-templates.sh
+bash /tmp/copilot-instructions/expand-templates.sh
+rm /tmp/copilot-instructions/expand-templates.sh
 ```
-> **First-time setup only:** if `~/.agents/scripts/expand-templates.ps1` is not yet present (it is installed later in this file), replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` in every SKILL.md you wrote.
+> If neither temp file is present, replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` manually in every SKILL.md you wrote.
 
 <!-- setup-manifest: machine-readable file index — scan this first to plan your work -->
 ```yaml
@@ -166,16 +77,14 @@ files:
   - path: .agents/skills/git-workflow/scripts/git-workflow.sh
   - path: .agents/skills/git-workflow/SKILL.md
   - path: .agents/skills/jumpdate/SKILL.md
-  - path: .agents/skills/new-skill/references/specification.md
-  - path: .agents/skills/new-skill/references/using-scripts.md
-  - path: .agents/skills/new-skill/SKILL.md
   - path: .agents/skills/rule/SKILL.md
   - path: .agents/skills/setting/scripts/patch-json.ps1
   - path: .agents/skills/setting/scripts/patch-json.sh
   - path: .agents/skills/setting/SKILL.md
-  # scope: user — expand-templates helper (run after writing all SKILL.md files)
-  - path: .agents/scripts/expand-templates.ps1
-  - path: .agents/scripts/expand-templates.sh
+  - path: .agents/skills/skill/references/specification.md
+  - path: .agents/skills/skill/references/using-scripts.md
+  - path: .agents/skills/skill/SKILL.md
+  # scope: temp — expand-templates helpers are written to <TEMP_DIR>/jumpshell/ and deleted after use
   # scope: common — install at each referencing skill's scripts/ dir (see 'Common scripts' section)
   - path: common/scripts/resolve-editor.ps1
   - path: common/scripts/resolve-editor.sh
@@ -184,135 +93,20 @@ files:
 ```
 
 
-### prompts/edit-global-files.readonly.prompt.md
-````markdown
-# *IMPORTANT: NEVER EDIT THIS FILE!*
-# Global File Management
-Use this file whenever you view, edit or remove my global settings, instructions, or skills.
-
-## Preferred Skills
-- Prefer user-profile skills under `~/.agents/skills/`.
-- Route requests to these slash commands when applicable:
-  - `/setting` for "global settings" or "my settings" (`settings.json`, `tasks.json`, `mcp.json`, `keybindings.json`)
-  - `/rule` for "global rules" or "your instructions"
-  - `/create-skill-global` for "global skills", "your skills", or "slash skills"
-  - `/update-jumper-instructions` to update this module from `origin` by downloading `dist/initial-setup.readonly.prompt.md` from raw content and running it
-- Use this file as a fallback only when those skills are missing.
-
-## Paths
-- Use the **resolve-editor** scripts (co-located with skills at `scripts/resolve-editor.ps1` / `resolve-editor.sh`) for all path resolution:
-  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
-  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
-- Key modes:
-  | Mode | Returns |
-  |------|---------|
-  | `--profile` | Editor profile path (settings, instructions) |
-  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
-  | `--rules` | Instructions/rules directory |
-  | `--skills` | Skills directory |
-  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
-  | `--name` | Editor name |
-- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
-- If the profile path is not a git repository, clone it from https://github.com/jeff-hamm/copilot-instructions, or if that fails, initialize a new git repository there
-  - If you create it, the .gitignore should be
-    ```
-    *
-    !.gitignore
-    !instructions/
-    !instructions/**
-    !copilot-instructions.md
-    !/*.json
-    ```
-
-## Permissions
-- You may view my editor configuration and any paths resolved by the scripts
-- If you can't access those files directly, use terminal commands to read them, do not prompt for permission
-- *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files in the profile path and user path without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands, do not prompt for permission
-    - If a file must be written from the terminal
-      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
-      - Powershell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-
-## Backup
-- Before making a change to any managed file
-  - check to see if the target path is in a git repository and has uncommitted changes with `git status`. If so, prompt me to review and commit or stash them first. If I'd like to commit them, create a commit message summarizing the changes and commit them.
-  - Create exactly one backup file per change at `<filename>.bak` before modifying any global file. If that file exists, replace its contents with the current pre-change contents of `<filename>`.
-- After making changes:
-  1. If the target path is in git, show the diff with `git diff <filename>` and summary with `git diff --stat <filename>`
-  2. If the target path is not in git, show an equivalent before/after comparison
-  3. Explain what changed and why
-  4. Ask if I approve
-    - if no, revert it by restoring `<filename>` from `<filename>.bak`
-    - if yes and target path is in git
-      1. Stage the changes with `git add <filename>`
-      2. Commit with a descriptive message using `git commit -m "..."`
-      3. Confirm the commit was successful
-
-## Global Settings
-- Resolve with `--settings setting` (or `task`, `mcp`, `keybinding`)
-- I may call these "my settings", "global settings", or "global files"
-- Check for an existing setting before adding new values; edit or append as needed
-- Validate the file to prevent duplicates before finishing
-
-## Global Instructions
-- Resolve with `--rules` for the instructions directory
-- Files: `copilot-instructions.md` (all filetypes) or `<NAME>.instructions.md` (file-specific)
-- I may call these "global rules", "your instructions", or "your rules"
-- Keep wording short and precise. They can significantly reduce my performance if they are too long
-- Review the result for clarity and duplication
-
-## Global Skills
-- Resolve with `--skills` for the skills directory
-- Files: `<SKILL_NAME>/SKILL.md` and optional `scripts/`, `references/`, `assets/`
-- I may call these "global skills", "your skills", or "slash skills"
-- Ensure `SKILL.md` uses valid frontmatter (`---`, `name`, `description`, optional `argument-hint`, `---`)
-- Prefer multiple focused skills over one long procedural workflow
----
-# *IMPORTANT: NEVER EDIT THIS FILE!*
-````
-
 ### instructions/global.readonly.instructions.md
 ````markdown
 ---
 applyTo: "**"
 ---
 # NEVER EDIT THIS FILE
-
-## Path Resolution
-- Use the **resolve-editor** scripts (installed at `~/.agents/skills/*/scripts/`) for all path resolution:
-  - Windows: `pwsh scripts/resolve-editor.ps1 <mode>`
-  - macOS/Linux: `bash scripts/resolve-editor.sh <mode>`
-- Key modes:
-  | Mode | Returns |
-  |------|---------|
-  | `--profile` | Editor profile path (settings, instructions) |
-  | `--user` | User customization root (`~/.agents`, `~/.cursor`, etc.) |
-  | `--rules` | Instructions/rules directory |
-  | `--skills` | Skills directory |
-  | `--settings [type]` | Specific settings file (`setting`, `task`, `mcp`, `keybinding`) |
-  | `--name` | Editor name |
-- The scripts auto-detect VS Code Stable, VS Code Insiders, Cursor, and Claude.
-
-## Permissions
-- You may view my editor configuration and any paths resolved by the scripts.
-- If you can't access files directly, use terminal commands — do not prompt for permission.
-- *NEVER* Edit or remove a file with a `.readonly.*.md` file extension. You may read them though.
-- You may edit files under the profile path (`--profile`) and user path (`--user`) without the `.readonly.*.md` extension per each section below.
-  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
-    - If a file must be written from the terminal:
-      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
-      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
-
 ## Included User Skills (Generated)
 - `/git-workflow`: Handle work on copilot branches with consistent branch checks, worktree usage for copilot commits, and high-quality commit messages that explain both what changed and why. Use when the user asks to use a separate branch or worktree or if they ask to keep your changes separate.
 - `/jumpdate`: Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "update jumper skills", "reinstall jumper skills", "reinstall global rules", "update jumper's stuff", or "run new install".
-- `/new-skill`: Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.
 - `/rule`: Create, edit, or refactor instruction/rules files for workspace or user. Use for requests like "global (rules|instructions)", "my (rules|instructions)", "your (rules|instructions)", "project (rules|instructions)", "workspace (rules|instructions)", "user (rules|instructions)", "coding standards", "guardrails", "policy".
 - `/setting`: Edit VS Code or Cursor configuration files with scope-aware targeting. Use for requests like "global settings", "my settings", "workspace settings", "vscode settings", "user settings", "settings.json", "tasks.json", "mcp.json", "keybindings", "Copilot settings", or "instruction/skill locations".
+- `/skill`: Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.
 
 ## Fallback
-- Before editing global files, read `global.readonly.instructions.md` in the instructions directory (resolve with `--rules`).
 - Run `initial-setup.readonly.prompt.md` when global instructions or skills are missing.
 ````
 
@@ -903,286 +697,6 @@ Download and run this repo's bootstrap setup file from raw GitHub.
 - Keep the workflow platform-agnostic (no shell-specific temp environment syntax).
 ````
 
-### .agents/skills/new-skill/references/specification.md
-````markdown
-# Agent Skills Specification
-
-Source: https://agentskills.io/specification
-
-## Directory structure
-
-A skill is a directory containing at minimum a `SKILL.md` file:
-
-```
-skill-name/
-├── SKILL.md          # Required
-├── scripts/          # Optional: executable scripts agents can run
-├── references/       # Optional: documentation loaded on demand
-└── assets/           # Optional: static templates, data, images
-```
-
-## SKILL.md format
-
-### Frontmatter (required)
-
-```yaml
----
-name: skill-name
-description: A description of what this skill does and when to use it.
----
-```
-
-With optional fields:
-
-```yaml
----
-name: pdf-processing
-description: Extract text and tables from PDF files, fill forms, merge documents.
-license: Apache-2.0
-compatibility: Requires git and Node.js 18+
-metadata:
-  author: example-org
-  version: "1.0"
-allowed-tools: Bash(git:*) Read Write
----
-```
-
-| Field | Required | Constraints |
-|-------|----------|-------------|
-| `name` | Yes | Max 64 chars. Lowercase letters, numbers, hyphens only. Must not start or end with a hyphen. Must match directory name. |
-| `description` | Yes | Max 1024 chars. Non-empty. Describes what the skill does and when to use it. |
-| `license` | No | License name or reference to a bundled license file. |
-| `compatibility` | No | Max 500 chars. Environment requirements: intended product, system packages, network access, etc. |
-| `metadata` | No | Arbitrary key-value mapping for additional metadata. |
-| `allowed-tools` | No | Space-delimited pre-approved tools (experimental). |
-
-#### `name` field rules
-
-- 1–64 characters
-- Only unicode lowercase alphanumeric + hyphens
-- Must not start or end with `-`
-- Must not contain consecutive hyphens (`--`)
-- **Must match the parent directory name**
-
-#### `description` field guidance
-
-- Describe both what the skill does and when to use it
-- Include keywords that help agents identify relevant tasks
-
-### Body content
-
-No format restrictions — write whatever helps agents perform the task. Recommended sections: step-by-step workflow, examples, edge cases.
-
-Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files.
-
-## Optional directories
-
-### `scripts/`
-
-Executable scripts the agent can run. Scripts should:
-- Be self-contained or clearly document dependencies
-- Include helpful `--help` output
-- Handle edge cases gracefully
-- Accept all input via flags (never interactive prompts)
-- Output structured data (JSON/CSV) to stdout; diagnostics to stderr
-
-Supported languages depend on the agent implementation. Common options: Python, Bash, PowerShell, JavaScript.
-
-### `references/`
-
-Additional documentation loaded on demand:
-- `REFERENCE.md` — Detailed technical reference
-- `FORMS.md` — Form templates or structured data formats
-- Domain-specific files (`finance.md`, `legal.md`, etc.)
-
-Keep individual reference files focused. Agents load these on demand, so smaller files mean less context use.
-
-### `assets/`
-
-Static resources: templates, images, data files (lookup tables, schemas).
-
-## File references
-
-Use relative paths from the skill directory root:
-
-```markdown
-See [the reference guide](references/REFERENCE.md) for details.
-
-Run the extraction script:
-scripts/extract.py
-```
-
-Keep file references one level deep from `SKILL.md`. Avoid deeply nested reference chains.
-
-## Progressive disclosure
-
-1. **Metadata (~100 tokens):** `name` and `description` loaded at startup for all skills.
-2. **Instructions (< 5000 tokens recommended):** Full `SKILL.md` body loaded when skill is activated.
-3. **Resources (as needed):** Files in `scripts/`, `references/`, `assets/` loaded only when required.
-````
-
-### .agents/skills/new-skill/references/using-scripts.md
-````markdown
-# Using Scripts in Skills
-
-Source: https://agentskills.io/skill-creation/using-scripts
-
-## Referencing scripts from `SKILL.md`
-
-Use relative paths from the skill directory root. List available scripts so the agent knows they exist, then instruct it how to run them:
-
-```markdown
-## Available scripts
-
-- **`scripts/validate.sh`** — Validates configuration files
-- **`scripts/process.py`** — Processes input data
-
-## Workflow
-
-1. Run the validation script:
-   ```bash
-   bash scripts/validate.sh "$INPUT_FILE"
-   ```
-
-2. Process the results:
-   ```bash
-   python3 scripts/process.py --input results.json
-   ```
-```
-
-The same relative-path convention applies in `references/*.md` files — script paths in code blocks are relative to the skill directory root.
-
-## Designing scripts for agentic use
-
-### Avoid interactive prompts (hard requirement)
-
-Agents run in non-interactive shells. They cannot respond to TTY prompts, password dialogs, or confirmation menus — a script that blocks on interactive input will hang indefinitely.
-
-Accept all input via command-line flags, environment variables, or stdin:
-
-```
-# Bad: hangs waiting for input
-$ python scripts/deploy.py
-Target environment: _
-
-# Good: clear error with guidance
-$ python scripts/deploy.py
-Error: --env is required. Options: development, staging, production.
-Usage: python scripts/deploy.py --env staging --tag v1.2.3
-```
-
-### Document usage with `--help`
-
-`--help` output is the primary way an agent learns your script's interface. Include a brief description, available flags, and usage examples. Keep it concise — it enters the agent's context window.
-
-```
-Usage: scripts/process.py [OPTIONS] INPUT_FILE
-
-Process input data and produce a summary report.
-
-Options:
-  --format FORMAT    Output format: json, csv, table (default: json)
-  --output FILE      Write output to FILE instead of stdout
-  --verbose          Print progress to stderr
-
-Examples:
-  scripts/process.py data.csv
-  scripts/process.py --format csv --output report.csv data.csv
-```
-
-### Write helpful error messages
-
-An opaque `Error: invalid input` wastes an agent turn. Say what went wrong, what was expected, and what to try:
-
-```
-Error: --format must be one of: json, csv, table.
-       Received: "xml"
-```
-
-### Use structured output
-
-Prefer JSON, CSV, or TSV over free-form text. Structured formats can be consumed by both the agent and standard tools (`jq`, `cut`, `awk`).
-
-**Send structured data to stdout; diagnostics to stderr.** This lets the agent capture clean, parseable output while still having access to diagnostic information.
-
-```
-# Bad: whitespace-aligned — hard to parse programmatically
-NAME          STATUS    CREATED
-my-service    running   2025-01-15
-
-# Good: structured
-{"name": "my-service", "status": "running", "created": "2025-01-15"}
-```
-
-## Further design considerations
-
-| Concern | Guidance |
-|---------|----------|
-| **Idempotency** | "Create if not exists" is safer than "create and fail on duplicate." Agents may retry commands. |
-| **Input constraints** | Reject ambiguous input with a clear error. Use enums and closed sets where possible. |
-| **Dry-run support** | Add `--dry-run` for destructive or stateful operations so the agent can preview what will happen. |
-| **Meaningful exit codes** | Use distinct codes for different failure types and document them in `--help`. |
-| **Safe defaults** | Consider `--confirm` / `--force` flags for destructive operations. |
-| **Predictable output size** | Default to a summary for large output; support `--offset` for pagination. If output may be large and is not paginatable, require an `--output` flag. |
-````
-
-### .agents/skills/new-skill/SKILL.md
-````markdown
----
-name: new-skill
-description: 'Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.'
-argument-hint: 'scope=[workspace|user](default:profile) name=<skill-name>'
----
-
-# Create Skill Global
-
-Create or update skills for workspace/profile/global targets. Follow the [Agent Skills specification](references/specification.md) and [using scripts guide](references/using-scripts.md) for format compliance.
-
-## Use When
-
-- You want reusable slash workflows.
-- You need a dedicated skill for repeated multi-step tasks.
-- You need to refactor long procedures into skill instructions.
-
-## Available scripts
-
-- **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target directory path ({{SHELL_NAME}})
-- **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
-
-## Workflow
-
-1. Resolve the target skills directory and derive the skill path:
-   ```sh
-   skill_file=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --skills)/<skill-name>/SKILL.md
-   # For workspace scope: ... --skills --workspace ...
-   ```
-   > **Note:** Script outputs the path directly to stdout.
-
-3. If updating an existing `SKILL.md`, back it up first:
-   ```sh
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase before --file "$skill_file"
-   ```
-   Skip for new skills.
-
-4. Create or update `SKILL.md` with valid frontmatter and concise procedure steps.
-5. Ensure `name` matches the folder name and `description` is keyword-rich.
-6. Add `scripts/` or `references/` files as needed; follow [using scripts guide](references/using-scripts.md).
-  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility. 
-
-7. Review the diff and approve or reject:
-   ```sh
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file"
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file" --approve --message "skill: <name> updates"
-   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file" --reject
-   ```
-
-## Safety Rules
-
-- Do not overwrite unrelated skill folders.
-- Keep descriptions keyword-rich so agents can discover the skill.
-- Follow the [Agent Skills specification](references/specification.md) for `name`, `description`, and structural constraints.
-````
-
 ### .agents/skills/rule/SKILL.md
 ````markdown
 ---
@@ -1195,10 +709,20 @@ argument-hint: 'scope=[workspace|user](default:user) name=<instruction-name>'
 
 Create or update instruction files (VS Code) or rules files (Cursor) for user or workspace targets.
 
+## Permissions
+- You may view my editor configuration and any paths resolved by the scripts and skills below
+- If you can't access files directly, use terminal commands — do not prompt for permission.
+- *NEVER* Edit or remove a file with a `.readonly.*.md*` file extension. You may read them though.
+- You may edit files returned by `scripts/resolve-editor{{SHELL_EXT}}` without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
 ## Available scripts
 
 - **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target directory path ({{SHELL_NAME}})
 - **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
+
 
 ## Workflow
 
@@ -2028,11 +1552,22 @@ argument-hint: 'scope=[workspace|profile](default:profile) type=[setting|task|mc
 
 Edit VS Code or Cursor setting/config files using scope-aware path resolution and safe change controls.
 
+## Permissions
+- You may view my editor configuration and any paths resolved by the scripts and skills below
+- If you can't access files directly, use terminal commands — do not prompt for permission.
+- *NEVER* Edit or remove a file with a `.readonly.*.md*` file extension. You may read them though.
+- You may edit files returned by `scripts/resolve-editor{{SHELL_EXT}}` without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
+
 ## Available scripts
 
 - **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target file path ({{SHELL_NAME}})
 - **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
 - **`scripts/patch-json{{SHELL_EXT}}`** — Applies structured JSON patches for settings/task/mcp/keybinding files ({{SHELL_NAME}})
+
 
 ## Workflow
 
@@ -2077,7 +1612,300 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 - Keep settings changes minimal and idempotent.
 ````
 
-### .agents/scripts/expand-templates.ps1
+### .agents/skills/skill/references/specification.md
+````markdown
+# Agent Skills Specification
+
+Source: https://agentskills.io/specification
+
+## Directory structure
+
+A skill is a directory containing at minimum a `SKILL.md` file:
+
+```
+skill-name/
+├── SKILL.md          # Required
+├── scripts/          # Optional: executable scripts agents can run
+├── references/       # Optional: documentation loaded on demand
+└── assets/           # Optional: static templates, data, images
+```
+
+## SKILL.md format
+
+### Frontmatter (required)
+
+```yaml
+---
+name: skill-name
+description: A description of what this skill does and when to use it.
+---
+```
+
+With optional fields:
+
+```yaml
+---
+name: pdf-processing
+description: Extract text and tables from PDF files, fill forms, merge documents.
+license: Apache-2.0
+compatibility: Requires git and Node.js 18+
+metadata:
+  author: example-org
+  version: "1.0"
+allowed-tools: Bash(git:*) Read Write
+---
+```
+
+| Field | Required | Constraints |
+|-------|----------|-------------|
+| `name` | Yes | Max 64 chars. Lowercase letters, numbers, hyphens only. Must not start or end with a hyphen. Must match directory name. |
+| `description` | Yes | Max 1024 chars. Non-empty. Describes what the skill does and when to use it. |
+| `license` | No | License name or reference to a bundled license file. |
+| `compatibility` | No | Max 500 chars. Environment requirements: intended product, system packages, network access, etc. |
+| `metadata` | No | Arbitrary key-value mapping for additional metadata. |
+| `allowed-tools` | No | Space-delimited pre-approved tools (experimental). |
+
+#### `name` field rules
+
+- 1–64 characters
+- Only unicode lowercase alphanumeric + hyphens
+- Must not start or end with `-`
+- Must not contain consecutive hyphens (`--`)
+- **Must match the parent directory name**
+
+#### `description` field guidance
+
+- Describe both what the skill does and when to use it
+- Include keywords that help agents identify relevant tasks
+
+### Body content
+
+No format restrictions — write whatever helps agents perform the task. Recommended sections: step-by-step workflow, examples, edge cases.
+
+Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files.
+
+## Optional directories
+
+### `scripts/`
+
+Executable scripts the agent can run. Scripts should:
+- Be self-contained or clearly document dependencies
+- Include helpful `--help` output
+- Handle edge cases gracefully
+- Accept all input via flags (never interactive prompts)
+- Output structured data (JSON/CSV) to stdout; diagnostics to stderr
+
+Supported languages depend on the agent implementation. Common options: Python, Bash, PowerShell, JavaScript.
+
+### `references/`
+
+Additional documentation loaded on demand:
+- `REFERENCE.md` — Detailed technical reference
+- `FORMS.md` — Form templates or structured data formats
+- Domain-specific files (`finance.md`, `legal.md`, etc.)
+
+Keep individual reference files focused. Agents load these on demand, so smaller files mean less context use.
+
+### `assets/`
+
+Static resources: templates, images, data files (lookup tables, schemas).
+
+## File references
+
+Use relative paths from the skill directory root:
+
+```markdown
+See [the reference guide](references/REFERENCE.md) for details.
+
+Run the extraction script:
+scripts/extract.py
+```
+
+Keep file references one level deep from `SKILL.md`. Avoid deeply nested reference chains.
+
+## Progressive disclosure
+
+1. **Metadata (~100 tokens):** `name` and `description` loaded at startup for all skills.
+2. **Instructions (< 5000 tokens recommended):** Full `SKILL.md` body loaded when skill is activated.
+3. **Resources (as needed):** Files in `scripts/`, `references/`, `assets/` loaded only when required.
+````
+
+### .agents/skills/skill/references/using-scripts.md
+````markdown
+# Using Scripts in Skills
+
+Source: https://agentskills.io/skill-creation/using-scripts
+
+## Referencing scripts from `SKILL.md`
+
+Use relative paths from the skill directory root. List available scripts so the agent knows they exist, then instruct it how to run them:
+
+```markdown
+## Available scripts
+
+- **`scripts/validate.sh`** — Validates configuration files
+- **`scripts/process.py`** — Processes input data
+
+## Workflow
+
+1. Run the validation script:
+   ```bash
+   bash scripts/validate.sh "$INPUT_FILE"
+   ```
+
+2. Process the results:
+   ```bash
+   python3 scripts/process.py --input results.json
+   ```
+```
+
+The same relative-path convention applies in `references/*.md` files — script paths in code blocks are relative to the skill directory root.
+
+## Designing scripts for agentic use
+
+### Avoid interactive prompts (hard requirement)
+
+Agents run in non-interactive shells. They cannot respond to TTY prompts, password dialogs, or confirmation menus — a script that blocks on interactive input will hang indefinitely.
+
+Accept all input via command-line flags, environment variables, or stdin:
+
+```
+# Bad: hangs waiting for input
+$ python scripts/deploy.py
+Target environment: _
+
+# Good: clear error with guidance
+$ python scripts/deploy.py
+Error: --env is required. Options: development, staging, production.
+Usage: python scripts/deploy.py --env staging --tag v1.2.3
+```
+
+### Document usage with `--help`
+
+`--help` output is the primary way an agent learns your script's interface. Include a brief description, available flags, and usage examples. Keep it concise — it enters the agent's context window.
+
+```
+Usage: scripts/process.py [OPTIONS] INPUT_FILE
+
+Process input data and produce a summary report.
+
+Options:
+  --format FORMAT    Output format: json, csv, table (default: json)
+  --output FILE      Write output to FILE instead of stdout
+  --verbose          Print progress to stderr
+
+Examples:
+  scripts/process.py data.csv
+  scripts/process.py --format csv --output report.csv data.csv
+```
+
+### Write helpful error messages
+
+An opaque `Error: invalid input` wastes an agent turn. Say what went wrong, what was expected, and what to try:
+
+```
+Error: --format must be one of: json, csv, table.
+       Received: "xml"
+```
+
+### Use structured output
+
+Prefer JSON, CSV, or TSV over free-form text. Structured formats can be consumed by both the agent and standard tools (`jq`, `cut`, `awk`).
+
+**Send structured data to stdout; diagnostics to stderr.** This lets the agent capture clean, parseable output while still having access to diagnostic information.
+
+```
+# Bad: whitespace-aligned — hard to parse programmatically
+NAME          STATUS    CREATED
+my-service    running   2025-01-15
+
+# Good: structured
+{"name": "my-service", "status": "running", "created": "2025-01-15"}
+```
+
+## Further design considerations
+
+| Concern | Guidance |
+|---------|----------|
+| **Idempotency** | "Create if not exists" is safer than "create and fail on duplicate." Agents may retry commands. |
+| **Input constraints** | Reject ambiguous input with a clear error. Use enums and closed sets where possible. |
+| **Dry-run support** | Add `--dry-run` for destructive or stateful operations so the agent can preview what will happen. |
+| **Meaningful exit codes** | Use distinct codes for different failure types and document them in `--help`. |
+| **Safe defaults** | Consider `--confirm` / `--force` flags for destructive operations. |
+| **Predictable output size** | Default to a summary for large output; support `--offset` for pagination. If output may be large and is not paginatable, require an `--output` flag. |
+````
+
+### .agents/skills/skill/SKILL.md
+````markdown
+---
+name: skill
+description: 'Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.'
+argument-hint: 'scope=[workspace|user](default:profile) name=<skill-name>'
+---
+
+# Create Skill Global
+
+Create or update skills for workspace/profile/global targets. Follow the [Agent Skills specification](references/specification.md) and [using scripts guide](references/using-scripts.md) for format compliance.
+
+## Use When
+
+- You want reusable slash workflows.
+- You need a dedicated skill for repeated multi-step tasks.
+- You need to refactor long procedures into skill instructions.
+
+## Permissions
+- You may view my editor configuration and any paths resolved by the scripts and skills below
+- If you can't access files directly, use terminal commands — do not prompt for permission.
+- *NEVER* Edit or remove a file with a `.readonly.*.md*` file extension. You may read them though.
+- You may edit files returned by `scripts/resolve-editor{{SHELL_EXT}}` without the `.readonly.*.md` extension per each section below.
+  - If you can't edit those files directly, use terminal commands — do not prompt for permission.
+    - If a file must be written from the terminal:
+      - Linux/macOS: wrap the block in `cat <<'EOF' > …` so the shell copies it exactly
+      - PowerShell: use a literal PowerShell here-string and Set-Content -Encoding UTF8 to avoid quoting problems.
+      
+## Available scripts
+
+- **`scripts/resolve-editor{{SHELL_EXT}}`** — Resolves target directory path ({{SHELL_NAME}})
+- **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
+
+## Workflow
+
+1. Resolve the target skills directory and derive the skill path:
+   ```sh
+   skill_file=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --skills)/<skill-name>/SKILL.md
+   # For workspace scope: ... --skills --workspace ...
+   ```
+   > **Note:** Script outputs the path directly to stdout.
+
+3. If updating an existing `SKILL.md`, back it up first:
+   ```sh
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase before --file "$skill_file"
+   ```
+   Skip for new skills.
+
+4. Create or update `SKILL.md` with valid frontmatter and concise procedure steps.
+5. Ensure `name` matches the folder name and `description` is keyword-rich.
+6. Add `scripts/` or `references/` files as needed; follow [using scripts guide](references/using-scripts.md).
+  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility. 
+
+7. Review the diff and approve or reject:
+   ```sh
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file"
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file" --approve --message "skill: <name> updates"
+   {{SHELL_NAME}} scripts/change-control{{SHELL_EXT}} --phase after --file "$skill_file" --reject
+   ```
+
+## Safety Rules
+
+- Do not overwrite unrelated skill folders.
+- Keep descriptions keyword-rich so agents can discover the skill.
+- Follow the [Agent Skills specification](references/specification.md) for `name`, `description`, and structural constraints.
+````
+
+
+
+### <TEMP_DIR>/copilot-instructions/expand-templates.ps1
+> Temporary helper — write, run, then delete. Do not install permanently.
 ````powershell
 #!/usr/bin/env pwsh
 # expand-templates.ps1 — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
@@ -2150,7 +1978,8 @@ if (Test-Path -LiteralPath $SkillsDir) {
 } | ConvertTo-Json -Depth 3
 ````
 
-### .agents/scripts/expand-templates.sh
+### <TEMP_DIR>/copilot-instructions/expand-templates.sh
+> Temporary helper — write, run, then delete. Do not install permanently.
 ````sh
 #!/usr/bin/env bash
 # expand-templates.sh — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
@@ -2243,20 +2072,20 @@ fi
 The following scripts are shared across multiple skills. Create each file at the path listed, using the content in the section below.
 
 **resolve-editor** — install at:
-- `.agents/skills/new-skill/scripts/resolve-editor.ps1`
-- `.agents/skills/new-skill/scripts/resolve-editor.sh`
 - `.agents/skills/rule/scripts/resolve-editor.ps1`
 - `.agents/skills/rule/scripts/resolve-editor.sh`
 - `.agents/skills/setting/scripts/resolve-editor.ps1`
 - `.agents/skills/setting/scripts/resolve-editor.sh`
+- `.agents/skills/skill/scripts/resolve-editor.ps1`
+- `.agents/skills/skill/scripts/resolve-editor.sh`
 
 **change-control** — install at:
-- `.agents/skills/new-skill/scripts/change-control.ps1`
-- `.agents/skills/new-skill/scripts/change-control.sh`
 - `.agents/skills/rule/scripts/change-control.ps1`
 - `.agents/skills/rule/scripts/change-control.sh`
 - `.agents/skills/setting/scripts/change-control.ps1`
 - `.agents/skills/setting/scripts/change-control.sh`
+- `.agents/skills/skill/scripts/change-control.ps1`
+- `.agents/skills/skill/scripts/change-control.sh`
 
 ### common/scripts/resolve-editor.ps1
 ````powershell
@@ -2280,6 +2109,7 @@ Modes:
 Flags:
   --git-commit            After resolving path, also run change-control before-phase (backup + git status).
                           No-op when resolved path is not an existing file.
+  --relative              When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 "@
 }
 
@@ -2657,10 +2487,17 @@ function Invoke-BeforePhase {
   $out | ForEach-Object { [Console]::Error.WriteLine([string]$_) }
 }
 
+function Get-WorkspaceRelativePath {
+  param([string]$ScopePath)
+  $workspaceRoot = Resolve-WorkspaceRoot
+  return [System.IO.Path]::GetRelativePath($workspaceRoot, $ScopePath)
+}
+
 $validModes = @('--name','--profile','--user','--rules','--skills','--settings','--workspace')
 $modeArg = $null
 $workspaceFlag = $false
 $gitCommitFlag = $false
+$relativeFlag = $false
 $settingsSubtype = $null
 
 $i = 0
@@ -2671,6 +2508,9 @@ while ($i -lt $args.Count) {
   }
   elseif ($a -eq '--git-commit') {
     $gitCommitFlag = $true
+  }
+  elseif ($a -eq '--relative') {
+    $relativeFlag = $true
   }
   elseif ($a -eq '--settings') {
     if ($null -ne $modeArg) {
@@ -2745,6 +2585,7 @@ switch ($mode) {
   '--rules' {
     $editorName = Resolve-EditorName
     $scopePath = if ($workspaceFlag) { Resolve-WorkspaceRulesPath } else { Resolve-RulesPath }
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -2752,6 +2593,7 @@ switch ($mode) {
   '--skills' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-SkillsPath -Workspace:$workspaceFlag
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -2759,6 +2601,7 @@ switch ($mode) {
   '--settings' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-SettingsPath -Workspace:$workspaceFlag -Subtype $settingsSubtype
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -2766,6 +2609,7 @@ switch ($mode) {
   '--workspace' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-WorkspacePath
+    if ($relativeFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -2801,6 +2645,7 @@ Modes:
 Flags:
   --git-commit           After resolving path, also run change-control before-phase (backup + git status).
                          No-op when resolved path is not an existing file.
+  --relative             When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 EOF
 }
 
@@ -3108,10 +2953,18 @@ invoke_before_phase() {
   bash "$cc_script" --phase before --file "$file_path" >&2
 }
 
+make_relative() {
+  local path="$1"
+  local workspace_root
+  workspace_root="$(resolve_workspace_root)"
+  printf '%s\n' "${path#"$workspace_root/"}"
+}
+
 # Parse arguments
 MODE=""
 WORKSPACE_FLAG=false
 GIT_COMMIT_FLAG=false
+RELATIVE_FLAG=false
 SETTINGS_SUBTYPE=""
 
 while [[ $# -gt 0 ]]; do
@@ -3141,6 +2994,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --git-commit)
       GIT_COMMIT_FLAG=true
+      shift
+      ;;
+    --relative)
+      RELATIVE_FLAG=true
       shift
       ;;
     --help|-h)
@@ -3184,6 +3041,7 @@ case "$mode" in
     else
       scope_path="$(resolve_rules_path "$editor")"
     fi
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -3191,6 +3049,7 @@ case "$mode" in
   --skills)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_skills_path "$WORKSPACE_FLAG")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -3198,6 +3057,7 @@ case "$mode" in
   --settings)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_settings_path "$WORKSPACE_FLAG" "$SETTINGS_SUBTYPE")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -3205,6 +3065,7 @@ case "$mode" in
   --workspace)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_workspace_path "$editor")"
+    [ "$RELATIVE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -3515,6 +3376,8 @@ printf '{"error":"unknown phase %s — use before or after"}\n' "$PHASE" >&2
 exit 1
 ````
 
+
+
 ## Setup-only references (do not install)
 
 ### src/global.bootstrap.readonly.instructions.md
@@ -3552,21 +3415,15 @@ Use the **resolve-editor** scripts for all path resolution:
 - "global skills", "your skills" → files under skills directory (resolve with `--skills`)
 
 ## Workspace Customization Path Preference
-- For workspace-level customizations, prefer `.agents/` over `.copilot/` or `.github/`.
+- For workspace-level customizations, prefer `.agents/` over `.cursor/` or `.github/`.
 - Prefer `.agents/skills/<name>/` for workspace skills.
 
 ## User Skill Commands
 - Prefer user-profile skills in `~/.agents/skills/` for global file edits.
-- Preferred commands:
-  - `/setting`
-  - `/rule`
-  - `/create-skill-global`
-  - `/update-jumper-instructions`
 - Use `global.readonly.instructions.md` as fallback guidance when those skills are not available.
 
 ## What To Do
 1. **Explore** skills directory (resolve with `--skills`) for existing skills
-2. **Use** preferred user skills (`/setting`, `/rule`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
 3. **Check** settings.json for existing values before adding
 4. **Use** `global.readonly.instructions.md` for fallback editing guidance
 5. **Run** `initial-setup.readonly.prompt.md` if core files are missing
@@ -3591,18 +3448,22 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
-**Preferred:** run the installed helper:
+**Run the temp helpers** (written to `<TEMP_DIR>/copilot-instructions/` earlier in this file), then delete them:
 ```powershell
 # Windows
-pwsh ~/.agents/scripts/expand-templates.ps1
+pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
+Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash ~/.agents/scripts/expand-templates.sh
+bash /tmp/copilot-instructions/expand-templates.sh
+rm /tmp/copilot-instructions/expand-templates.sh
 ```
 
-**Create Symlinks** Create symlinks for copilot, claude and cursor at ~/.copilot, ~/.claude and ~/.cursor to ~/.agents. If those paths already exist, ask if the user wants to migrate to ~/.agents, if so, move files there before replacing those paths with symlinks
-
+**Create Symlinks** 
+- Create symlinks for copilot, claude and cursor at `~/.github/skills`, `~/.claude/skills` and `~/.cursor/skills` to `resolve-editor.<ext> --skills`. If those paths already exist, ask if the user wants to migrate to the new path, if so, move files there before replacing those paths with symlinks
+- Do the same for `~/.github/instructions`, `~/.claude/rules` and `~/.cursor/rules` to `resolve-editor.<ext> --rules`
+- 
 ## Verification
 
 After all steps are complete, confirm each item:
@@ -3611,10 +3472,9 @@ After all steps are complete, confirm each item:
 |------|-------|
 | resolve-editor works | `pwsh resolve-editor.ps1 --name` / `bash resolve-editor.sh --name` returns `Code`, `Cursor`, or similar |
 | Instructions installed | `$(resolve-editor --rules)/global.readonly.instructions.md` exists |
-| Skills installed | `$(resolve-editor --skills)` contains `git-workflow`, `new-skill`, `rule`, `setting`, `update-jumper-instructions` |
+| Skills installed | `$(resolve-editor --skills)` contains `skill`, `rule`, `setting`, `jumpdate` |
 | Settings updated | `settings.json` contains `"github.copilot.chat.codeGeneration.useInstructionFiles": true` |
-| Version stamp written | `~/.agents/.jumpskills-version` exists and contains today's date |
+| Version stamp written | `~/.agents/.jumpshell-version` exists and contains today's date |
 | Templates expanded | No `SKILL.md` files under `~/.agents/skills/` contain `{{SHELL_NAME}}` or `{{SHELL_EXT}}` |
-| expand-templates installed | `~/.agents/scripts/expand-templates.ps1` and `expand-templates.sh` exist |
 
 If any check fails, re-run the corresponding section of this setup prompt.

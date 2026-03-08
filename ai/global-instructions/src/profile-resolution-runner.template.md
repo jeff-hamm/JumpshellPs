@@ -1,7 +1,0 @@
-- Run the co-located resolver script and use its stdout as `$VSCODE_PROFILE`:
-  - Windows (PowerShell): `pwsh ./resolve-editor.ps1 --profile`
-  - macOS/Linux (bash/zsh): `bash ./resolve-editor.sh --profile`
-- For path modes, stdout is a JSON tuple: `["<EDITOR>","<SCOPE_PATH>"]`; use item 2 as `$VSCODE_PROFILE`.
-- Scripts also export `$EDITOR` and `$SCOPE_PATH` in-process.
-- The script auto-detects VS Code Stable, VS Code Insiders, Cursor, and Claude when metadata is available.
-- If active-channel metadata is unavailable, the script falls back to channel-specific default profile paths.

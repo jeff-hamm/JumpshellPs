@@ -31,21 +31,15 @@ Use the **resolve-editor** scripts for all path resolution:
 - "global skills", "your skills" → files under skills directory (resolve with `--skills`)
 
 ## Workspace Customization Path Preference
-- For workspace-level customizations, prefer `.agents/` over `.copilot/` or `.github/`.
+- For workspace-level customizations, prefer `.agents/` over `.cursor/` or `.github/`.
 - Prefer `.agents/skills/<name>/` for workspace skills.
 
 ## User Skill Commands
 - Prefer user-profile skills in `~/.agents/skills/` for global file edits.
-- Preferred commands:
-  - `/setting`
-  - `/rule`
-  - `/create-skill-global`
-  - `/update-jumper-instructions`
 - Use `global.readonly.instructions.md` as fallback guidance when those skills are not available.
 
 ## What To Do
 1. **Explore** skills directory (resolve with `--skills`) for existing skills
-2. **Use** preferred user skills (`/setting`, `/rule`, `/create-skill-global`, `/update-jumper-instructions`) for global edits
 3. **Check** settings.json for existing values before adding
 4. **Use** `global.readonly.instructions.md` for fallback editing guidance
 5. **Run** `initial-setup.readonly.prompt.md` if core files are missing

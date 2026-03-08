@@ -13,18 +13,22 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
-**Preferred:** run the installed helper:
+**Run the temp helpers** (written to `<TEMP_DIR>/copilot-instructions/` earlier in this file), then delete them:
 ```powershell
 # Windows
-pwsh ~/.agents/scripts/expand-templates.ps1
+pwsh "$env:TEMP/copilot-instructions/expand-templates.ps1"
+Remove-Item "$env:TEMP/copilot-instructions/expand-templates.ps1"
 ```
 ```bash
 # macOS/Linux
-bash ~/.agents/scripts/expand-templates.sh
+bash /tmp/copilot-instructions/expand-templates.sh
+rm /tmp/copilot-instructions/expand-templates.sh
 ```
 
-**Create Symlinks** Create symlinks for copilot, claude and cursor at ~/.copilot, ~/.claude and ~/.cursor to ~/.agents. If those paths already exist, ask if the user wants to migrate to ~/.agents, if so, move files there before replacing those paths with symlinks
-
+**Create Symlinks** 
+- Create symlinks for copilot, claude and cursor at `~/.github/skills`, `~/.claude/skills` and `~/.cursor/skills` to `resolve-editor.<ext> --skills`. If those paths already exist, ask if the user wants to migrate to the new path, if so, move files there before replacing those paths with symlinks
+- Do the same for `~/.github/instructions`, `~/.claude/rules` and `~/.cursor/rules` to `resolve-editor.<ext> --rules`
+- 
 ## Verification
 
 After all steps are complete, confirm each item:
@@ -33,10 +37,9 @@ After all steps are complete, confirm each item:
 |------|-------|
 | resolve-editor works | `pwsh resolve-editor.ps1 --name` / `bash resolve-editor.sh --name` returns `Code`, `Cursor`, or similar |
 | Instructions installed | `$(resolve-editor --rules)/global.readonly.instructions.md` exists |
-| Skills installed | `$(resolve-editor --skills)` contains `git-workflow`, `new-skill`, `rule`, `setting`, `update-jumper-instructions` |
+| Skills installed | `$(resolve-editor --skills)` contains `skill`, `rule`, `setting`, `jumpdate` |
 | Settings updated | `settings.json` contains `"github.copilot.chat.codeGeneration.useInstructionFiles": true` |
-| Version stamp written | `~/.agents/.jumpskills-version` exists and contains today's date |
+| Version stamp written | `~/.agents/.jumpshell-version` exists and contains today's date |
 | Templates expanded | No `SKILL.md` files under `~/.agents/skills/` contain `{{SHELL_NAME}}` or `{{SHELL_EXT}}` |
-| expand-templates installed | `~/.agents/scripts/expand-templates.ps1` and `expand-templates.sh` exist |
 
 If any check fails, re-run the corresponding section of this setup prompt.

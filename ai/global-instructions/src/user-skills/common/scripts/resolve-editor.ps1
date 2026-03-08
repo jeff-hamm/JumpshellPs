@@ -18,6 +18,7 @@ Modes:
 Flags:
   --git-commit            After resolving path, also run change-control before-phase (backup + git status).
                           No-op when resolved path is not an existing file.
+  --relative              When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 "@
 }
 
@@ -395,10 +396,17 @@ function Invoke-BeforePhase {
   $out | ForEach-Object { [Console]::Error.WriteLine([string]$_) }
 }
 
+function Get-WorkspaceRelativePath {
+  param([string]$ScopePath)
+  $workspaceRoot = Resolve-WorkspaceRoot
+  return [System.IO.Path]::GetRelativePath($workspaceRoot, $ScopePath)
+}
+
 $validModes = @('--name','--profile','--user','--rules','--skills','--settings','--workspace')
 $modeArg = $null
 $workspaceFlag = $false
 $gitCommitFlag = $false
+$relativeFlag = $false
 $settingsSubtype = $null
 
 $i = 0
@@ -409,6 +417,9 @@ while ($i -lt $args.Count) {
   }
   elseif ($a -eq '--git-commit') {
     $gitCommitFlag = $true
+  }
+  elseif ($a -eq '--relative') {
+    $relativeFlag = $true
   }
   elseif ($a -eq '--settings') {
     if ($null -ne $modeArg) {
@@ -483,6 +494,7 @@ switch ($mode) {
   '--rules' {
     $editorName = Resolve-EditorName
     $scopePath = if ($workspaceFlag) { Resolve-WorkspaceRulesPath } else { Resolve-RulesPath }
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -490,6 +502,7 @@ switch ($mode) {
   '--skills' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-SkillsPath -Workspace:$workspaceFlag
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -497,6 +510,7 @@ switch ($mode) {
   '--settings' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-SettingsPath -Workspace:$workspaceFlag -Subtype $settingsSubtype
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
@@ -504,6 +518,7 @@ switch ($mode) {
   '--workspace' {
     $editorName = Resolve-EditorName
     $scopePath = Resolve-WorkspacePath
+    if ($relativeFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
     Export-ScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
     if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }

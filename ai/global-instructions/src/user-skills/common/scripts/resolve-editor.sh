@@ -19,6 +19,7 @@ Modes:
 Flags:
   --git-commit           After resolving path, also run change-control before-phase (backup + git status).
                          No-op when resolved path is not an existing file.
+  --relative             When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 EOF
 }
 
@@ -326,10 +327,18 @@ invoke_before_phase() {
   bash "$cc_script" --phase before --file "$file_path" >&2
 }
 
+make_relative() {
+  local path="$1"
+  local workspace_root
+  workspace_root="$(resolve_workspace_root)"
+  printf '%s\n' "${path#"$workspace_root/"}"
+}
+
 # Parse arguments
 MODE=""
 WORKSPACE_FLAG=false
 GIT_COMMIT_FLAG=false
+RELATIVE_FLAG=false
 SETTINGS_SUBTYPE=""
 
 while [[ $# -gt 0 ]]; do
@@ -359,6 +368,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --git-commit)
       GIT_COMMIT_FLAG=true
+      shift
+      ;;
+    --relative)
+      RELATIVE_FLAG=true
       shift
       ;;
     --help|-h)
@@ -402,6 +415,7 @@ case "$mode" in
     else
       scope_path="$(resolve_rules_path "$editor")"
     fi
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -409,6 +423,7 @@ case "$mode" in
   --skills)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_skills_path "$WORKSPACE_FLAG")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -416,6 +431,7 @@ case "$mode" in
   --settings)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_settings_path "$WORKSPACE_FLAG" "$SETTINGS_SUBTYPE")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -423,6 +439,7 @@ case "$mode" in
   --workspace)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_workspace_path "$editor")"
+    [ "$RELATIVE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
