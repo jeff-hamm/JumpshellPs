@@ -212,11 +212,10 @@ function Build-FileManifest {
   $lines = @()
   $lines += "<!-- setup-manifest: machine-readable file index — scan this first to plan your work -->"
   $lines += '```yaml'
-  $lines += "schema: jumpskills/manifest/v1"
+  $lines += "schema: jumpshell/manifest/v1"
   $lines += "files:"
   $lines += "  # scope: profile — base path: `$(pwsh resolve-editor.ps1 --profile) | `$(bash resolve-editor.sh --profile)"
-  $lines += "  - path: prompts/edit-global-files.readonly.prompt.md"
-  $lines += "  - path: instructions/global.readonly.instructions.md"
+  $lines += "  - scope: user -- base path --rules global.readonly.instructions.md"
 
   $userSources = @($SkillSources | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Section) })
   if ($userSources.Count -gt 0) {

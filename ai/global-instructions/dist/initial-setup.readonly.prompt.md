@@ -67,11 +67,10 @@ rm /tmp/copilot-instructions/expand-templates.sh
 
 <!-- setup-manifest: machine-readable file index — scan this first to plan your work -->
 ```yaml
-schema: jumpskills/manifest/v1
+schema: jumpshell/manifest/v1
 files:
   # scope: profile — base path: $(pwsh resolve-editor.ps1 --profile) | $(bash resolve-editor.sh --profile)
-  - path: prompts/edit-global-files.readonly.prompt.md
-  - path: instructions/global.readonly.instructions.md
+  - scope: user -- base path --rules global.readonly.instructions.md
   # scope: user — base path: ~/ (e.g. .agents/skills/... installs to ~/.agents/skills/...)
   - path: .agents/skills/git-workflow/scripts/git-workflow.ps1
   - path: .agents/skills/git-workflow/scripts/git-workflow.sh
