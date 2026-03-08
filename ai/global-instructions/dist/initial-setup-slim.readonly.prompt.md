@@ -34,6 +34,7 @@ Create parent directories as needed. Download each file — append source to `$B
 | `src/user-skills/git-workflow/SKILL.md` | `$S/git-workflow/SKILL.md` |
 | `src/user-skills/jumpdate/SKILL.md` | `$S/jumpdate/SKILL.md` |
 | `src/user-skills/rule/SKILL.md` | `$S/rule/SKILL.md` |
+| `src/user-skills/setting/references/known-settings.md` | `$S/setting/references/known-settings.md` |
 | `src/user-skills/setting/scripts/patch-json.ps1` | `$S/setting/scripts/patch-json.ps1` |
 | `src/user-skills/setting/scripts/patch-json.sh` | `$S/setting/scripts/patch-json.sh` |
 | `src/user-skills/setting/SKILL.md` | `$S/setting/SKILL.md` |

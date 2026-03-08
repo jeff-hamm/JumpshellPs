@@ -85,6 +85,7 @@ files:
   - path: .agents/skills/git-workflow/SKILL.md
   - path: .agents/skills/jumpdate/SKILL.md
   - path: .agents/skills/rule/SKILL.md
+  - path: .agents/skills/setting/references/known-settings.md
   - path: .agents/skills/setting/scripts/patch-json.ps1
   - path: .agents/skills/setting/scripts/patch-json.sh
   - path: .agents/skills/setting/SKILL.md
@@ -772,6 +773,39 @@ Create or update instruction files (VS Code) or rules files (Cursor) for user or
 
 - Never edit `*.readonly.*.md` files.
 - Prefer updating an existing instruction file before creating a new one.
+````
+
+### .agents/skills/setting/references/known-settings.md
+````markdown
+# Known VS Code / Cursor Setting Keys
+
+This file is maintained by the `setting` skill. When the slow-path discovery finds a new key
+that is broadly useful, add a row here so future lookups are instant.
+
+**Format:** `| natural-language description(s) | dot-notation key | allowed values / type |`
+
+## Copilot
+
+| Description | Setting key | Allowed values |
+|---|---|---|
+| reasoning effort / thinking effort | `github.copilot.chat.responsesApiReasoningEffort` | `default` `low` `medium` `high` `xhigh` |
+| copilot chat model / default model | `github.copilot.chat.defaultModel` | model ID string |
+
+## Editor
+
+| Description | Setting key | Allowed values |
+|---|---|---|
+| editor font size | `editor.fontSize` | number |
+| editor tab size / indent size | `editor.tabSize` | number |
+| word wrap | `editor.wordWrap` | `off` `on` `wordWrapColumn` `bounded` |
+| format on save | `editor.formatOnSave` | `true` / `false` |
+| auto save | `files.autoSave` | `off` `afterDelay` `onFocusChange` `onWindowChange` |
+
+## Terminal
+
+| Description | Setting key | Allowed values |
+|---|---|---|
+| terminal font size | `terminal.integrated.fontSize` | number |
 ````
 
 ### .agents/skills/setting/scripts/patch-json.ps1
@@ -1588,32 +1622,49 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 - **`scripts/change-control{{SHELL_EXT}}`** — Before/after safety checks with approve/reject ({{SHELL_NAME}})
 - **`scripts/patch-json{{SHELL_EXT}}`** — Applies structured JSON patches for settings/task/mcp/keybinding files ({{SHELL_NAME}})
 
+## References
+
+- **`references/known-settings.md`** — Cache of discovered setting keys; you may add rows freely.
+
 
 ## Workflow
 
 > **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
 
-1. **Discover the setting key** when the request uses natural-language or a descriptive label instead of an exact dot-notation key (e.g. "reasoning effort", "tab size", "font size"):
+1. **Discover the setting key** when the request uses natural-language or a descriptive label instead of an exact dot-notation key.
 
-   a. Use the `get_vscode_api` deferred tool (load via `tool_search_tool_regex` first if not already available) to search available setting IDs by keyword.
+   **Fast path — consult `references/known-settings.md` first (no filesystem access needed):**
 
-   b. If `get_vscode_api` is unavailable, search installed-extension `package.json` files for matching `contributes.configuration` entries:
+   Read [`references/known-settings.md`](references/known-settings.md) and check whether the user's description matches any row.
+   If it does, skip steps b–d and proceed directly to patching.
+
+   **After any slow-path discovery that finds a new broadly-useful key**, add it to `references/known-settings.md` under the appropriate section so future lookups are instant. You may edit that file freely.
+
+   **Slow path — when key is not in references:**
+
+   a. Use the `get_vscode_api` deferred tool (load via `tool_search_tool_regex` first) to search setting IDs by keyword — fastest option when available.
+
+   b. Otherwise use ripgrep against only the most relevant extension directory (scope the search, don't scan all extensions):
       ```{{SHELL_NAME}}
-      # Resolve the user profile dir, then derive the extensions dir one level up
-      $profile = (pwsh scripts/resolve-editor{{SHELL_EXT}} --settings setting | ConvertFrom-Json)[1]
-      $extRoot = Join-Path (Split-Path (Split-Path $profile)) ".vscode\extensions"
-      if (-not (Test-Path $extRoot)) { $extRoot = "$env:USERPROFILE\.vscode\extensions" }
-      Get-ChildItem $extRoot -Recurse -Filter package.json -Depth 3 |
-        Select-String -Pattern '"<keyword>"' |
-        Select-Object -First 20
+      # Resolve the extensions root
+      $extRoot = if (Test-Path "$env:USERPROFILE\.vscode\extensions") { "$env:USERPROFILE\.vscode\extensions" } else { (pwsh scripts/resolve-editor{{SHELL_EXT}} --profile) | Split-Path | Join-Path -ChildPath "..\extensions" }
+      # Search only likely extension dirs first (e.g. github.copilot* for Copilot-related terms)
+      $hint = "<publisher-prefix>"   # e.g. "github.copilot" for reasoning/copilot queries, "ms-vscode" for core editor
+      $dirs = Get-ChildItem $extRoot -Directory | Where-Object Name -like "$hint*" | Select-Object -ExpandProperty FullName
+      if (-not $dirs) { $dirs = @($extRoot) }
+      rg -l -i "<keyword1>|<keyword2>" $dirs --glob "package.json" --max-depth 2
       ```
-      Replace `<keyword>` with a relevant term from the user's description (e.g. `reasoning`, `effort`, `thinking`).
+      Then read only the matching file(s) and extract the relevant key:
+      ```{{SHELL_NAME}}
+      rg -n -i "<keyword1>|<keyword2>" "<matching-package.json-path>"
+      ```
 
-   c. If neither approach finds a match, try reading the active settings file and presenting keys that partially match the description.
+   c. If no match is found, grep the active settings file for partial matches:
+      ```{{SHELL_NAME}}
+      rg -n -i "<keyword>" (pwsh scripts/resolve-editor{{SHELL_EXT}} --settings setting)
+      ```
 
-   d. Present the top candidate key(s) with their current value — then either:
-      - Confirm and proceed if exactly one strong match is found, or
-      - Ask the user to confirm which candidate key is correct before patching.
+   d. Present the top candidate key(s) with their current value. Auto-confirm if there is exactly one strong match; otherwise ask the user.
 
 2. Parse the prompt to determine the exact JSON intent before editing:
    - Determine target type: `setting`, `task`, `mcp`, or `keybinding`.
