@@ -26,13 +26,7 @@
 - Ensure the user skills directory exists (resolve with `--skills`).
 
 ## Upgrade existing installs
-- Detect whether this profile was initialized by a legacy setup flow:
-  - One or more required user-skill files are missing:
-    - `~/.agents/skills/setting/SKILL.md`
-    - `~/.agents/skills/rule/SKILL.md`
-    - `~/.agents/skills/create-skill-global/SKILL.md`
-    - `~/.agents/skills/update-jumper-instructions/SKILL.md`
-    - `~/.agents/skills/git-workflow/SKILL.md`
+- Detect whether this script was already installed
 - If detected, run an in-place upgrade:
   - Keep existing git history and user-created files.
   - Replace only the files defined in this setup file with current contents.

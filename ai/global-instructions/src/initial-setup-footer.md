@@ -12,3 +12,5 @@ Detect the target operating system and substitute accordingly:
 **Detection:** Use `$env:OS -eq 'Windows_NT'` (PowerShell) or `uname -s` (bash). If running on Windows, apply the PowerShell substitutions; otherwise apply the bash substitutions.
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
+
+**Create Symlinks** Create symlinks for copilot, claude and cursor at ~/.copilot, ~/.claude and ~/.cursor to ~/.agents. If those paths already exist, ask if the user wants to migrate to ~/.agents, if so, move files there before replacing those paths with symlinks
