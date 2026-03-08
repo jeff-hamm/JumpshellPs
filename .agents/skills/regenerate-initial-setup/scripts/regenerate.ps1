@@ -19,9 +19,11 @@
   pwsh .agents/skills/regenerate-initial-setup/scripts/regenerate.ps1
 #>
 param(
-  [string]$WorkspaceRoot       = "",
-  [string]$OutputRelativePath  = "dist/initial-setup.readonly.prompt.md",
-  [string]$BootstrapRelativePath = "dist/new-install.readonly.prompt.md"
+  [string]$WorkspaceRoot          = "",
+  [string]$OutputRelativePath     = "dist/initial-setup.readonly.prompt.md",
+  [string]$BootstrapRelativePath  = "dist/new-install.readonly.prompt.md",
+  [string]$SlimRelativePath       = "dist/initial-setup-slim.readonly.prompt.md",
+  [string]$GlobalDistRelativePath = "dist/global.readonly.instructions.md"
 )
 $ErrorActionPreference = "Stop"
 
@@ -53,9 +55,13 @@ $builderPath = "$PSScriptRoot/initial-setup-builder.ps1"
 $model = Build-InitialSetupContent -WorkspaceRoot $WorkspaceRoot -EmitTemporaryGlobalInstructions
 $content = $model.Content
 $bootstrapContent = Build-NewInstallPromptContent -WorkspaceRoot $WorkspaceRoot -CanonicalRelativePath $OutputRelativePath
+$baseUrl = Get-RawBaseUrl -WorkspaceRoot $WorkspaceRoot
+$slimContent = Build-SlimInstallContent -WorkspaceRoot $WorkspaceRoot -GlobalInstructionsContent $model.GeneratedGlobalInstructions -BaseUrl $baseUrl
 
-$outputPath = Join-Path $WorkspaceRoot $OutputRelativePath
+$outputPath    = Join-Path $WorkspaceRoot $OutputRelativePath
 $bootstrapPath = Join-Path $WorkspaceRoot $BootstrapRelativePath
+$slimPath      = Join-Path $WorkspaceRoot $SlimRelativePath
+$globalDistPath = Join-Path $WorkspaceRoot $GlobalDistRelativePath
 
 $outputDir = Split-Path -Path $outputPath -Parent
 if (-not (Test-Path -LiteralPath $outputDir)) {
@@ -67,11 +73,25 @@ if (-not (Test-Path -LiteralPath $bootstrapDir)) {
   New-Item -ItemType Directory -Path $bootstrapDir -Force | Out-Null
 }
 
-Set-Content -LiteralPath $outputPath -Value $content -Encoding utf8
-Set-Content -LiteralPath $bootstrapPath -Value $bootstrapContent -Encoding utf8
+$slimDir = Split-Path -Path $slimPath -Parent
+if (-not (Test-Path -LiteralPath $slimDir)) {
+  New-Item -ItemType Directory -Path $slimDir -Force | Out-Null
+}
+
+$globalDistDir = Split-Path -Path $globalDistPath -Parent
+if (-not (Test-Path -LiteralPath $globalDistDir)) {
+  New-Item -ItemType Directory -Path $globalDistDir -Force | Out-Null
+}
+
+Set-Content -LiteralPath $outputPath     -Value $content          -Encoding utf8
+Set-Content -LiteralPath $bootstrapPath  -Value $bootstrapContent  -Encoding utf8
+Set-Content -LiteralPath $slimPath       -Value $slimContent       -Encoding utf8
+Set-Content -LiteralPath $globalDistPath -Value $model.GeneratedGlobalInstructions -Encoding utf8
 
 Write-Host "Regenerated: $outputPath"
 Write-Host "Regenerated: $bootstrapPath"
+Write-Host "Regenerated: $slimPath"
+Write-Host "Regenerated: $globalDistPath"
 if (-not [string]::IsNullOrWhiteSpace($model.TemporaryGlobalInstructionsPath)) {
   Write-Host "Temporary global instructions: $($model.TemporaryGlobalInstructionsPath)"
 }
