@@ -27,6 +27,8 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 ## Workflow
 
+{{SCRIPT_PATHS_NOTE}}
+
 1. Parse the prompt first to determine the exact JSON intent before editing:
    - Determine target type: `setting`, `task`, `mcp`, or `keybinding`.
    - Determine operation: `add`, `edit`, or `remove`.

@@ -10,6 +10,8 @@ argument-hint: 'Optional: mode=[copilot-commit|current-branch](auto)'
 
 ## Required Workflow
 
+{{SCRIPT_PATHS_NOTE}}
+
 1. **Check branch state** — determine current branch, derived AI branch name (`<current>_ai`), and whether its worktree already exists:
 
    ```sh

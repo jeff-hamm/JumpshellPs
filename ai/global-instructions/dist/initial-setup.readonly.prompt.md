@@ -621,6 +621,8 @@ argument-hint: 'Optional: mode=[copilot-commit|current-branch](auto)'
 
 ## Required Workflow
 
+> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+
 1. **Check branch state** — determine current branch, derived AI branch name (`<current>_ai`), and whether its worktree already exists:
 
    ```sh
@@ -733,6 +735,8 @@ Create or update instruction files (VS Code) or rules files (Cursor) for user or
 
 
 ## Workflow
+
+> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
 
 1. Resolve the target directory and derive the target file path:
    ```sh
@@ -1579,6 +1583,8 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 ## Workflow
 
+> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+
 1. Parse the prompt first to determine the exact JSON intent before editing:
    - Determine target type: `setting`, `task`, `mcp`, or `keybinding`.
    - Determine operation: `add`, `edit`, or `remove`.
@@ -1878,6 +1884,8 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 
 ## Workflow
 
+> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+
 1. Resolve the target skills directory and derive the skill path:
    ```sh
    skill_file=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --skills)/<skill-name>/SKILL.md
@@ -1894,7 +1902,8 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 4. Create or update `SKILL.md` with valid frontmatter and concise procedure steps.
 5. Ensure `name` matches the folder name and `description` is keyword-rich.
 6. Add `scripts/` or `references/` files as needed; follow [using scripts guide](references/using-scripts.md).
-  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility. 
+  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility.
+  - If the skill references any `scripts/`, `references/`, or `assets/` paths, place `> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.` at the top of the `## Workflow` section. The builder expands it to a blockquote instructing the agent to `cd` to the skill directory first.
 
 7. Review the diff and approve or reject:
    ```sh

@@ -25,6 +25,8 @@ Create or update instruction files (VS Code) or rules files (Cursor) for user or
 
 ## Workflow
 
+{{SCRIPT_PATHS_NOTE}}
+
 1. Resolve the target directory and derive the target file path:
    ```sh
    target_file=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --rules)/<instruction-name>.md

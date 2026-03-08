@@ -31,6 +31,8 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 
 ## Workflow
 
+{{SCRIPT_PATHS_NOTE}}
+
 1. Resolve the target skills directory and derive the skill path:
    ```sh
    skill_file=$({{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --skills)/<skill-name>/SKILL.md
@@ -47,7 +49,8 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 4. Create or update `SKILL.md` with valid frontmatter and concise procedure steps.
 5. Ensure `name` matches the folder name and `description` is keyword-rich.
 6. Add `scripts/` or `references/` files as needed; follow [using scripts guide](references/using-scripts.md).
-  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility. 
+  - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility.
+  - If the skill references any `scripts/`, `references/`, or `assets/` paths, place `{{SCRIPT_PATHS_NOTE}}` at the top of the `## Workflow` section. The builder expands it to a blockquote instructing the agent to `cd` to the skill directory first.
 
 7. Review the diff and approve or reject:
    ```sh

@@ -140,12 +140,13 @@ function Get-UserSkillSources {
   $result = @()
   $resolverTargetDirs = New-Object System.Collections.Generic.HashSet[string]
   $changeControlTargetDirs = New-Object System.Collections.Generic.HashSet[string]
+  $scriptPathsNote = '> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill''s directory (the parent of this `SKILL.md`). `cd` there before running any scripts.'
 
   foreach ($file in $files) {
     $relative = Get-RelativePathNormalized -FullPath $file.FullName -BasePath $skillRoot
     $rawContent = Read-Source -Path $file.FullName
     $isScriptFile = $file.Extension -match '^\.(ps1|sh)$'
-    $content = $rawContent
+    $content = $rawContent -replace '\{\{SCRIPT_PATHS_NOTE\}\}', $scriptPathsNote
     $metadata = if (-not $isScriptFile) { Get-SkillMetadataFromContent -Content $content } else { [PSCustomObject]@{ Name = $null; Description = $null } }
 
     $isSkill = (-not $isScriptFile) -and ($file.Name -ieq "SKILL.md") -and -not [string]::IsNullOrWhiteSpace($metadata.Name)
