@@ -508,71 +508,33 @@ function Build-SlimInstallContent {
   }
 
   $skillModel = Get-UserSkillSources -WorkspaceRoot $WorkspaceRoot
+  $tableRows  = [System.Collections.Generic.List[string]]::new()
 
-  $seenParentDirs = [System.Collections.Generic.HashSet[string]]::new()
-  $mkdirPs1 = [System.Collections.Generic.List[string]]::new()
-  $mkdirSh  = [System.Collections.Generic.List[string]]::new()
-  $dlPs1    = [System.Collections.Generic.List[string]]::new()
-  $dlSh     = [System.Collections.Generic.List[string]]::new()
+  # global instructions
+  $tableRows.Add("| ``dist/global.readonly.instructions.md`` | ```$R/global.readonly.instructions.md`` |")
 
+  # skill sources
   foreach ($src in $skillModel.Sources) {
-    $rel       = $src.RelativePath  # e.g. "git-workflow/SKILL.md"
-    $parentRel = (Split-Path -Path $rel -Parent) -replace "\\", "/"
-
-    if (-not $seenParentDirs.Contains($parentRel)) {
-      [void]$seenParentDirs.Add($parentRel)
-      if (-not [string]::IsNullOrWhiteSpace($parentRel)) {
-        $psDir = "`$S\" + ($parentRel -replace "/", "\")
-        $shDir = "`$S/$parentRel"
-        $mkdirPs1.Add("New-Item -Force -ItemType Directory `"$psDir`" | Out-Null")
-        $mkdirSh.Add("mkdir -p `"$shDir`"")
-      }
-    }
-
-    $srcUrl  = "$BaseUrl/src/user-skills/$rel"
-    $destPs1 = "`$S\" + ($rel -replace "/", "\")
-    $destSh  = "`$S/$rel"
-    $dlPs1.Add("iwr `"$srcUrl`" -OutFile `"$destPs1`"")
-    $dlSh.Add("curl -fsSL `"$srcUrl`" -o `"$destSh`"")
+    $rel = $src.RelativePath
+    $tableRows.Add("| ``src/user-skills/$rel`` | ```$S/$rel`` |")
   }
 
-  # Common scripts: resolve-editor and change-control foreach loops
-  $commonPs1 = [System.Collections.Generic.List[string]]::new()
-  $commonSh  = [System.Collections.Generic.List[string]]::new()
-
+  # common scripts
   $hasResolver      = $skillModel.ResolverTargetDirs.Count -gt 0
   $hasChangeControl = $skillModel.ChangeControlTargetDirs.Count -gt 0
 
   if ($hasResolver) {
-    $dirsPs   = ($skillModel.ResolverTargetDirs | ForEach-Object { "`"$_`"" }) -join ","
-    $dirsBash = ($skillModel.ResolverTargetDirs | ForEach-Object { "`"$_`"" }) -join " "
-    $commonPs1.Add("foreach (`$d in @($dirsPs)) {")
-    $commonPs1.Add("  New-Item -Force -ItemType Directory `"`$S\`$d\scripts`" | Out-Null")
-    $commonPs1.Add("  iwr `"$BaseUrl/src/user-skills/common/scripts/resolve-editor.ps1`" -OutFile `"`$S\`$d\scripts\resolve-editor.ps1`"")
-    $commonPs1.Add("  iwr `"$BaseUrl/src/user-skills/common/scripts/resolve-editor.sh`"  -OutFile `"`$S\`$d\scripts\resolve-editor.sh`"")
-    $commonPs1.Add("}")
-    $commonSh.Add("for d in $dirsBash; do")
-    $commonSh.Add("  mkdir -p `"`$S/`$d/scripts`"")
-    $commonSh.Add("  curl -fsSL `"$BaseUrl/src/user-skills/common/scripts/resolve-editor.ps1`" -o `"`$S/`$d/scripts/resolve-editor.ps1`"")
-    $commonSh.Add("  curl -fsSL `"$BaseUrl/src/user-skills/common/scripts/resolve-editor.sh`"  -o `"`$S/`$d/scripts/resolve-editor.sh`"")
-    $commonSh.Add("done")
+    foreach ($dir in $skillModel.ResolverTargetDirs) {
+      $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.ps1`` | ```$S/$dir/scripts/resolve-editor.ps1`` |")
+      $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.sh`` | ```$S/$dir/scripts/resolve-editor.sh`` |")
+    }
   }
 
   if ($hasChangeControl) {
-    if ($commonPs1.Count -gt 0) { $commonPs1.Add("") }
-    if ($commonSh.Count -gt 0)  { $commonSh.Add("") }
-    $dirsPs   = ($skillModel.ChangeControlTargetDirs | ForEach-Object { "`"$_`"" }) -join ","
-    $dirsBash = ($skillModel.ChangeControlTargetDirs | ForEach-Object { "`"$_`"" }) -join " "
-    $commonPs1.Add("foreach (`$d in @($dirsPs)) {")
-    $commonPs1.Add("  New-Item -Force -ItemType Directory `"`$S\`$d\scripts`" | Out-Null")
-    $commonPs1.Add("  iwr `"$BaseUrl/src/user-skills/common/scripts/change-control.ps1`" -OutFile `"`$S\`$d\scripts\change-control.ps1`"")
-    $commonPs1.Add("  iwr `"$BaseUrl/src/user-skills/common/scripts/change-control.sh`"  -OutFile `"`$S\`$d\scripts\change-control.sh`"")
-    $commonPs1.Add("}")
-    $commonSh.Add("for d in $dirsBash; do")
-    $commonSh.Add("  mkdir -p `"`$S/`$d/scripts`"")
-    $commonSh.Add("  curl -fsSL `"$BaseUrl/src/user-skills/common/scripts/change-control.ps1`" -o `"`$S/`$d/scripts/change-control.ps1`"")
-    $commonSh.Add("  curl -fsSL `"$BaseUrl/src/user-skills/common/scripts/change-control.sh`"  -o `"`$S/`$d/scripts/change-control.sh`"")
-    $commonSh.Add("done")
+    foreach ($dir in $skillModel.ChangeControlTargetDirs) {
+      $tableRows.Add("| ``src/user-skills/common/scripts/change-control.ps1`` | ```$S/$dir/scripts/change-control.ps1`` |")
+      $tableRows.Add("| ``src/user-skills/common/scripts/change-control.sh`` | ```$S/$dir/scripts/change-control.sh`` |")
+    }
   }
 
   $templatePath = Join-Path $WorkspaceRoot "src/initial-setup-slim.template.md"
@@ -580,12 +542,7 @@ function Build-SlimInstallContent {
 
   $content = Expand-TemplateTokens -Content $template -TemplateMap @{
     '{{SLIM_BASE_URL}}'   = $BaseUrl
-    '{{SLIM_MKDIRS_PS1}}' = ($mkdirPs1 -join "`n")
-    '{{SLIM_MKDIRS_SH}}'  = ($mkdirSh -join "`n")
-    '{{SLIM_DL_PS1}}'     = ($dlPs1 -join "`n")
-    '{{SLIM_DL_SH}}'      = ($dlSh -join "`n")
-    '{{SLIM_COMMON_PS1}}' = ($commonPs1 -join "`n")
-    '{{SLIM_COMMON_SH}}'  = ($commonSh -join "`n")
+    '{{SLIM_FILE_TABLE}}' = ($tableRows -join "`n")
   }
 
   return $content
