@@ -1565,7 +1565,7 @@ PY
 ---
 name: setting
 description: 'Edit VS Code or Cursor configuration files with scope-aware targeting. Use for requests like "global settings", "my settings", "workspace settings", "vscode settings", "user settings", "settings.json", "tasks.json", "mcp.json", "keybindings", "Copilot settings", or "instruction/skill locations".'
-argument-hint: 'scope=[workspace|profile](default:profile) type=[setting|task|mcp|keybinding](default:setting) key=<setting-key>'
+argument-hint: 'scope=[workspace|profile](default:profile) type=[setting|task|mcp|keybinding](default:setting) key=<setting-key-or-description>'
 ---
 
 # Setting
@@ -1593,14 +1593,36 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 > **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
 
-1. Parse the prompt first to determine the exact JSON intent before editing:
+1. **Discover the setting key** when the request uses natural-language or a descriptive label instead of an exact dot-notation key (e.g. "reasoning effort", "tab size", "font size"):
+
+   a. Use the `get_vscode_api` deferred tool (load via `tool_search_tool_regex` first if not already available) to search available setting IDs by keyword.
+
+   b. If `get_vscode_api` is unavailable, search installed-extension `package.json` files for matching `contributes.configuration` entries:
+      ```{{SHELL_NAME}}
+      # Resolve the user profile dir, then derive the extensions dir one level up
+      $profile = (pwsh scripts/resolve-editor{{SHELL_EXT}} --settings setting | ConvertFrom-Json)[1]
+      $extRoot = Join-Path (Split-Path (Split-Path $profile)) ".vscode\extensions"
+      if (-not (Test-Path $extRoot)) { $extRoot = "$env:USERPROFILE\.vscode\extensions" }
+      Get-ChildItem $extRoot -Recurse -Filter package.json -Depth 3 |
+        Select-String -Pattern '"<keyword>"' |
+        Select-Object -First 20
+      ```
+      Replace `<keyword>` with a relevant term from the user's description (e.g. `reasoning`, `effort`, `thinking`).
+
+   c. If neither approach finds a match, try reading the active settings file and presenting keys that partially match the description.
+
+   d. Present the top candidate key(s) with their current value — then either:
+      - Confirm and proceed if exactly one strong match is found, or
+      - Ask the user to confirm which candidate key is correct before patching.
+
+2. Parse the prompt to determine the exact JSON intent before editing:
    - Determine target type: `setting`, `task`, `mcp`, or `keybinding`.
    - Determine operation: `add`, `edit`, or `remove`.
    - Determine patch parameters:
      - Object-style edits (`setting`, `task`, `mcp`): `--path` and optional `--value`.
      - Array-style edits (`keybinding`): `--value` and optional `--match`.
 
-2. Use `scripts/patch-json{{SHELL_EXT}}` to apply the patch when the request maps to a structured JSON change:
+3. Use `scripts/patch-json{{SHELL_EXT}}` to apply the patch when the request maps to a structured JSON change:
    ```{{SHELL_NAME}}
    # Example: edit a setting
    {{SHELL_NAME}} scripts/patch-json{{SHELL_EXT}} --type setting --action edit --path editor.tabSize --value '2'
@@ -1613,7 +1635,7 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
    ```
    > **Note:** `patch-json` resolves the correct file automatically via `resolve-editor` unless `--file` is provided.
 
-3. Review the diff and approve or reject:
+4. Review the diff and approve or reject:
    ```{{SHELL_NAME}}
    # Resolve settings file path first
    {{SHELL_NAME}} scripts/resolve-editor{{SHELL_EXT}} --settings setting

@@ -519,23 +519,26 @@ function Build-SlimInstallContent {
     $tableRows.Add("| ``src/user-skills/$rel`` | ```$S/$rel`` |")
   }
 
-  # common scripts
+  # common scripts — download each unique file once to $S/common/scripts/, list copy targets separately
   $hasResolver      = $skillModel.ResolverTargetDirs.Count -gt 0
   $hasChangeControl = $skillModel.ChangeControlTargetDirs.Count -gt 0
+  $copyTargetDirs   = [System.Collections.Generic.HashSet[string]]::new()
 
   if ($hasResolver) {
-    foreach ($dir in $skillModel.ResolverTargetDirs) {
-      $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.ps1`` | ```$S/$dir/scripts/resolve-editor.ps1`` |")
-      $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.sh`` | ```$S/$dir/scripts/resolve-editor.sh`` |")
-    }
+    $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.ps1`` | ```$S/common/scripts/resolve-editor.ps1`` |")
+    $tableRows.Add("| ``src/user-skills/common/scripts/resolve-editor.sh`` | ```$S/common/scripts/resolve-editor.sh`` |")
+    foreach ($dir in $skillModel.ResolverTargetDirs) { [void]$copyTargetDirs.Add($dir) }
   }
 
   if ($hasChangeControl) {
-    foreach ($dir in $skillModel.ChangeControlTargetDirs) {
-      $tableRows.Add("| ``src/user-skills/common/scripts/change-control.ps1`` | ```$S/$dir/scripts/change-control.ps1`` |")
-      $tableRows.Add("| ``src/user-skills/common/scripts/change-control.sh`` | ```$S/$dir/scripts/change-control.sh`` |")
-    }
+    $tableRows.Add("| ``src/user-skills/common/scripts/change-control.ps1`` | ```$S/common/scripts/change-control.ps1`` |")
+    $tableRows.Add("| ``src/user-skills/common/scripts/change-control.sh`` | ```$S/common/scripts/change-control.sh`` |")
+    foreach ($dir in $skillModel.ChangeControlTargetDirs) { [void]$copyTargetDirs.Add($dir) }
   }
+
+  $copyNote = if ($copyTargetDirs.Count -gt 0) {
+    ($copyTargetDirs | Sort-Object | ForEach-Object { "- `` `$S/$_/scripts/``" }) -join "`n"
+  } else { "" }
 
   $templatePath = Join-Path $WorkspaceRoot "src/initial-setup-slim.template.md"
   $template = Read-Source -Path $templatePath
@@ -543,6 +546,7 @@ function Build-SlimInstallContent {
   $content = Expand-TemplateTokens -Content $template -TemplateMap @{
     '{{SLIM_BASE_URL}}'   = $BaseUrl
     '{{SLIM_FILE_TABLE}}' = ($tableRows -join "`n")
+    '{{SLIM_COPY_NOTE}}'  = $copyNote
   }
 
   return $content

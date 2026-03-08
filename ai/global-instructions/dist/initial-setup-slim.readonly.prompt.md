@@ -40,18 +40,15 @@ Create parent directories as needed. Download each file — append source to `$B
 | `src/user-skills/skill/references/specification.md` | `$S/skill/references/specification.md` |
 | `src/user-skills/skill/references/using-scripts.md` | `$S/skill/references/using-scripts.md` |
 | `src/user-skills/skill/SKILL.md` | `$S/skill/SKILL.md` |
-| `src/user-skills/common/scripts/resolve-editor.ps1` | `$S/rule/scripts/resolve-editor.ps1` |
-| `src/user-skills/common/scripts/resolve-editor.sh` | `$S/rule/scripts/resolve-editor.sh` |
-| `src/user-skills/common/scripts/resolve-editor.ps1` | `$S/setting/scripts/resolve-editor.ps1` |
-| `src/user-skills/common/scripts/resolve-editor.sh` | `$S/setting/scripts/resolve-editor.sh` |
-| `src/user-skills/common/scripts/resolve-editor.ps1` | `$S/skill/scripts/resolve-editor.ps1` |
-| `src/user-skills/common/scripts/resolve-editor.sh` | `$S/skill/scripts/resolve-editor.sh` |
-| `src/user-skills/common/scripts/change-control.ps1` | `$S/rule/scripts/change-control.ps1` |
-| `src/user-skills/common/scripts/change-control.sh` | `$S/rule/scripts/change-control.sh` |
-| `src/user-skills/common/scripts/change-control.ps1` | `$S/setting/scripts/change-control.ps1` |
-| `src/user-skills/common/scripts/change-control.sh` | `$S/setting/scripts/change-control.sh` |
-| `src/user-skills/common/scripts/change-control.ps1` | `$S/skill/scripts/change-control.ps1` |
-| `src/user-skills/common/scripts/change-control.sh` | `$S/skill/scripts/change-control.sh` |
+| `src/user-skills/common/scripts/resolve-editor.ps1` | `$S/common/scripts/resolve-editor.ps1` |
+| `src/user-skills/common/scripts/resolve-editor.sh` | `$S/common/scripts/resolve-editor.sh` |
+| `src/user-skills/common/scripts/change-control.ps1` | `$S/common/scripts/change-control.ps1` |
+| `src/user-skills/common/scripts/change-control.sh` | `$S/common/scripts/change-control.sh` |
+
+**Copy common scripts** — copy each file in `$S/common/scripts/` into the `scripts/` subdir of each skill listed below:
+- ` $S/rule/scripts/`
+- ` $S/setting/scripts/`
+- ` $S/skill/scripts/`
 
 ## Step 3 — Finish (run in terminal)
 

@@ -30,6 +30,9 @@ Create parent directories as needed. Download each file — append source to `$B
 |--------|-------------|
 {{SLIM_FILE_TABLE}}
 
+**Copy common scripts** — copy each file in `$S/common/scripts/` into the `scripts/` subdir of each skill listed below:
+{{SLIM_COPY_NOTE}}
+
 ## Step 3 — Finish (run in terminal)
 
 **Windows (pwsh)**
