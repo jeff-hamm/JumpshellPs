@@ -335,8 +335,8 @@ if ([string]::IsNullOrWhiteSpace($filePath)) {
   $resolveArgs = @('--settings', $type)
   if ($workspace) { $resolveArgs += '--workspace' }
 
-  $resolved = & $resolveScript @resolveArgs
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$resolved)) {
+  $resolved = & $resolveScript @resolveArgs 2>$null
+  if ([string]::IsNullOrWhiteSpace([string]$resolved)) {
     throw 'Failed to resolve target settings file path.'
   }
 
