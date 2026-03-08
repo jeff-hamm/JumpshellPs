@@ -43,13 +43,16 @@ if (Test-Path -LiteralPath $SkillsDir) {
   $skillFiles = Get-ChildItem -LiteralPath $SkillsDir -Recurse -Filter "SKILL.md" -File -ErrorAction SilentlyContinue |
     Where-Object {
       $raw = Get-Content -LiteralPath $_.FullName -Raw
-      $raw -match '\{\{SHELL_NAME\}\}' -or $raw -match '\{\{SHELL_EXT\}\}'
+      $raw -match '\{\{SHELL_NAME\}\}' -or $raw -match '\{\{SHELL_EXT\}\}' -or $raw -match '\{\{SCRIPT_PATHS_NOTE\}\}'
     }
+
+  $scriptPathsNote = '> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.'
 
   foreach ($file in $skillFiles) {
     $content    = Get-Content -LiteralPath $file.FullName -Raw
-    $newContent = $content -replace '\{\{SHELL_NAME\}\}', $shellName `
-                           -replace '\{\{SHELL_EXT\}\}',  $shellExt
+    $newContent = $content.Replace('{{SHELL_NAME}}', $shellName)
+    $newContent = $newContent.Replace('{{SHELL_EXT}}', $shellExt)
+    $newContent = $newContent.Replace('{{SCRIPT_PATHS_NOTE}}', $scriptPathsNote)
     if ($newContent -ne $content) {
       if (-not $DryRun) {
         Set-Content -LiteralPath $file.FullName -Value $newContent -Encoding UTF8 -NoNewline

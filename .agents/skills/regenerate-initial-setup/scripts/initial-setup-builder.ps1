@@ -140,7 +140,7 @@ function Get-UserSkillSources {
   $result = @()
   $resolverTargetDirs = New-Object System.Collections.Generic.HashSet[string]
   $changeControlTargetDirs = New-Object System.Collections.Generic.HashSet[string]
-  $scriptPathsNote = '> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill''s directory (the parent of this `SKILL.md`). `cd` there before running any scripts.'
+  $scriptPathsNote = '> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.'
 
   foreach ($file in $files) {
     $relative = Get-RelativePathNormalized -FullPath $file.FullName -BasePath $skillRoot
@@ -537,7 +537,7 @@ function Build-SlimInstallContent {
   }
 
   $copyNote = if ($copyTargetDirs.Count -gt 0) {
-    ($copyTargetDirs | Sort-Object | ForEach-Object { "- `` `$S/$_/scripts/``" }) -join "`n"
+    ($copyTargetDirs | Sort-Object | ForEach-Object { "- ```$S/$_/scripts/``" }) -join "`n"
   } else { "" }
 
   $templatePath = Join-Path $WorkspaceRoot "src/initial-setup-slim.template.md"

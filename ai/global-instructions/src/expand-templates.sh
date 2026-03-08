@@ -48,9 +48,11 @@ UPDATED_PATHS=()
 if [[ -d "$SKILLS_DIR" ]]; then
   while IFS= read -r -d '' skill_file; do
     content="$(cat "$skill_file")"
-    if printf '%s' "$content" | grep -qE '\{\{SHELL_NAME\}\}|\{\{SHELL_EXT\}\}'; then
+    if printf '%s' "$content" | grep -qE '\{\{SHELL_NAME\}\}|\{\{SHELL_EXT\}\}|\{\{SCRIPT_PATHS_NOTE\}\}'; then
       new_content="${content//\{\{SHELL_NAME\}\}/$SHELL_NAME}"
       new_content="${new_content//\{\{SHELL_EXT\}\}/$SHELL_EXT}"
+      script_paths_note='> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`. Use them as relative paths from that directory without `cd`.'
+      new_content="${new_content//\{\{SCRIPT_PATHS_NOTE\}\}/$script_paths_note}"
       if [[ "$new_content" != "$content" ]]; then
         if [[ "$DRY_RUN" != "true" ]]; then
           printf '%s' "$new_content" > "$skill_file"

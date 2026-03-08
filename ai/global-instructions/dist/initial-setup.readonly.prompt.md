@@ -622,7 +622,7 @@ argument-hint: 'Optional: mode=[copilot-commit|current-branch](auto)'
 
 ## Required Workflow
 
-> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.
 
 1. **Check branch state** — determine current branch, derived AI branch name (`<current>_ai`), and whether its worktree already exists:
 
@@ -745,7 +745,7 @@ Create or update instruction files (VS Code) or rules files (Cursor) for user or
 
 ## Workflow
 
-> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.
 
 1. Resolve the target directory and derive the target file path:
    ```sh
@@ -1243,7 +1243,9 @@ if ($type -eq 'keybinding') {
 }
 else {
   $doc = Get-DictionaryRoot -Root $existing
-  $segments = Split-JsonPath -PathText $path
+  # VS Code settings.json stores dotted keys as literal flat keys (e.g. "editor.tabSize").
+  # Splitting on '.' would create nested objects instead of matching the existing flat key.
+  $segments = if ($type -eq 'setting') { @($path) } else { Split-JsonPath -PathText $path }
 
   if ($segments.Count -eq 0) {
     throw "--path is required for type '$type' (for example: editor.tabSize)"
@@ -1629,7 +1631,7 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 
 ## Workflow
 
-> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.
 
 1. **Discover the setting key** when the request uses natural-language or a descriptive label instead of an exact dot-notation key.
 
@@ -1965,7 +1967,7 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 
 ## Workflow
 
-> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.
+> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.
 
 1. Resolve the target skills directory and derive the skill path:
    ```sh
@@ -1984,7 +1986,7 @@ Create or update skills for workspace/profile/global targets. Follow the [Agent 
 5. Ensure `name` matches the folder name and `description` is keyword-rich.
 6. Add `scripts/` or `references/` files as needed; follow [using scripts guide](references/using-scripts.md).
   - If a feature can be written with a shell script, prefer to use a script to increase performance and reproducibility.
-  - If the skill references any `scripts/`, `references/`, or `assets/` paths, place `> **Relative paths** below (e.g. `scripts/`, `references/`, `assets/`) are relative to this skill's directory (the parent of this `SKILL.md`). `cd` there before running any scripts.` at the top of the `## Workflow` section. The builder expands it to a blockquote instructing the agent to `cd` to the skill directory first.
+  - If the skill references any `scripts/`, `references/`, or `assets/` paths, place `> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.` at the top of the `## Workflow` section. The builder expands it to a blockquote instructing the agent to `cd` to the skill directory first.
 
 7. Review the diff and approve or reject:
    ```sh
@@ -2050,13 +2052,16 @@ if (Test-Path -LiteralPath $SkillsDir) {
   $skillFiles = Get-ChildItem -LiteralPath $SkillsDir -Recurse -Filter "SKILL.md" -File -ErrorAction SilentlyContinue |
     Where-Object {
       $raw = Get-Content -LiteralPath $_.FullName -Raw
-      $raw -match '\{\{SHELL_NAME\}\}' -or $raw -match '\{\{SHELL_EXT\}\}'
+      $raw -match '\{\{SHELL_NAME\}\}' -or $raw -match '\{\{SHELL_EXT\}\}' -or $raw -match '\{\{SCRIPT_PATHS_NOTE\}\}'
     }
+
+  $scriptPathsNote = '> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`.'
 
   foreach ($file in $skillFiles) {
     $content    = Get-Content -LiteralPath $file.FullName -Raw
-    $newContent = $content -replace '\{\{SHELL_NAME\}\}', $shellName `
-                           -replace '\{\{SHELL_EXT\}\}',  $shellExt
+    $newContent = $content.Replace('{{SHELL_NAME}}', $shellName)
+    $newContent = $newContent.Replace('{{SHELL_EXT}}', $shellExt)
+    $newContent = $newContent.Replace('{{SCRIPT_PATHS_NOTE}}', $scriptPathsNote)
     if ($newContent -ne $content) {
       if (-not $DryRun) {
         Set-Content -LiteralPath $file.FullName -Value $newContent -Encoding UTF8 -NoNewline
@@ -2129,9 +2134,11 @@ UPDATED_PATHS=()
 if [[ -d "$SKILLS_DIR" ]]; then
   while IFS= read -r -d '' skill_file; do
     content="$(cat "$skill_file")"
-    if printf '%s' "$content" | grep -qE '\{\{SHELL_NAME\}\}|\{\{SHELL_EXT\}\}'; then
+    if printf '%s' "$content" | grep -qE '\{\{SHELL_NAME\}\}|\{\{SHELL_EXT\}\}|\{\{SCRIPT_PATHS_NOTE\}\}'; then
       new_content="${content//\{\{SHELL_NAME\}\}/$SHELL_NAME}"
       new_content="${new_content//\{\{SHELL_EXT\}\}/$SHELL_EXT}"
+      script_paths_note='> **Script paths** — `scripts/`, `references/`, and `assets/` paths below are relative to the directory containing this `SKILL.md`. Use them as relative paths from that directory without `cd`.'
+      new_content="${new_content//\{\{SCRIPT_PATHS_NOTE\}\}/$script_paths_note}"
       if [[ "$new_content" != "$content" ]]; then
         if [[ "$DRY_RUN" != "true" ]]; then
           printf '%s' "$new_content" > "$skill_file"

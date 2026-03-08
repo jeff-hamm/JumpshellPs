@@ -47,9 +47,9 @@ Create parent directories as needed. Download each file — append source to `$B
 | `src/user-skills/common/scripts/change-control.sh` | `$S/common/scripts/change-control.sh` |
 
 **Copy common scripts** — copy each file in `$S/common/scripts/` into the `scripts/` subdir of each skill listed below:
-- ` $S/rule/scripts/`
-- ` $S/setting/scripts/`
-- ` $S/skill/scripts/`
+- `$S/rule/scripts/`
+- `$S/setting/scripts/`
+- `$S/skill/scripts/`
 
 ## Step 3 — Finish (run in terminal)
 
