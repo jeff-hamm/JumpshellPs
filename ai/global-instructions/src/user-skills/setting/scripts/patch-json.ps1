@@ -431,7 +431,9 @@ if ($type -eq 'keybinding') {
 }
 else {
   $doc = Get-DictionaryRoot -Root $existing
-  $segments = Split-JsonPath -PathText $path
+  # VS Code settings.json stores dotted keys as literal flat keys (e.g. "editor.tabSize").
+  # Splitting on '.' would create nested objects instead of matching the existing flat key.
+  $segments = if ($type -eq 'setting') { @($path) } else { Split-JsonPath -PathText $path }
 
   if ($segments.Count -eq 0) {
     throw "--path is required for type '$type' (for example: editor.tabSize)"
