@@ -13,16 +13,17 @@ Download and run this repo's bootstrap setup file from raw GitHub.
 - You want a platform-agnostic update flow.
 
 ## Required Workflow
-1. Build the raw URL using this fixed repo path template:
+1. Resolve the skill directory: the directory containing this `SKILL.md` file (e.g. `~/.agents/skills/jumpdate/`). All relative paths below are under that directory.
+2. Build the raw URL using this fixed repo path template:
   - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
   - Default `<branch>` is `main`.
-2. If step 1 returns 404, try the legacy fallback path:
+3. If step 2 returns 404, try the legacy fallback path:
   - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
-3. If `resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
-4. Download the raw file to `resources/initial-setup.readonly.prompt.md`.
-5. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
-6. Run the downloaded file as a prompt.
-7. Summarize the update and include the raw URL, branch, and local path used.
+4. If `<skill-dir>/resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
+5. Download the raw file to `<skill-dir>/resources/initial-setup.readonly.prompt.md` (create the `resources/` directory if needed).
+6. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
+7. Run the downloaded file as a prompt.
+8. Summarize the update and include the raw URL, branch, and local path used.
 
 ## Safety Rules
 - If download fails, surface the exact URL and error.
