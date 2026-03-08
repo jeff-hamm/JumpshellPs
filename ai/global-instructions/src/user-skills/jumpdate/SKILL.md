@@ -1,6 +1,6 @@
 ---
-name: update-jumper-instructions
-description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".'
+name: jumpdate
+description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "update jumper skills", "reinstall jumper skills", "reinstall global rules", "update jumper's stuff", or "run new install".'
 argument-hint: 'Optional: branch=<branch>(default:main)'
 ---
 

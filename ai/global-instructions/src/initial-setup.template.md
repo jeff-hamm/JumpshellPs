@@ -6,6 +6,8 @@
 
 {{initial-setup-recreate.md}}
 
+{{FILE_MANIFEST}}
+
 ### prompts/edit-global-files.readonly.prompt.md
 ````markdown
 {{edit-global-files.readonly.prompt.md}}
@@ -16,7 +18,17 @@
 {{GENERATED_GLOBAL}}
 ````
 
-{{SKILL_SECTIONS}}{{COMMON_SCRIPTS}}## Setup-only references (do not install)
+{{SKILL_SECTIONS}}### .agents/scripts/expand-templates.ps1
+````powershell
+{{expand-templates.ps1}}
+````
+
+### .agents/scripts/expand-templates.sh
+````sh
+{{expand-templates.sh}}
+````
+
+{{COMMON_SCRIPTS}}## Setup-only references (do not install)
 
 ### src/global.bootstrap.readonly.instructions.md
 ````markdown

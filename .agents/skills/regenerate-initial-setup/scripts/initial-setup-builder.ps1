@@ -202,6 +202,51 @@ function Get-UserSkillSources {
   }
 }
 
+function Build-FileManifest {
+  param(
+    [array]$SkillSources,
+    [bool]$HasResolver,
+    [bool]$HasChangeControl
+  )
+
+  $lines = @()
+  $lines += "<!-- setup-manifest: machine-readable file index — scan this first to plan your work -->"
+  $lines += '```yaml'
+  $lines += "schema: jumpskills/manifest/v1"
+  $lines += "files:"
+  $lines += "  # scope: profile — base path: `$(pwsh resolve-editor.ps1 --profile) | `$(bash resolve-editor.sh --profile)"
+  $lines += "  - path: prompts/edit-global-files.readonly.prompt.md"
+  $lines += "  - path: instructions/global.readonly.instructions.md"
+
+  $userSources = @($SkillSources | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Section) })
+  if ($userSources.Count -gt 0) {
+    $lines += "  # scope: user — base path: ~/ (e.g. .agents/skills/... installs to ~/.agents/skills/...)"
+    foreach ($src in $userSources) {
+      $lines += "  - path: $($src.Section)"
+    }
+  }
+
+  $lines += "  # scope: user — expand-templates helper (run after writing all SKILL.md files)"
+  $lines += "  - path: .agents/scripts/expand-templates.ps1"
+  $lines += "  - path: .agents/scripts/expand-templates.sh"
+
+  if ($HasResolver -or $HasChangeControl) {
+    $lines += "  # scope: common — install at each referencing skill's scripts/ dir (see 'Common scripts' section)"
+    if ($HasResolver) {
+      $lines += "  - path: common/scripts/resolve-editor.ps1"
+      $lines += "  - path: common/scripts/resolve-editor.sh"
+    }
+    if ($HasChangeControl) {
+      $lines += "  - path: common/scripts/change-control.ps1"
+      $lines += "  - path: common/scripts/change-control.sh"
+    }
+  }
+
+  $lines += '```'
+  $lines += ""
+  return ($lines -join "`n")
+}
+
 function Build-CommonScriptsSection {
   param($SkillModel)
 
@@ -433,13 +478,17 @@ function Build-InitialSetupContent {
   $srcDir = Join-Path $WorkspaceRoot "src"
   $setupTemplate = Read-Source -Path (Join-Path $srcDir "initial-setup.template.md")
 
+  $hasResolver      = $skillModel.ResolverTargetDirs.Count -gt 0
+  $hasChangeControl = $skillModel.ChangeControlTargetDirs.Count -gt 0
   $commonScriptsText = Build-CommonScriptsSection -SkillModel $skillModel
+  $fileManifest      = Build-FileManifest -SkillSources $skillSources -HasResolver $hasResolver -HasChangeControl $hasChangeControl
 
   $content = Expand-FileTokens -Content $setupTemplate -SrcDir $srcDir
   $content = Expand-TemplateTokens -Content $content -TemplateMap @{
     '{{GENERATED_GLOBAL}}' = $generatedGlobal
     '{{SKILL_SECTIONS}}'   = $skillSectionsText
     '{{COMMON_SCRIPTS}}'   = $commonScriptsText
+    '{{FILE_MANIFEST}}'    = $fileManifest
   }
 
   return [PSCustomObject]@{

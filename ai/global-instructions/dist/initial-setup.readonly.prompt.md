@@ -115,24 +115,74 @@ Use this file whenever you view, edit or remove my global settings, instructions
 - Ensure the user skills directory exists (resolve with `--skills`).
 
 ## Upgrade existing installs
-- Detect whether this script was already installed
-- If detected, run an in-place upgrade:
-  - Keep existing git history and user-created files.
-  - Replace only the files defined in this setup file with current contents.
-  - Install or update user-profile skills under the skills directory from the embedded sections below.
-  - Preserve user-created instructions, skills, and settings that are not explicitly listed in this setup file.
-- If not detected, continue normal setup flow.
+- Check `~/.agents/.jumpskills-version` to detect a previous install.
+  - **File exists** → in-place upgrade:
+    - Keep existing git history and user-created files.
+    - Replace only the files defined in this setup file with current contents.
+    - Install or update user-profile skills under the skills directory from the embedded sections below.
+    - Preserve user-created instructions, skills, and settings that are not explicitly listed in this setup file.
+  - **File absent** → fresh install: continue normal setup flow.
+- After completing setup (fresh or upgrade), write the current date (ISO format, e.g. `2026-03-07`) to `~/.agents/.jumpskills-version`.
 
 - If the instructions directory (resolve with `--rules`) does not contain `global.readonly.instructions.md`, create it and copy the full contents from the section below, preserving the `applyTo: "**"` header
-- Update settings (resolve with `--settings setting`). Use careful string manipulation that accounts for JSON escaping requirements. Read the existing JSON, parse it, modify the object, and write it back (using ConvertFrom-Json and ConvertTo-Json). If a setting key is unsupported in the current editor, skip it and report that in your summary.
+- Update settings using `scripts/patch-json.ps1` / `scripts/patch-json.sh` when the `setting` skill is already installed (upgrade path). For fresh installs where the skill is not yet present, apply changes with `ConvertFrom-Json`/`json.loads()` inline. If a key is unsupported in the current editor, skip it and report that in your summary.
+  ```powershell
+  # Windows (upgrade — setting skill already installed)
+  $settingsFile = pwsh ~/.agents/skills/setting/scripts/resolve-editor.ps1 --settings setting
+  pwsh ~/.agents/skills/setting/scripts/patch-json.ps1 --type setting --action edit --path github.copilot.chat.codeGeneration.useInstructionFiles --value 'true'
+  ```
   - Set `github.copilot.chat.codeGeneration.useInstructionFiles` to `true`
-  - If it doesn't already exist, append the instructions path (resolve with `--rules`) to `github.copilot.chat.codeGeneration.instructions` and `chat.instructionsFilesLocations` lists
+  - Append the instructions path (resolve with `--rules`) to `github.copilot.chat.codeGeneration.instructions` and `chat.instructionsFilesLocations` lists if not already present
 
 ## Recreate instructions and user-profile skills
 
-Create or update these files under the profile path (resolve with `--profile`) and skills directory (resolve with `--skills`), where each section title is the relative filename. Use the section's markdown as the file contents (copy verbatim).
+The **setup manifest** below lists every file to create before you read any content. Route each file by its scope:
+- `scope: profile` — base path: `$(pwsh resolve-editor.ps1 --profile)` / `$(bash resolve-editor.sh --profile)`
+- `scope: user` — base path: `~/` (home directory)
+- `scope: common` — install at each target listed in the **Common scripts** section
 
-> **After recreating all skill files**, expand the shell template placeholders — see the **Post-install** section at the end of this file.
+Use each `### path/to/file` section heading as the relative filename; copy the fenced content verbatim.
+
+**Immediately after writing all SKILL.md files**, expand shell template placeholders in one pass:
+```powershell
+# Windows
+pwsh ~/.agents/scripts/expand-templates.ps1
+```
+```bash
+# macOS/Linux
+bash ~/.agents/scripts/expand-templates.sh
+```
+> **First-time setup only:** if `~/.agents/scripts/expand-templates.ps1` is not yet present (it is installed later in this file), replace `{{SHELL_NAME}}` with `pwsh`/`bash` and `{{SHELL_EXT}}` with `.ps1`/`.sh` in every SKILL.md you wrote.
+
+<!-- setup-manifest: machine-readable file index — scan this first to plan your work -->
+```yaml
+schema: jumpskills/manifest/v1
+files:
+  # scope: profile — base path: $(pwsh resolve-editor.ps1 --profile) | $(bash resolve-editor.sh --profile)
+  - path: prompts/edit-global-files.readonly.prompt.md
+  - path: instructions/global.readonly.instructions.md
+  # scope: user — base path: ~/ (e.g. .agents/skills/... installs to ~/.agents/skills/...)
+  - path: .agents/skills/git-workflow/scripts/git-workflow.ps1
+  - path: .agents/skills/git-workflow/scripts/git-workflow.sh
+  - path: .agents/skills/git-workflow/SKILL.md
+  - path: .agents/skills/jumpdate/SKILL.md
+  - path: .agents/skills/new-skill/references/specification.md
+  - path: .agents/skills/new-skill/references/using-scripts.md
+  - path: .agents/skills/new-skill/SKILL.md
+  - path: .agents/skills/rule/SKILL.md
+  - path: .agents/skills/setting/scripts/patch-json.ps1
+  - path: .agents/skills/setting/scripts/patch-json.sh
+  - path: .agents/skills/setting/SKILL.md
+  # scope: user — expand-templates helper (run after writing all SKILL.md files)
+  - path: .agents/scripts/expand-templates.ps1
+  - path: .agents/scripts/expand-templates.sh
+  # scope: common — install at each referencing skill's scripts/ dir (see 'Common scripts' section)
+  - path: common/scripts/resolve-editor.ps1
+  - path: common/scripts/resolve-editor.sh
+  - path: common/scripts/change-control.ps1
+  - path: common/scripts/change-control.sh
+```
+
 
 ### prompts/edit-global-files.readonly.prompt.md
 ````markdown
@@ -256,10 +306,10 @@ applyTo: "**"
 
 ## Included User Skills (Generated)
 - `/git-workflow`: Handle work on copilot branches with consistent branch checks, worktree usage for copilot commits, and high-quality commit messages that explain both what changed and why. Use when the user asks to use a separate branch or worktree or if they ask to keep your changes separate.
+- `/jumpdate`: Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "update jumper skills", "reinstall jumper skills", "reinstall global rules", "update jumper's stuff", or "run new install".
 - `/new-skill`: Create, edit, or refactor skills for workspace/profile/global scope. Use for requests like "global skills", "user skills", "my skills", "your skills", "slash commands", "reusable workflows", "automation skill", "agent skill", "SKILL.md", "new skill", or "skill updates". Best for repeatable multi-step tasks and integrations.
 - `/rule`: Create, edit, or refactor instruction/rules files for workspace or user. Use for requests like "global (rules|instructions)", "my (rules|instructions)", "your (rules|instructions)", "project (rules|instructions)", "workspace (rules|instructions)", "user (rules|instructions)", "coding standards", "guardrails", "policy".
 - `/setting`: Edit VS Code or Cursor configuration files with scope-aware targeting. Use for requests like "global settings", "my settings", "workspace settings", "vscode settings", "user settings", "settings.json", "tasks.json", "mcp.json", "keybindings", "Copilot settings", or "instruction/skill locations".
-- `/update-jumper-instructions`: Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".
 
 ## Fallback
 - Before editing global files, read `global.readonly.instructions.md` in the instructions directory (resolve with `--rules`).
@@ -817,6 +867,40 @@ argument-hint: 'Optional: mode=[copilot-commit|current-branch](auto)'
 - Do not switch to or create unrelated branches.
 - Keep commit messages specific and actionable; avoid vague one-liners.
 - Never force-push to the source branch.
+````
+
+### .agents/skills/jumpdate/SKILL.md
+````markdown
+---
+name: jumpdate
+description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "update jumper skills", "reinstall jumper skills", "reinstall global rules", "update jumper's stuff", or "run new install".'
+argument-hint: 'Optional: branch=<branch>(default:main)'
+---
+
+# Update Jumper Instructions
+
+Download and run this repo's bootstrap setup file from raw GitHub.
+## Use When
+- You need a quick bootstrap/update entrypoint for this repo.
+- You want to fetch and run `ai/global-instructions/dist/initial-setup.readonly.prompt.md` without relying on local profile setup.
+- You want a platform-agnostic update flow.
+
+## Required Workflow
+1. Build the raw URL using this fixed repo path template:
+  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
+  - Default `<branch>` is `main`.
+2. If step 1 returns 404, try the legacy fallback path:
+  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
+3. If `resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
+4. Download the raw file to `resources/initial-setup.readonly.prompt.md`.
+5. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
+6. Run the downloaded file as a prompt.
+7. Summarize the update and include the raw URL, branch, and local path used.
+
+## Safety Rules
+- If download fails, surface the exact URL and error.
+- Do not modify files outside this update flow unless explicitly requested.
+- Keep the workflow platform-agnostic (no shell-specific temp environment syntax).
 ````
 
 ### .agents/skills/new-skill/references/specification.md
@@ -1993,38 +2077,165 @@ Edit VS Code or Cursor setting/config files using scope-aware path resolution an
 - Keep settings changes minimal and idempotent.
 ````
 
-### .agents/skills/update-jumper-instructions/SKILL.md
-````markdown
----
-name: update-jumper-instructions
-description: 'Bootstrap or refresh this instruction-and-skill pack by downloading and running ai/global-instructions/dist/initial-setup.readonly.prompt.md from GitHub. Use for requests like "update jumper instructions", "refresh global instructions", "reinstall bootstrap", "pull latest initial setup", or "run new install".'
-argument-hint: 'Optional: branch=<branch>(default:main)'
----
+### .agents/scripts/expand-templates.ps1
+````powershell
+#!/usr/bin/env pwsh
+# expand-templates.ps1 — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
+#
+# Usage:
+#   pwsh expand-templates.ps1 [--skills-dir <path>] [--dry-run]
+#
+# Options:
+#   --skills-dir <path>   Explicit skills directory. If omitted, resolved via resolve-editor.ps1 --skills.
+#   --dry-run             Report what would change without writing files.
+#
+# Outputs: JSON to stdout, diagnostics to stderr.
+# Exit codes: 0 success, 1 error.
 
-# Update Jumper Instructions
+param(
+  [string]$SkillsDir = "",
+  [switch]$DryRun
+)
 
-Download and run this repo's bootstrap setup file from raw GitHub.
-## Use When
-- You need a quick bootstrap/update entrypoint for this repo.
-- You want to fetch and run `ai/global-instructions/dist/initial-setup.readonly.prompt.md` without relying on local profile setup.
-- You want a platform-agnostic update flow.
+$ErrorActionPreference = "Stop"
 
-## Required Workflow
-1. Build the raw URL using this fixed repo path template:
-  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
-  - Default `<branch>` is `main`.
-2. If step 1 returns 404, try the legacy fallback path:
-  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
-3. If `resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
-4. Download the raw file to `resources/initial-setup.readonly.prompt.md`.
-5. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
-6. Run the downloaded file as a prompt.
-7. Summarize the update and include the raw URL, branch, and local path used.
+if ([string]::IsNullOrWhiteSpace($SkillsDir)) {
+  $resolverScript = Join-Path $PSScriptRoot "resolve-editor.ps1"
+  if (-not (Test-Path -LiteralPath $resolverScript)) {
+    $resolverScript = Get-ChildItem -Path (Join-Path $HOME ".agents/skills") -Recurse -Filter "resolve-editor.ps1" -ErrorAction SilentlyContinue |
+      Select-Object -First 1 -ExpandProperty FullName
+  }
+  if (-not [string]::IsNullOrWhiteSpace($resolverScript) -and (Test-Path -LiteralPath $resolverScript)) {
+    $SkillsDir = (& pwsh -NoProfile -File $resolverScript --skills 2>$null).Trim()
+  }
+}
 
-## Safety Rules
-- If download fails, surface the exact URL and error.
-- Do not modify files outside this update flow unless explicitly requested.
-- Keep the workflow platform-agnostic (no shell-specific temp environment syntax).
+if ([string]::IsNullOrWhiteSpace($SkillsDir)) {
+  $SkillsDir = Join-Path $HOME ".agents/skills"
+}
+
+$isWin     = ($Env:OS -eq 'Windows_NT') -or ($PSVersionTable.Platform -ne 'Unix')
+$shellName = if ($isWin) { "pwsh" } else { "bash" }
+$shellExt  = if ($isWin) { ".ps1" } else { ".sh" }
+
+$updated = @()
+
+if (Test-Path -LiteralPath $SkillsDir) {
+  $skillFiles = Get-ChildItem -LiteralPath $SkillsDir -Recurse -Filter "SKILL.md" -File -ErrorAction SilentlyContinue |
+    Where-Object {
+      $raw = Get-Content -LiteralPath $_.FullName -Raw
+      $raw -match '\{\{SHELL_NAME\}\}' -or $raw -match '\{\{SHELL_EXT\}\}'
+    }
+
+  foreach ($file in $skillFiles) {
+    $content    = Get-Content -LiteralPath $file.FullName -Raw
+    $newContent = $content -replace '\{\{SHELL_NAME\}\}', $shellName `
+                           -replace '\{\{SHELL_EXT\}\}',  $shellExt
+    if ($newContent -ne $content) {
+      if (-not $DryRun) {
+        Set-Content -LiteralPath $file.FullName -Value $newContent -Encoding UTF8 -NoNewline
+      }
+      $updated += $file.FullName
+    }
+  }
+}
+
+[pscustomobject]@{
+  status    = "ok"
+  dryRun    = [bool]$DryRun
+  skillsDir = $SkillsDir
+  shellName = $shellName
+  shellExt  = $shellExt
+  updated   = @($updated)
+} | ConvertTo-Json -Depth 3
+````
+
+### .agents/scripts/expand-templates.sh
+````sh
+#!/usr/bin/env bash
+# expand-templates.sh — Expand {{SHELL_NAME}} and {{SHELL_EXT}} placeholders in all SKILL.md files.
+#
+# Usage:
+#   bash expand-templates.sh [--skills-dir <path>] [--dry-run]
+#
+# Options:
+#   --skills-dir <path>   Explicit skills directory. If omitted, resolved via resolve-editor.sh --skills.
+#   --dry-run             Report what would change without writing files.
+#
+# Outputs: JSON to stdout, diagnostics to stderr.
+# Exit codes: 0 success, 1 error.
+
+set -euo pipefail
+
+SKILLS_DIR=""
+DRY_RUN="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skills-dir) SKILLS_DIR="$2"; shift 2 ;;
+    --dry-run)    DRY_RUN="true";  shift ;;
+    --help|-h)    printf 'Usage: bash expand-templates.sh [--skills-dir <path>] [--dry-run]\n'; exit 0 ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ -z "$SKILLS_DIR" ]]; then
+  RESOLVER="$(dirname "$0")/resolve-editor.sh"
+  if [[ -f "$RESOLVER" ]]; then
+    SKILLS_DIR="$(bash "$RESOLVER" --skills)"
+  else
+    # Fallback: search for resolve-editor.sh in ~/.agents/skills
+    RESOLVER_FOUND="$(find "$HOME/.agents/skills" -name "resolve-editor.sh" 2>/dev/null | head -n1 || true)"
+    if [[ -n "$RESOLVER_FOUND" ]]; then
+      SKILLS_DIR="$(bash "$RESOLVER_FOUND" --skills)"
+    fi
+  fi
+fi
+
+[[ -z "$SKILLS_DIR" ]] && SKILLS_DIR="$HOME/.agents/skills"
+
+SHELL_NAME="bash"
+SHELL_EXT=".sh"
+
+UPDATED_PATHS=()
+
+if [[ -d "$SKILLS_DIR" ]]; then
+  while IFS= read -r -d '' skill_file; do
+    content="$(cat "$skill_file")"
+    if printf '%s' "$content" | grep -qE '\{\{SHELL_NAME\}\}|\{\{SHELL_EXT\}\}'; then
+      new_content="${content//\{\{SHELL_NAME\}\}/$SHELL_NAME}"
+      new_content="${new_content//\{\{SHELL_EXT\}\}/$SHELL_EXT}"
+      if [[ "$new_content" != "$content" ]]; then
+        if [[ "$DRY_RUN" != "true" ]]; then
+          printf '%s' "$new_content" > "$skill_file"
+        fi
+        UPDATED_PATHS+=("$skill_file")
+      fi
+    fi
+  done < <(find "$SKILLS_DIR" -name "SKILL.md" -print0 2>/dev/null)
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$DRY_RUN" "$SKILLS_DIR" "$SHELL_NAME" "$SHELL_EXT" "${UPDATED_PATHS[@]+"${UPDATED_PATHS[@]}"}" <<'PY'
+import json, sys
+dry_run    = sys.argv[1] == "true"
+skills_dir = sys.argv[2]
+shell_name = sys.argv[3]
+shell_ext  = sys.argv[4]
+updated    = sys.argv[5:] if len(sys.argv) > 5 else []
+print(json.dumps({
+  "status":    "ok",
+  "dryRun":    dry_run,
+  "skillsDir": skills_dir,
+  "shellName": shell_name,
+  "shellExt":  shell_ext,
+  "updated":   updated,
+}))
+PY
+else
+  printf '{"status":"ok","dryRun":%s,"skillsDir":"%s","shellName":"%s","shellExt":"%s","updated":[]}\n' \
+    "$DRY_RUN" "$SKILLS_DIR" "$SHELL_NAME" "$SHELL_EXT"
+fi
 ````
 
 ## Common scripts
@@ -3380,4 +3591,30 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
+**Preferred:** run the installed helper:
+```powershell
+# Windows
+pwsh ~/.agents/scripts/expand-templates.ps1
+```
+```bash
+# macOS/Linux
+bash ~/.agents/scripts/expand-templates.sh
+```
+
 **Create Symlinks** Create symlinks for copilot, claude and cursor at ~/.copilot, ~/.claude and ~/.cursor to ~/.agents. If those paths already exist, ask if the user wants to migrate to ~/.agents, if so, move files there before replacing those paths with symlinks
+
+## Verification
+
+After all steps are complete, confirm each item:
+
+| Item | Check |
+|------|-------|
+| resolve-editor works | `pwsh resolve-editor.ps1 --name` / `bash resolve-editor.sh --name` returns `Code`, `Cursor`, or similar |
+| Instructions installed | `$(resolve-editor --rules)/global.readonly.instructions.md` exists |
+| Skills installed | `$(resolve-editor --skills)` contains `git-workflow`, `new-skill`, `rule`, `setting`, `update-jumper-instructions` |
+| Settings updated | `settings.json` contains `"github.copilot.chat.codeGeneration.useInstructionFiles": true` |
+| Version stamp written | `~/.agents/.jumpskills-version` exists and contains today's date |
+| Templates expanded | No `SKILL.md` files under `~/.agents/skills/` contain `{{SHELL_NAME}}` or `{{SHELL_EXT}}` |
+| expand-templates installed | `~/.agents/scripts/expand-templates.ps1` and `expand-templates.sh` exist |
+
+If any check fails, re-run the corresponding section of this setup prompt.

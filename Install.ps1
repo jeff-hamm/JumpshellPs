@@ -1,5 +1,10 @@
 param(
-    [string]$ModuleRoot = $PSScriptRoot
+    [string]$ModuleRoot = $PSScriptRoot,
+    [switch]$NoPull,
+    [switch]$Skills,
+    [switch]$Mcps,
+    [switch]$Modules,
+    [switch]$Applications
 )
 
 # Skip installation checks during module import - only run when explicitly called
@@ -7,36 +12,32 @@ if ($global:JumpshellPs_ImportInProgress) {
     return
 }
 
-$ModulePath = ($env:PSModulePath -split ';' | select -First 1)
-if (-not (Test-Path "$ModulePath\JumpshellPs")) {
-    pushd $ModulePath
-    try {
-        git clone https://github.com/jeff-hamm/JumpshellPs.git
-    }
-    finally {
-        popd
-    }
-}
 # Check if we're already running PowerShell 7, if not launch it
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Host "Launching PowerShell 7..." -ForegroundColor Yellow
     & "C:\Program Files\PowerShell\7\pwsh.exe"
-} else {
+}
+else {
     Write-Host "Already running PowerShell 7" -ForegroundColor Green
 }
 
-& (Join-Path $PSScriptRoot 'Install\Install.ps1') -ModuleRoot $PSScriptRoot
-
-$mcpInstallScript = Join-Path $PSScriptRoot 'mcp\Install-Mcp.ps1'
-if (Test-Path $mcpInstallScript) {
+if (-not (Test-Path "$ModulePath\JumpshellPs")) {
+    Push-Location $ModulePath
     try {
-        $mcpConfig = & $mcpInstallScript -ModuleRoot $PSScriptRoot -Scope User
-        Write-Host "Configured JumpShell MCP server in $($mcpConfig.Path)" -ForegroundColor DarkCyan
+        git clone https://github.com/jeff-hamm/JumpshellPs.git
     }
-    catch {
-        Write-Warning "Failed to configure JumpShell MCP server: $($_.Exception.Message)"
+    finally {
+        Pop-Location
     }
 }
+
+$installArgs = @{ ModuleRoot = $ModuleRoot }
+if ($Skills)       { $installArgs['Skills']       = $true }
+if ($Mcps)         { $installArgs['Mcps']         = $true }
+if ($Modules)      { $installArgs['Modules']      = $true }
+if ($Applications) { $installArgs['Applications'] = $true }
+
+& (Join-Path $PSScriptRoot 'Install\Install.ps1') @installArgs
 
 # Import JumpshellPs module if not already imported or being imported
 # Skip this during module load (when dot-sourced from .psm1) to avoid recursion
@@ -50,13 +51,4 @@ if (-not $isCurrentlyImporting -and -not $jumpshellModule) {
     Write-Debug "JumpshellPs module already imported (version: $($jumpshellModule.Version))"
 } else {
     Write-Debug "Module import in progress, skipping duplicate import"
-}
-
-if (Get-Command -Name Start-JumpShellMcpServer -ErrorAction SilentlyContinue) {
-    try {
-        Start-JumpShellMcpServer -Quiet | Out-Null
-    }
-    catch {
-        Write-Warning "Failed to start JumpShell MCP server: $($_.Exception.Message)"
-    }
 }

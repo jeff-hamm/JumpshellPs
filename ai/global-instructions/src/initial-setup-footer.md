@@ -13,4 +13,30 @@ Detect the target operating system and substitute accordingly:
 
 **Replacement scope:** Apply to all `SKILL.md` files under `~/.agents/skills/` that contain either placeholder token. Update them in-place.
 
+**Preferred:** run the installed helper:
+```powershell
+# Windows
+pwsh ~/.agents/scripts/expand-templates.ps1
+```
+```bash
+# macOS/Linux
+bash ~/.agents/scripts/expand-templates.sh
+```
+
 **Create Symlinks** Create symlinks for copilot, claude and cursor at ~/.copilot, ~/.claude and ~/.cursor to ~/.agents. If those paths already exist, ask if the user wants to migrate to ~/.agents, if so, move files there before replacing those paths with symlinks
+
+## Verification
+
+After all steps are complete, confirm each item:
+
+| Item | Check |
+|------|-------|
+| resolve-editor works | `pwsh resolve-editor.ps1 --name` / `bash resolve-editor.sh --name` returns `Code`, `Cursor`, or similar |
+| Instructions installed | `$(resolve-editor --rules)/global.readonly.instructions.md` exists |
+| Skills installed | `$(resolve-editor --skills)` contains `git-workflow`, `new-skill`, `rule`, `setting`, `update-jumper-instructions` |
+| Settings updated | `settings.json` contains `"github.copilot.chat.codeGeneration.useInstructionFiles": true` |
+| Version stamp written | `~/.agents/.jumpskills-version` exists and contains today's date |
+| Templates expanded | No `SKILL.md` files under `~/.agents/skills/` contain `{{SHELL_NAME}}` or `{{SHELL_EXT}}` |
+| expand-templates installed | `~/.agents/scripts/expand-templates.ps1` and `expand-templates.sh` exist |
+
+If any check fails, re-run the corresponding section of this setup prompt.
