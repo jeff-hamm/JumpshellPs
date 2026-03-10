@@ -2,8 +2,8 @@
   "name": "jumpshell",
   "displayName": "JumpShell",
   "description": "Install and manage JumpShell Copilot skills from VS Code or Cursor.",
-  "version": "0.0.10",
-  "publisher": "jeff-hamm",
+  "version": "1.0.0",
+  "publisher": "electric-pink",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -39,8 +39,38 @@
         "category": "JumpShell"
       },
       {
-        "command": "jumpshell.installMcpConfig",
+        "command": "jumpshell.installJumpshellMcp",
         "title": "Install MCP Configuration",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.configureJumpshell",
+        "title": "Configure AI Backends",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.checkExtensionUpdates",
+        "title": "Check GitHub VSIX Updates",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.selectModel",
+        "title": "Select Chat Model",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.listModels",
+        "title": "List Available Chat Models",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.sendPromptTo",
+        "title": "Send Prompt to Model",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.assignModelHotkey",
+        "title": "Assign Model Hotkey",
         "category": "JumpShell"
       }
     ],
@@ -104,5 +134,10 @@
     "typescript": "^5.9.3"
   }
 }
+
+
+
+
+
 
 

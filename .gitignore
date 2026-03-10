@@ -7,3 +7,4 @@ Install/.module-deps-cache
 
 # Per-host environment cache files
 .jumpshell/
+extensions/.env

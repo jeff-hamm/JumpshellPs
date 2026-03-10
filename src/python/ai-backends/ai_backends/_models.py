@@ -642,7 +642,7 @@ def _resolve_refresh_targets(
     backends: list[str] | None,
     available: dict[str, list[dict]],
 ) -> list[str]:
-    if backends is None:
+    if not backends:  # None or empty list → all available
         targets = list(available.keys())
     else:
         targets = []

@@ -9,6 +9,7 @@ import shutil
 from pathlib import Path
 
 from . import _config
+from ._backend_config import get_config
 
 log = logging.getLogger("ai_backends")
 
@@ -100,7 +101,7 @@ def _build_content_parts_openai(prompt: str, files: list[Path]) -> list[dict]:
 def _call_gemini(prompt: str, context_files: list[Path], model_name: str) -> str:
     import google.generativeai as genai
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = get_config().gemini_api_key
     if not api_key:
         raise RuntimeError(
             "Set GEMINI_API_KEY or GOOGLE_API_KEY. "
@@ -122,7 +123,7 @@ def _call_gemini(prompt: str, context_files: list[Path], model_name: str) -> str
 def _call_openai(prompt: str, context_files: list[Path], model_name: str) -> str:
     from openai import OpenAI
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_config().openai_api_key
     if not api_key:
         raise RuntimeError("Set OPENAI_API_KEY")
     client = OpenAI(api_key=api_key)
@@ -137,7 +138,7 @@ def _call_openai(prompt: str, context_files: list[Path], model_name: str) -> str
 def _call_anthropic(prompt: str, context_files: list[Path], model_name: str) -> str:
     import anthropic
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = get_config().anthropic_api_key
     if not api_key:
         raise RuntimeError("Set ANTHROPIC_API_KEY")
     client = anthropic.Anthropic(api_key=api_key)
@@ -158,8 +159,8 @@ def _call_anthropic(prompt: str, context_files: list[Path], model_name: str) -> 
 
 
 def get_github_token() -> str | None:
-    """Get GitHub token from env or gh CLI."""
-    token = os.getenv("GITHUB_TOKEN")
+    """Get GitHub token from env, config, or gh CLI."""
+    token = get_config().github_token
     if token:
         return token
     try:
@@ -181,7 +182,7 @@ def _call_github(prompt: str, context_files: list[Path], model_name: str) -> str
     token = get_github_token()
     if not token:
         raise RuntimeError("Set GITHUB_TOKEN or run: gh auth login")
-    base_url = os.getenv("GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference")
+    base_url = get_config().github_models_base_url
     log.debug("github-api: model=%s base_url=%s", model_name, base_url)
     client = OpenAI(base_url=base_url, api_key=token)
     resp = client.chat.completions.create(
@@ -251,9 +252,14 @@ def _call_copilot(
         cmd.extend(["--allow-tool", tool])
     for tool in effective_deny:
         cmd.extend(["--deny-tool", tool])
-    if "web_fetch" in effective_allow:
+    web_fetch_allowed = "web_fetch" in effective_allow
+    if web_fetch_allowed:
         cmd.append("--allow-all-urls")
-    cmd.extend(["--silent", "--no-ask-user"])
+    else:
+        # --silent suppresses permission grants; only safe to use when
+        # web_fetch is not needed (--no-ask-user also prevents prompts).
+        cmd.append("--silent")
+        cmd.append("--no-ask-user")
     if model_name and model_name != "default":
         cmd.extend(["--model", model_name])
     for f in context_files:
@@ -271,8 +277,7 @@ def _call_copilot(
         full_prompt.count("\n") + 1,
     )
     log.info("copilot prompt:\n%s", full_prompt)
-    cmd_display = [c if len(c) < 120 else c[:60] + "..." for c in cmd]
-    log.debug("copilot cmd (cwd=%s): %s", cwd, cmd_display)
+    log.info("copilot cmd (cwd=%s): %s", cwd, cmd)
 
     try:
         r = subprocess.run(
@@ -471,13 +476,14 @@ def call_backend(
 
 def is_available(name: str) -> tuple[bool, str]:
     """Check if a backend is available. Returns (ok, reason_if_not)."""
+    cfg = get_config()
     if name == "gemini":
-        ok = bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+        ok = bool(cfg.gemini_api_key)
         return (True, "") if ok else (False, "set GEMINI_API_KEY")
     if name == "openai":
-        return (True, "") if os.getenv("OPENAI_API_KEY") else (False, "set OPENAI_API_KEY")
+        return (True, "") if cfg.openai_api_key else (False, "set OPENAI_API_KEY")
     if name == "anthropic":
-        return (True, "") if os.getenv("ANTHROPIC_API_KEY") else (False, "set ANTHROPIC_API_KEY")
+        return (True, "") if cfg.anthropic_api_key else (False, "set ANTHROPIC_API_KEY")
     if name == "github-api":
         return (True, "") if get_github_token() else (False, "set GITHUB_TOKEN or gh auth login")
     if name == "copilot-cli":
@@ -535,9 +541,7 @@ def _list_github_api_models() -> list[str]:
     try:
         from openai import OpenAI
         client = OpenAI(
-            base_url=os.getenv(
-                "GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference"
-            ),
+            base_url=get_config().github_models_base_url,
             api_key=token,
             max_retries=0,
             timeout=15.0,
@@ -564,7 +568,7 @@ def _list_github_api_models() -> list[str]:
 
 def _list_gemini_models() -> list[str]:
     """Discover available Gemini models."""
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = get_config().gemini_api_key
     if not api_key:
         return []
     try:
@@ -581,7 +585,7 @@ def _list_gemini_models() -> list[str]:
 
 def _list_openai_models() -> list[str]:
     """Discover available OpenAI models."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_config().openai_api_key
     if not api_key:
         return []
     try:
@@ -596,7 +600,7 @@ def _list_openai_models() -> list[str]:
 
 def _list_anthropic_models() -> list[str]:
     """Return known Anthropic models (no list endpoint)."""
-    if not os.getenv("ANTHROPIC_API_KEY"):
+    if not get_config().anthropic_api_key:
         return []
     return _config.ANTHROPIC_KNOWN_MODELS
 

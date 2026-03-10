@@ -1,0 +1,303 @@
+{
+  "cli_versions": {
+    "copilot-cli": "GitHub Copilot CLI 1.0.3.\nRun 'copilot update' to check for updates."
+  },
+  "backend_default_models": {
+    "github-api": "gpt-4.1"
+  },
+  "github-api": {
+    "available_models": [
+      {
+        "name": "gpt-4o",
+        "quality": 90,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-4o-mini",
+        "quality": 85,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-4.1",
+        "quality": 95,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-4.1-mini",
+        "quality": 88,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-4.1-nano",
+        "quality": 80,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": true
+      },
+      {
+        "name": "Llama-3.2-11B-Vision-Instruct",
+        "quality": 70,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "Llama-3.2-90B-Vision-Instruct",
+        "quality": 85,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "Llama-3.3-70B-Instruct",
+        "quality": 80,
+        "cost_multiplier": 1.0,
+        "vision": false,
+        "reasoning": false
+      },
+      {
+        "name": "Phi-4-multimodal-instruct",
+        "quality": 92,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": true
+      }
+    ],
+    "quality": {
+      "default": {
+        "normal": {
+          "backend": "github-api",
+          "model": "gpt-4.1"
+        },
+        "high": {
+          "backend": "github-api",
+          "model": "gpt-4.1"
+        }
+      },
+      "vision": {
+        "normal": {
+          "backend": "github-api",
+          "model": "Phi-4-multimodal-instruct"
+        },
+        "high": {
+          "backend": "github-api",
+          "model": "Phi-4-multimodal-instruct"
+        }
+      },
+      "reasoning": {
+        "normal": {
+          "backend": "github-api",
+          "model": "gpt-4.1"
+        },
+        "high": {
+          "backend": "github-api",
+          "model": "gpt-4.1"
+        }
+      }
+    }
+  },
+  "copilot-cli": {
+    "available_models": [
+      {
+        "name": "claude-sonnet-4.6",
+        "quality": 82,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-sonnet-4.5",
+        "quality": 78,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-haiku-4.5",
+        "quality": 58,
+        "cost_multiplier": 0.33,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-opus-4.6",
+        "quality": 93,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-opus-4.6-fast",
+        "quality": 93,
+        "cost_multiplier": 30.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-opus-4.5",
+        "quality": 87,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "claude-sonnet-4",
+        "quality": 72,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gemini-3-pro-preview",
+        "quality": 86,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gpt-5.4",
+        "quality": 91,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gpt-5.3-codex",
+        "quality": 89,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-5.2-codex",
+        "quality": 84,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-5.2",
+        "quality": 76,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gpt-5.1-codex-max",
+        "quality": 80,
+        "cost_multiplier": 10.0,
+        "vision": true,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-5.1-codex",
+        "quality": 74,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-5.1",
+        "quality": 70,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gpt-5.1-codex-mini",
+        "quality": 64,
+        "cost_multiplier": 0.33,
+        "vision": true,
+        "reasoning": true
+      },
+      {
+        "name": "gpt-5-mini",
+        "quality": 56,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      },
+      {
+        "name": "gpt-4.1",
+        "quality": 68,
+        "cost_multiplier": 1.0,
+        "vision": true,
+        "reasoning": false
+      }
+    ],
+    "quality": {
+      "default": {
+        "normal": {
+          "backend": "copilot-cli",
+          "model": "gpt-5.4"
+        },
+        "high": {
+          "backend": "copilot-cli",
+          "model": "claude-opus-4.6"
+        }
+      },
+      "vision": {
+        "normal": {
+          "backend": "copilot-cli",
+          "model": "gpt-5.4"
+        },
+        "high": {
+          "backend": "copilot-cli",
+          "model": "claude-opus-4.6"
+        }
+      },
+      "reasoning": {
+        "normal": {
+          "backend": "copilot-cli",
+          "model": "gpt-5.1-codex"
+        },
+        "high": {
+          "backend": "copilot-cli",
+          "model": "gpt-5.3-codex"
+        }
+      }
+    }
+  },
+  "quality": {
+    "default": {
+      "normal": {
+        "backend": "github-api",
+        "model": "gpt-4.1"
+      },
+      "high": {
+        "backend": "github-api",
+        "model": "gpt-4.1"
+      }
+    },
+    "vision": {
+      "normal": {
+        "backend": "github-api",
+        "model": "Phi-4-multimodal-instruct"
+      },
+      "high": {
+        "backend": "copilot-cli",
+        "model": "claude-opus-4.6"
+      }
+    },
+    "reasoning": {
+      "normal": {
+        "backend": "github-api",
+        "model": "gpt-4.1"
+      },
+      "high": {
+        "backend": "github-api",
+        "model": "gpt-4.1"
+      }
+    }
+  },
+  "format_version": 6,
+  "updated": "2026-03-10T00:21:03.449705"
+}

@@ -17,7 +17,7 @@ param(
 #>
 
 # ── Tab completion ─────────────────────────────────────────────────────────────
-Register-ArgumentCompleter -Native -CommandName 'ai-backends' -ScriptBlock {
+Register-ArgumentCompleter -Native -CommandName 'ai-cli' -ScriptBlock {
     param([string]$word, $ast, [int]$cursor)
 
     $tokens = @($ast.CommandElements | Select-Object -ExpandProperty Value)
@@ -49,5 +49,5 @@ Register-ArgumentCompleter -Native -CommandName 'ai-backends' -ScriptBlock {
 
 # ── Forward to ai-backends if invoked directly (not dot-sourced) ──────────────
 if ($MyInvocation.InvocationName -ne '.') {
-    ai-backends @PassThrough
+    ai-cli @PassThrough
 }

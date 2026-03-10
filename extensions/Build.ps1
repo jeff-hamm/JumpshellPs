@@ -1,7 +1,9 @@
 param(
     [switch]$Install,
 
-    [switch]$VersionedFileName
+    [switch]$VersionedFileName,
+
+    [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,6 +25,50 @@ function Get-IncrementedBuildVersion {
 
     # VS Code extension versions must be strict semver (major.minor.patch).
     return "$major.$minor.$($patch + 1)"
+}
+
+function Resolve-ExplicitVersion {
+    param(
+        [string]$RequestedVersion,
+        [string]$CurrentVersion
+    )
+
+    # Parse current version.
+    $curMatch = [regex]::Match($CurrentVersion, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)')
+    if (-not $curMatch.Success) {
+        throw "Current version '$CurrentVersion' is not valid semver."
+    }
+
+    $curMajor = [int]$curMatch.Groups['major'].Value
+    $curMinor = [int]$curMatch.Groups['minor'].Value
+    $curPatch = [int]$curMatch.Groups['patch'].Value
+
+    # Parse requested version: 1, 2, or 3 digits.
+    $reqMatch = [regex]::Match($RequestedVersion, '^(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?$')
+    if (-not $reqMatch.Success) {
+        throw "Version '$RequestedVersion' is not valid. Expected 1, 2, or 3 numeric segments (e.g. 1, 1.2, 1.2.3)."
+    }
+
+    $reqMajor = [int]$reqMatch.Groups['major'].Value
+    $hasMinor = $reqMatch.Groups['minor'].Success
+    $hasPatch = $reqMatch.Groups['patch'].Success
+    $reqMinor = if ($hasMinor) { [int]$reqMatch.Groups['minor'].Value } else { 0 }
+    $reqPatch = if ($hasPatch) { [int]$reqMatch.Groups['patch'].Value } else { 0 }
+
+    if ($reqMajor -ne $curMajor) {
+        return "$reqMajor.$reqMinor.$reqPatch"
+    }
+
+    if ($hasMinor -and $reqMinor -ne $curMinor) {
+        return "$reqMajor.$reqMinor.$reqPatch"
+    }
+
+    if ($hasPatch) {
+        return "$reqMajor.$reqMinor.$reqPatch"
+    }
+
+    # Requested version matches current — fall through to auto-bump.
+    return $null
 }
 
 function Set-PackageVersion {
@@ -142,8 +188,13 @@ if (-not [string]::IsNullOrWhiteSpace($latestVsixPath) -and (Test-Path -LiteralP
 }
 
 $vsixPath = $null
-if ($isStale) {
-    $newVersion = Get-IncrementedBuildVersion -Version $currentVersion
+$explicitVersion = $null
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $explicitVersion = Resolve-ExplicitVersion -RequestedVersion $Version -CurrentVersion $currentVersion
+}
+
+if ($explicitVersion -or $isStale) {
+    $newVersion = if ($explicitVersion) { $explicitVersion } else { Get-IncrementedBuildVersion -Version $currentVersion }
     Set-PackageVersion -PackageJsonPath $packageJsonPath -NewVersion $newVersion
 
     Write-Host "Version: $currentVersion -> $newVersion" -ForegroundColor Green

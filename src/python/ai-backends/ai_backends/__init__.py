@@ -60,6 +60,14 @@ from ._core import (  # noqa: F401
     print_model_catalog,
 )
 
+from ._backend_config import (  # noqa: F401
+    ENABLED_BACKENDS_KEY,
+    BackendConfig,
+    get_config,
+    load_config,
+    reset_config,
+)
+
 from ._models import (  # noqa: F401
     QUALITY_SYNONYMS,
     build_default_model_selection_prompt,
