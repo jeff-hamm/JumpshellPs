@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { getOutputChannel } from './output';
 import { pathExists, execFileAsync } from './utils';
+import { ensurePwsh } from './prereqs';
 
 export async function checkPsModuleInstalled(): Promise<boolean> {
   const pwsh = process.platform === 'win32' ? 'pwsh.exe' : 'pwsh';
@@ -34,6 +35,14 @@ async function resolvePwshRoot(context: vscode.ExtensionContext): Promise<string
 
 export async function installPowerShellModule(context: vscode.ExtensionContext): Promise<void> {
   const outputChannel = getOutputChannel();
+
+  // Ensure pwsh is on PATH before we try to open a pwsh terminal.
+  const pwshAvailable = await ensurePwsh();
+  if (!pwshAvailable) {
+    outputChannel.appendLine('[ps-module] pwsh not available — skipping module install');
+    return;
+  }
+
   const pwshRoot = await resolvePwshRoot(context);
   const installScript = pwshRoot ? path.join(pwshRoot, 'Install.ps1') : undefined;
   const hasInstallScript = installScript ? await pathExists(installScript) : false;

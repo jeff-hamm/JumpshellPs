@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { getOutputChannel } from './output';
 import { checkSkillsStatus, installManagedSkills } from './skills';
 import { checkMcpConfigured, installMcpConfig } from './mcp';
-import { resolveAiCli, configureJumpshell } from './configure';
-import { installAiBackends } from './aiBackends';
+import { resolveAiCli } from './configure';
+import { installAiBackends, configureAiCli } from './aiBackends';
 import { checkPsModuleInstalled, installPowerShellModule } from './psModule';
 
 type SetupItem = vscode.QuickPickItem & {
@@ -114,12 +114,12 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   }
 
   // --- Configure AI Backends ---
-  // Always offered. Auto-selected when ai-cli is not yet on PATH (fresh install scenario).
+  // Always offered; pre-selected when no keys are stored yet (fresh install).
   items.push({
     label: '$(gear) Configure AI Backends Credentials',
-    description: aiCli ? 'Run ai-cli --configure to update API keys' : 'Runs after ai-backends is installed',
+    description: 'Select backends and enter your API keys',
     picked: !aiCli,
-    run: () => configureJumpshell(context),
+    run: () => configureAiCli(context),
   });
 
   const selected = await vscode.window.showQuickPick(items, {

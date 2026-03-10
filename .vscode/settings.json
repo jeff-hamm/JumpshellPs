@@ -1,4 +1,6 @@
 {
   "workbench.panel.defaultLocation": "bottom",
-  "terminal.integrated.defaultLocation": "panel"
+  "terminal.integrated.defaultLocation": "panel",
+  "github.copilot.chat.responsesApiReasoningEffort": "xhigh"
 }
+

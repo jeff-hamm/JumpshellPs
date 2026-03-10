@@ -6,6 +6,7 @@ import { configureShell } from './setup';
 import { updateJumpShell } from './update';
 import { registerModelPickerCommands } from './modelPicker';
 import { registerHotkeyCommands } from './hotkey';
+import { ensurePwsh } from './prereqs';
 
 const firstRunStateKey = 'hasRunSetup';
 
@@ -22,16 +23,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   registerModelPickerCommands(context, outputChannel);
+  registerHotkeyCommands(context, outputChannel);
 
-  void ensureRecommendedSettings({ silent: true });
-  void runStartupUpdateCheck(context);
-
-  // On first activation, open the setup wizard automatically.
-  const hasRunSetup = context.globalState.get<boolean>(firstRunStateKey, false);
-  if (!hasRunSetup) {
-    void context.globalState.update(firstRunStateKey, true);
-    void vscode.commands.executeCommand('jumpshell.configureShell');
-  }
+  void runStartupTasks(context);
 }
 
 export function deactivate(): void {
@@ -49,4 +43,34 @@ function registerCommand(id: string, handler: () => Promise<void> | void): vscod
       void vscode.window.showErrorMessage(`JumpShell: ${message}`);
     }
   });
+}
+
+function runStartupTasks(context: vscode.ExtensionContext): void {
+  void (async () => {
+    try {
+      await ensureRecommendedSettings({ silent: true });
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outputChannel.appendLine(`[startup] settings update failed: ${message}`);
+    }
+
+    try {
+      const pwshAvailable = await ensurePwsh();
+      outputChannel.appendLine(`[startup] pwsh ${pwshAvailable ? 'available' : 'not available'}`);
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outputChannel.appendLine(`[startup] pwsh check failed: ${message}`);
+    }
+
+    await runStartupUpdateCheck(context);
+
+    // On first activation, open the setup wizard automatically.
+    const hasRunSetup = context.globalState.get<boolean>(firstRunStateKey, false);
+    if (!hasRunSetup) {
+      await context.globalState.update(firstRunStateKey, true);
+      await vscode.commands.executeCommand('jumpshell.configureShell');
+    }
+  })();
 }

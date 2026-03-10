@@ -100,6 +100,13 @@ jobs:
             echo "has_pat=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Unpublish existing marketplace version
+        if: steps.publish_check.outputs.has_pat == 'true'
+        working-directory: extensions/jumpshell
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx @vscode/vsce unpublish electric-pink.jumpshell@${{ steps.vars.outputs.version }} 2>/dev/null || true
+
       - name: Publish to VS Code Marketplace
         if: steps.publish_check.outputs.has_pat == 'true'
         working-directory: extensions/jumpshell

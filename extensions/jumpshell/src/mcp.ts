@@ -77,15 +77,16 @@ async function resolveMcpConfigPath(): Promise<string> {
       throw new Error('No workspace is open. Open a workspace or switch jumpshell.mcpConfigScope to user.');
     }
 
-    return path.join(workspaceFolder.uri.fsPath, '.vscode', 'mcp.json');
+    const workspaceConfigDir = await resolveWorkspaceMcpDirectory(workspaceFolder.uri.fsPath);
+    return path.join(workspaceFolder.uri.fsPath, workspaceConfigDir, 'mcp.json');
   }
 
   return resolveUserMcpPath();
 }
 
 async function resolveUserMcpPath(): Promise<string> {
-  const appData = process.env.APPDATA;
   const baseCandidates = [] as string[];
+  const configDirs = resolveEditorConfigDirectories();
 
   if (process.env.VSCODE_APPDATA) {
     baseCandidates.push(process.env.VSCODE_APPDATA);
@@ -95,13 +96,21 @@ async function resolveUserMcpPath(): Promise<string> {
     baseCandidates.push(path.join(process.env.VSCODE_PORTABLE, 'user-data'));
   }
 
-  if (appData) {
-    baseCandidates.push(
-      path.join(appData, 'Code - Insiders'),
-      path.join(appData, 'Code'),
-      path.join(appData, 'Cursor'),
-      path.join(appData, 'VSCodium')
-    );
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming');
+    for (const configDir of configDirs) {
+      baseCandidates.push(path.join(appData, configDir));
+    }
+  } else if (process.platform === 'darwin') {
+    const appSupportRoot = path.join(os.homedir(), 'Library', 'Application Support');
+    for (const configDir of configDirs) {
+      baseCandidates.push(path.join(appSupportRoot, configDir));
+    }
+  } else {
+    const configRoot = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config');
+    for (const configDir of configDirs) {
+      baseCandidates.push(path.join(configRoot, configDir));
+    }
   }
 
   for (const basePath of uniqueStrings(baseCandidates)) {
@@ -122,11 +131,87 @@ async function resolveUserMcpPath(): Promise<string> {
     return path.join(userPath, 'mcp.json');
   }
 
-  if (appData) {
-    return path.join(appData, 'Code', 'User', 'mcp.json');
+  const fallbackConfigDir = resolvePreferredEditorConfigDirectory();
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming');
+    return path.join(appData, fallbackConfigDir, 'User', 'mcp.json');
   }
 
-  return path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Application Support', fallbackConfigDir, 'User', 'mcp.json');
+  }
+
+  const configRoot = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config');
+  return path.join(configRoot, fallbackConfigDir, 'User', 'mcp.json');
+}
+
+async function resolveWorkspaceMcpDirectory(workspaceRootPath: string): Promise<string> {
+  const preference = vscode.workspace.getConfiguration('jumpshell').get<string>('workspaceMcpDirectory', 'auto').toLowerCase();
+  if (preference === 'vscode') {
+    return '.vscode';
+  }
+
+  if (preference === 'cursor') {
+    return '.cursor';
+  }
+
+  const preferred = resolveEditorKind() === 'cursor' ? '.cursor' : '.vscode';
+  const alternate = preferred === '.cursor' ? '.vscode' : '.cursor';
+  const preferredPath = path.join(workspaceRootPath, preferred, 'mcp.json');
+  const alternatePath = path.join(workspaceRootPath, alternate, 'mcp.json');
+
+  if (await pathExists(preferredPath)) {
+    return preferred;
+  }
+
+  if (await pathExists(alternatePath)) {
+    return alternate;
+  }
+
+  return preferred;
+}
+
+type EditorKind = 'code' | 'insiders' | 'cursor' | 'codium';
+
+function resolveEditorKind(): EditorKind {
+  const appName = vscode.env.appName.toLowerCase();
+  if (appName.includes('cursor')) {
+    return 'cursor';
+  }
+
+  if (appName.includes('codium')) {
+    return 'codium';
+  }
+
+  if (appName.includes('insiders')) {
+    return 'insiders';
+  }
+
+  return 'code';
+}
+
+function resolvePreferredEditorConfigDirectory(): string {
+  switch (resolveEditorKind()) {
+    case 'cursor':
+      return 'Cursor';
+    case 'insiders':
+      return 'Code - Insiders';
+    case 'codium':
+      return 'VSCodium';
+    default:
+      return 'Code';
+  }
+}
+
+function resolveEditorConfigDirectories(): string[] {
+  const preferredDir = resolvePreferredEditorConfigDirectory();
+  return uniqueStrings([
+    preferredDir,
+    'Cursor',
+    'Code - Insiders',
+    'Code',
+    'VSCodium'
+  ]);
 }
 
 export async function checkMcpConfigured(): Promise<boolean> {
