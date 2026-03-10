@@ -85,8 +85,20 @@ jobs:
             ${{ steps.vars.outputs.vsix_path }}
             extensions/${{ steps.vars.outputs.sha_name }}
 
+      - name: Check marketplace publish conditions
+        id: publish_check
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        shell: bash
+        run: |
+          if [[ -n "${VSCE_PAT}" ]]; then
+            echo "has_pat=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_pat=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to VS Code Marketplace
-        if: ${{ secrets.VSCE_PAT != '' }}
+        if: steps.publish_check.outputs.has_pat == 'true'
         working-directory: extensions/jumpshell
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
