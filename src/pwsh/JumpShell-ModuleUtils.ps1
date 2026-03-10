@@ -1,7 +1,7 @@
 
-$script:JumpShellPath = $PSScriptRoot
+$script:JumpshellPath = $PSScriptRoot
 
-function Edit-JumpShell {
+function Edit-Jumpshell {
     param(
         [Parameter(Position = 0, ValueFromPipeline = $false, ValueFromPipelineByPropertyName = $true)]
         [ValidateSet()] # Placeholder, will update below
@@ -10,11 +10,11 @@ function Edit-JumpShell {
     dynamicparam {
         # Use the global variable if available, otherwise fallback to module variable
         $fileMap = $FunctionFileMap
-        if (-not $fileMap -and (Get-Variable -Name JumpShell_FunctionFileMap -Scope Global -ErrorAction SilentlyContinue)) {
-            $fileMap = (Get-Variable -Name JumpShell_FunctionFileMap -Scope Global).Value
+        if (-not $fileMap -and (Get-Variable -Name Jumpshell_FunctionFileMap -Scope Global -ErrorAction SilentlyContinue)) {
+            $fileMap = (Get-Variable -Name Jumpshell_FunctionFileMap -Scope Global).Value
         }
-        elseif (-not $fileMap -and (Get-Variable -Name JumpShell_FunctionFileMap -Scope Script -ErrorAction SilentlyContinue)) {
-            $fileMap = (Get-Variable -Name JumpShell_FunctionFileMap -Scope Script).Value
+        elseif (-not $fileMap -and (Get-Variable -Name Jumpshell_FunctionFileMap -Scope Script -ErrorAction SilentlyContinue)) {
+            $fileMap = (Get-Variable -Name Jumpshell_FunctionFileMap -Scope Script).Value
         }
         elseif (-not $fileMap) {
             $fileMap = @{}
@@ -29,12 +29,12 @@ function Edit-JumpShell {
     }
     process {
         if (-not $FnName) {
-            code $script:JumpShellPath
+            code $script:JumpshellPath
         }
         else {
             $fileMap = $FunctionFileMap
             if ($fileMap.ContainsKey($FnName)) {
-                $targetFile = Join-Path $script:JumpShellPath ("$($fileMap[$FnName]).ps1")
+                $targetFile = Join-Path $script:JumpshellPath ("$($fileMap[$FnName]).ps1")
                 if (Test-Path $targetFile) {
                     code $targetFile
                 }
@@ -43,15 +43,15 @@ function Edit-JumpShell {
                 }
             }
             else {
-                Write-Warning "Function '$FnName' not found in JumpShell Function Map."
+                Write-Warning "Function '$FnName' not found in Jumpshell Function Map."
             }
         }
     }
 }
 
-function Reload-JumpShell {
+function Reload-Jumpshell {
     $moduleName = 'Jumpshell'
-    $modulePath = Join-Path $script:JumpShellPath 'Jumpshell.psd1'
+    $modulePath = Join-Path $script:JumpshellPath 'Jumpshell.psd1'
     if (Get-Module -Name $moduleName) {
         Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
     }

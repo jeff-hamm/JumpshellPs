@@ -85,7 +85,7 @@ async function assignModelHotkeyFlow(
     outputChannel.appendLine(`[hotkey] Written to ${kbPath}`);
 
     const choice = await vscode.window.showInformationMessage(
-      `JumpShell: Bound ${combo} → ${actionPick.command} ("${modelName}")`,
+      `Jumpshell: Bound ${combo} → ${actionPick.command} ("${modelName}")`,
       'Open Keybindings'
     );
     if (choice === 'Open Keybindings') {
@@ -94,7 +94,7 @@ async function assignModelHotkeyFlow(
   } catch (err) {
     const msg = `Failed to write keybinding: ${err}`;
     outputChannel.appendLine(`[hotkey] ${msg}`);
-    void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+    void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
   }
 }
 
@@ -105,7 +105,7 @@ function captureKeyCombination(context: vscode.ExtensionContext): Promise<string
     const nonce = getNonce();
     const panel = vscode.window.createWebviewPanel(
       'jumpshellKeyCapturer',
-      'JumpShell — Press Hotkey',
+      'Jumpshell — Press Hotkey',
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: false }
     );

@@ -5,7 +5,7 @@ title: AI Backends
 
 # AI Backends Guide
 
-This guide covers the Python AI backend package used by JumpShell skills and extension workflows.
+This guide covers the Python AI backend package used by Jumpshell skills and extension workflows.
 
 ## Canonical Paths
 
@@ -45,7 +45,7 @@ pip install "ai-backends[all]"
 
 ## Extension Integration
 
-The JumpShell extension can install/update bundled ai-backends during skill updates when:
+The Jumpshell extension can install/update bundled ai-backends during skill updates when:
 
 - `jumpshell.installAiBackendsOnSkillsInstall = true`
 

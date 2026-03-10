@@ -1,6 +1,6 @@
 # pip install -r requirements.txt
 #
-# ai-backends is pip-installed by the JumpShell extension.
+# ai-backends is pip-installed by the Jumpshell extension.
 # For repo development: pip install -e src/python/ai-backends
 ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
 

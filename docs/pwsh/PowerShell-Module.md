@@ -5,7 +5,7 @@ title: PowerShell Module
 
 # PowerShell Module Guide
 
-This document covers the JumpShell PowerShell module architecture after the source move to `src/pwsh`.
+This document covers the Jumpshell PowerShell module architecture after the source move to `src/pwsh`.
 
 ## Import Paths
 
@@ -41,13 +41,13 @@ Import-Module Jumpshell -Force
 On import, `src/pwsh/Jumpshell.psm1`:
 
 1. Sets source/repo globals:
-- `JumpShellSourcePath`
-- `JumpShellRepoRoot`
-- `JumpShellPath`
+- `JumpshellSourcePath`
+- `JumpshellRepoRoot`
+- `JumpshellPath`
 
 2. Dot-sources `.ps1` scripts in deterministic order.
 
-3. Scans loaded scripts to build `JumpShell_FunctionFileMap`.
+3. Scans loaded scripts to build `Jumpshell_FunctionFileMap`.
 
 4. Exports public functions and aliases.
 
@@ -91,10 +91,10 @@ The VS Code/Cursor extension can also install/update bundled `ai-backends` Pytho
 
 `src/pwsh/Mcp.ps1` provides:
 
-- `Get-JumpShellMcp`
-- `Install-JumpShellMcp`
-- `Start-JumpShellMcpServer`
-- `Stop-JumpShellMcpServer`
+- `Get-JumpshellMcp`
+- `Install-JumpshellMcp`
+- `Start-JumpshellMcpServer`
+- `Stop-JumpshellMcpServer`
 
 Canonical scripts resolve under `src/pwsh/mcp`.
 
@@ -106,7 +106,7 @@ Import-Module .\Jumpshell.psd1 -Force
 (Get-Module Jumpshell).Path
 
 # Confirm MCP script resolution
-Get-JumpShellMcp | Format-List ModuleRoot,ServerScript
+Get-JumpshellMcp | Format-List ModuleRoot,ServerScript
 
 # List exported functions
 Get-Command -Module Jumpshell | Sort-Object Name

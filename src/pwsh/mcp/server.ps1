@@ -116,12 +116,12 @@ $script:CommonParameters = @(
 )
 
 function Get-FunctionFileMap {
-    $mapVar = Get-Variable -Name 'JumpShell_FunctionFileMap' -Scope Global -ErrorAction SilentlyContinue
+    $mapVar = Get-Variable -Name 'Jumpshell_FunctionFileMap' -Scope Global -ErrorAction SilentlyContinue
     if ($mapVar -and $mapVar.Value) { return $mapVar.Value }
     return @{}
 }
 
-function Get-JumpShellCommandCatalog {
+function Get-JumpshellCommandCatalog {
     if ($script:CommandCatalog) { return $script:CommandCatalog }
 
     $fileMap = Get-FunctionFileMap
@@ -140,7 +140,7 @@ function Get-JumpShellCommandCatalog {
 
 # --- Search (meta-tool) ---
 
-function Search-JumpShellCommands {
+function Search-JumpshellCommands {
     param(
         [Parameter(Mandatory)] [string]$Query,
         [int]$Limit = 20,
@@ -152,7 +152,7 @@ function Search-JumpShellCommands {
 
     $queryLower = $trimmedQuery.ToLowerInvariant()
     $tokens = @($queryLower -split '[^a-z0-9]+' | Where-Object { $_ })
-    $catalog = Get-JumpShellCommandCatalog
+    $catalog = Get-JumpshellCommandCatalog
 
     $results = foreach ($entry in $catalog) {
         $nameLower = $entry.name.ToLowerInvariant()
@@ -196,7 +196,7 @@ function Resolve-CommandParameterName {
 
 # --- Command invocation ---
 
-function Invoke-JumpShellCommand {
+function Invoke-JumpshellCommand {
     param(
         [Parameter(Mandatory)] [string]$CommandName,
         [hashtable]$Arguments
@@ -355,8 +355,8 @@ function Get-ToolDefinitions {
     # Meta-tool: search (always available)
     $searchTool = @{
         name = 'jumpshell_search'
-        title = 'Search JumpShell commands'
-        description = 'Search all JumpShell functions by name, source file, or parameter keywords. Returns matching commands with parameter lists. Use this when you are unsure which command to call.'
+        title = 'Search Jumpshell commands'
+        description = 'Search all Jumpshell functions by name, source file, or parameter keywords. Returns matching commands with parameter lists. Use this when you are unsure which command to call.'
         inputSchema = @{
             type = 'object'
             properties = @{
@@ -435,7 +435,7 @@ function Invoke-ToolCall {
             $includeParameters = [bool]$Arguments['includeParameters']
         }
 
-        $matches = Search-JumpShellCommands -Query $query -Limit $limit -IncludeParameters:$includeParameters
+        $matches = Search-JumpshellCommands -Query $query -Limit $limit -IncludeParameters:$includeParameters
         $lines = @()
         foreach ($match in $matches) {
             $line = "- $($match.name)"
@@ -447,7 +447,7 @@ function Invoke-ToolCall {
         }
 
         $text = if ($lines.Count -gt 0) { "Found $($matches.Count) matching command(s):`n$($lines -join "`n")" }
-                else { "No JumpShell commands matched query '$query'." }
+                else { "No Jumpshell commands matched query '$query'." }
         return New-ToolResult -Text $text -StructuredContent @{ query = $query; matches = @($matches) }
     }
 
@@ -457,7 +457,7 @@ function Invoke-ToolCall {
         throw [System.ArgumentException]::new("Unknown tool: $ToolName. Use jumpshell_search to discover available tools.")
     }
 
-    $invocation = Invoke-JumpShellCommand -CommandName $commandName -Arguments $Arguments
+    $invocation = Invoke-JumpshellCommand -CommandName $commandName -Arguments $Arguments
     return New-ToolResult -Text $invocation.text -StructuredContent $invocation
 }
 
@@ -473,7 +473,7 @@ function Build-ServerInstructions {
     }
 
     $instructions = @"
-JumpShell is a PowerShell utility module with $($fileMap.Count) functions organized by source file.
+Jumpshell is a PowerShell utility module with $($fileMap.Count) functions organized by source file.
 Every function is exposed as a directly-callable tool (tool name = lowercase function name with underscores instead of hyphens).
 Use jumpshell_search to discover commands when unsure which to call.
 
@@ -514,7 +514,7 @@ function Handle-Request {
                 }
                 serverInfo = @{
                     name = 'jumpshell'
-                    title = 'JumpShell PowerShell MCP'
+                    title = 'Jumpshell PowerShell MCP'
                     version = '0.2.0'
                 }
                 instructions = (Build-ServerInstructions)
@@ -569,13 +569,13 @@ function Handle-Request {
 try {
     $manifestPath = Join-Path $script:ModuleRoot "$($script:ModuleName).psd1"
     if (-not (Test-Path $manifestPath)) {
-        throw "JumpShell manifest not found: $manifestPath"
+        throw "Jumpshell manifest not found: $manifestPath"
     }
 
     Import-Module $manifestPath -Force -Global -WarningAction SilentlyContinue | Out-Null
     [void](Get-ToolDefinitions)
 
-    Write-ServerLog "JumpShell MCP server ready (protocol $($script:ProtocolVersion))."
+    Write-ServerLog "Jumpshell MCP server ready (protocol $($script:ProtocolVersion))."
 
     while ($true) {
         $line = [Console]::In.ReadLine()

@@ -4,7 +4,7 @@
     ModuleVersion     = '1.0.0'
     GUID              = 'b1e7e2e2-1c2a-4e2a-9b2e-123456789abc'
     Author            = 'Your Name'
-    Description       = 'JumpShell PowerShell 7 Module'
+    Description       = 'Jumpshell PowerShell 7 Module'
     PowerShellVersion = '7.0'
     FunctionsToExport = '*'
     CmdletsToExport   = @()

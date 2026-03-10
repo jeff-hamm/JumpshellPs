@@ -246,25 +246,25 @@ function Resolve-WingetApplicationIds {
     return $resolvedIds
 }
 
-function _Get-JumpShellRepoRoot {
-    if ($global:JumpShellRepoRoot) {
-        return $global:JumpShellRepoRoot
+function _Get-JumpshellRepoRoot {
+    if ($global:JumpshellRepoRoot) {
+        return $global:JumpshellRepoRoot
     }
-    if ($global:JumpShellPath) {
-        return $global:JumpShellPath
+    if ($global:JumpshellPath) {
+        return $global:JumpshellPath
     }
-    if ($env:JumpShellPath) {
-        return $env:JumpShellPath
+    if ($env:JumpshellPath) {
+        return $env:JumpshellPath
     }
     return Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 }
 
-function _Get-JumpShellSourceRoot {
-    if ($global:JumpShellSourcePath) {
-        return $global:JumpShellSourcePath
+function _Get-JumpshellSourceRoot {
+    if ($global:JumpshellSourcePath) {
+        return $global:JumpshellSourcePath
     }
 
-    $repoRoot = _Get-JumpShellRepoRoot
+    $repoRoot = _Get-JumpshellRepoRoot
     $sourceCandidate = Join-Path $repoRoot 'src\pwsh'
     if (Test-Path -LiteralPath $sourceCandidate) {
         return $sourceCandidate
@@ -327,12 +327,12 @@ function Install-Applications {
     return $installedApplications
 }
 
-function Add-Application([string[]]$Application, [string]$FileName = (Join-Path (_Get-JumpShellSourceRoot) 'Install\All-Applications.txt'),
+function Add-Application([string[]]$Application, [string]$FileName = (Join-Path (_Get-JumpshellSourceRoot) 'Install\All-Applications.txt'),
     [switch]$NoPersist,
     [switch]$NoCache,
     [switch]$SkipValidation,
     [switch]$Npm,
-    [string]$CacheFilePath = (Join-Path (_Get-JumpShellRepoRoot) '.module-deps-cache')
+    [string]$CacheFilePath = (Join-Path (_Get-JumpshellRepoRoot) '.module-deps-cache')
 ) {
     # Resolve and validate winget application IDs (unless SkipValidation is set or using npm)
     if (-not $SkipValidation -and -not $Npm) {
@@ -368,7 +368,7 @@ function Ensure-Applications {
         [switch]$NoCache,
         [switch]$SkipValidation,
         [switch]$Npm,
-        [string]$CacheFilePath = (Join-Path (_Get-JumpShellRepoRoot) '.module-deps-cache')
+        [string]$CacheFilePath = (Join-Path (_Get-JumpshellRepoRoot) '.module-deps-cache')
     )
     
     # Handle the FileName parameter set

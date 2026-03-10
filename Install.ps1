@@ -6,7 +6,7 @@ param(
 
 $extensionInstallScript = Join-Path $PSScriptRoot 'extensions\Install.ps1'
 if (-not (Test-Path -LiteralPath $extensionInstallScript)) {
-    throw "JumpShell extension installer not found: $extensionInstallScript"
+    throw "Jumpshell extension installer not found: $extensionInstallScript"
 }
 
 & $extensionInstallScript @PSBoundParameters

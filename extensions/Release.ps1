@@ -200,7 +200,7 @@ if ([string]::IsNullOrWhiteSpace($commitLog)) {
 }
 
 $notePrompt = @"
-Write concise release notes for JumpShell extension version $releaseVersion.
+Write concise release notes for Jumpshell extension version $releaseVersion.
 The audience is end-users installing the extension from a GitHub Release VSIX.
 Use markdown with a heading "## What's Changed" and bullet points.
 Keep it short — no more than 15 bullet points.
@@ -271,7 +271,7 @@ $commitMessage = if (-not [string]::IsNullOrWhiteSpace($Message)) {
     $Message
 }
 else {
-    "release: JumpShell $tag"
+    "release: Jumpshell $tag"
 }
 
 Push-Location $repoRoot

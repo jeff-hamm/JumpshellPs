@@ -5,7 +5,7 @@ title: Workspace Management
 
 # VS Code and Cursor Workspace Management
 
-JumpShell ships utilities for editor/profile detection, workspace storage lookup, and layout export/apply.
+Jumpshell ships utilities for editor/profile detection, workspace storage lookup, and layout export/apply.
 
 Implementation lives in `src/pwsh/vscode`.
 

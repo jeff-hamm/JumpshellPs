@@ -71,7 +71,7 @@ export async function installManagedSkills(context: vscode.ExtensionContext, mod
   let skipConflicts = false;
   if (conflicts.length > 0) {
     const choice = await vscode.window.showWarningMessage(
-      `JumpShell found ${conflicts.length} existing skill folder(s) that are not marked as extension-managed.`,
+      `Jumpshell found ${conflicts.length} existing skill folder(s) that are not marked as extension-managed.`,
       { modal: true },
       'Overwrite',
       'Skip conflicts',
@@ -187,7 +187,7 @@ export async function installManagedSkills(context: vscode.ExtensionContext, mod
     }
   }
 
-  const summary = `${mode === 'install' ? 'Installed' : 'Updated'} JumpShell skills in ${targetDir}. Installed ${installedCount}, updated ${updatedCount}, skipped ${skippedCount}, removed stale ${removedStaleCount}.`;
+  const summary = `${mode === 'install' ? 'Installed' : 'Updated'} Jumpshell skills in ${targetDir}. Installed ${installedCount}, updated ${updatedCount}, skipped ${skippedCount}, removed stale ${removedStaleCount}.`;
   const action = await vscode.window.showInformationMessage(summary, 'Open folder');
   if (action === 'Open folder') {
     await revealInFileExplorer(targetDir);
@@ -198,12 +198,12 @@ export async function removeManagedSkills(context: vscode.ExtensionContext): Pro
   const outputChannel = getOutputChannel();
   const receipt = await loadReceipt(context);
   if (!receipt || Object.keys(receipt.skills).length === 0) {
-    void vscode.window.showInformationMessage('JumpShell has no managed skills to remove.');
+    void vscode.window.showInformationMessage('Jumpshell has no managed skills to remove.');
     return;
   }
 
   const confirmation = await vscode.window.showWarningMessage(
-    `Remove ${Object.keys(receipt.skills).length} JumpShell-managed skill folder(s) from ${receipt.targetDir}?`,
+    `Remove ${Object.keys(receipt.skills).length} Jumpshell-managed skill folder(s) from ${receipt.targetDir}?`,
     { modal: true },
     'Remove'
   );
@@ -223,7 +223,7 @@ export async function removeManagedSkills(context: vscode.ExtensionContext): Pro
   }
 
   await deleteReceipt(context);
-  void vscode.window.showInformationMessage(`Removed ${removedCount} JumpShell-managed skill folder(s).`);
+  void vscode.window.showInformationMessage(`Removed ${removedCount} Jumpshell-managed skill folder(s).`);
 }
 
 export async function openSkillsFolder(): Promise<void> {

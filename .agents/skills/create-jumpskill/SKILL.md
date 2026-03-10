@@ -1,16 +1,16 @@
 ---
 name: create-jumpskill
-description: 'Create a new JumpShell skill in the workspace skills directory by following the system /create-skill workflow, then rebuild and install the JumpShell extension and validate the skill is packaged.'
+description: 'Create a new Jumpshell skill in the workspace skills directory by following the system /create-skill workflow, then rebuild and install the Jumpshell extension and validate the skill is packaged.'
 argument-hint: 'Describe the skill outcome, scope, and workflow to package'
 ---
 
-# Create JumpShell Skill
+# Create Jumpshell Skill
 
-Create or update a workspace-scoped JumpShell skill under `skills/` using the same methodology as the system `/create-skill` workflow, then rebuild, install, and validate the extension package.
+Create or update a workspace-scoped jumpshell skill under `skills/` using the same methodology as the system `/create-skill` workflow, then rebuild, install, and validate the extension package.
 
 ## When to Use
 
-- User asks to create a new JumpShell skill for this repository
+- User asks to create a new Jumpshell skill for this repository
 - User wants skill creation plus extension rebuild/install in one workflow
 - User wants to verify the new skill is included in packaged extension assets
 

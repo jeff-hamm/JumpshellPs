@@ -1,21 +1,21 @@
-$script:JumpShellMcpServerName = 'jumpshell'
+$script:JumpshellMcpServerName = 'jumpshell'
 
-function _Get-JumpShellModuleRoot {
-    if ($global:JumpShellRepoRoot) {
-        return $global:JumpShellRepoRoot
+function _Get-JumpshellModuleRoot {
+    if ($global:JumpshellRepoRoot) {
+        return $global:JumpshellRepoRoot
     }
-    if ($env:JumpShellPath) {
-        return $env:JumpShellPath
+    if ($env:JumpshellPath) {
+        return $env:JumpshellPath
     }
     return Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 }
 
-function _Get-JumpShellSourceRoot {
-    if ($global:JumpShellSourcePath) {
-        return $global:JumpShellSourcePath
+function _Get-JumpshellSourceRoot {
+    if ($global:JumpshellSourcePath) {
+        return $global:JumpshellSourcePath
     }
 
-    $moduleRoot = _Get-JumpShellModuleRoot
+    $moduleRoot = _Get-JumpshellModuleRoot
     $sourceCandidate = Join-Path $moduleRoot 'src\pwsh'
     if (Test-Path -LiteralPath (Join-Path $sourceCandidate 'Jumpshell.psd1')) {
         return $sourceCandidate
@@ -28,7 +28,7 @@ function _Get-JumpShellSourceRoot {
     return $PSScriptRoot
 }
 
-function _Test-JumpShellMcpAutoStartEnabled {
+function _Test-JumpshellMcpAutoStartEnabled {
     if ($env:JUMPSHELL_MCP_DISABLE_AUTOSTART -eq '1') {
         return $false
     }
@@ -47,7 +47,7 @@ function _Test-JumpShellMcpAutoStartEnabled {
     }
 }
 
-function _Get-JumpShellMcpDirectory {
+function _Get-JumpshellMcpDirectory {
     if (Get-Command -Name Get-JumpDir -ErrorAction SilentlyContinue) {
         $jumpDir = Get-JumpDir
     }
@@ -66,22 +66,22 @@ function _Get-JumpShellMcpDirectory {
     return $mcpDir
 }
 
-function _Get-JumpShellMcpServerScriptPath {
-    $sourceRoot = _Get-JumpShellSourceRoot
+function _Get-JumpshellMcpServerScriptPath {
+    $sourceRoot = _Get-JumpshellSourceRoot
     $scriptPath = Join-Path $sourceRoot 'mcp\server.ps1'
     if (Test-Path -LiteralPath $scriptPath) {
         return $scriptPath
     }
 
-    throw "JumpShell MCP server script is missing under source root '$sourceRoot': $scriptPath"
+    throw "Jumpshell MCP server script is missing under source root '$sourceRoot': $scriptPath"
 }
 
-function _Get-JumpShellMcpStatePath {
-    return Join-Path (_Get-JumpShellMcpDirectory) 'server-state.json'
+function _Get-JumpshellMcpStatePath {
+    return Join-Path (_Get-JumpshellMcpDirectory) 'server-state.json'
 }
 
-function _Read-JumpShellMcpState {
-    $statePath = _Get-JumpShellMcpStatePath
+function _Read-JumpshellMcpState {
+    $statePath = _Get-JumpshellMcpStatePath
     if (-not (Test-Path $statePath)) {
         return $null
     }
@@ -95,26 +95,26 @@ function _Read-JumpShellMcpState {
     }
 }
 
-function _Write-JumpShellMcpState {
+function _Write-JumpshellMcpState {
     param([hashtable]$State)
 
-    $statePath = _Get-JumpShellMcpStatePath
+    $statePath = _Get-JumpshellMcpStatePath
     $State | ConvertTo-Json -Depth 10 | Set-Content -Path $statePath -Encoding UTF8
 }
 
-function _Remove-JumpShellMcpState {
-    $statePath = _Get-JumpShellMcpStatePath
+function _Remove-JumpshellMcpState {
+    $statePath = _Get-JumpshellMcpStatePath
     Remove-Item -Path $statePath -Force -ErrorAction SilentlyContinue
 }
 
-function Get-JumpShellMcp {
+function Get-JumpshellMcp {
     [CmdletBinding()]
     param()
 
-    $moduleRoot = _Get-JumpShellSourceRoot
-    $serverScript = _Get-JumpShellMcpServerScriptPath
-    $mcpDir = _Get-JumpShellMcpDirectory
-    $state = _Read-JumpShellMcpState
+    $moduleRoot = _Get-JumpshellSourceRoot
+    $serverScript = _Get-JumpshellMcpServerScriptPath
+    $mcpDir = _Get-JumpshellMcpDirectory
+    $state = _Read-JumpshellMcpState
 
     $process = $null
     if ($state -and $state.pid) {
@@ -123,11 +123,11 @@ function Get-JumpShellMcp {
 
     $isRunning = $null -ne $process -and -not $process.HasExited
     if (-not $isRunning -and $state) {
-        _Remove-JumpShellMcpState
+        _Remove-JumpshellMcpState
     }
 
     return [pscustomobject]@{
-        ServerName = $script:JumpShellMcpServerName
+        ServerName = $script:JumpshellMcpServerName
         IsRunning = $isRunning
         ProcessId = if ($isRunning) { $process.Id } else { $null }
         StartedAt = if ($state) { $state.startedAt } else { $null }
@@ -135,27 +135,27 @@ function Get-JumpShellMcp {
         ServerScript = $serverScript
         StdOutLog = if ($state -and $state.stdoutLog) { $state.stdoutLog } else { Join-Path $mcpDir 'server.stdout.log' }
         StdErrLog = if ($state -and $state.stderrLog) { $state.stderrLog } else { Join-Path $mcpDir 'server.stderr.log' }
-        StatePath = _Get-JumpShellMcpStatePath
+        StatePath = _Get-JumpshellMcpStatePath
     }
 }
 
-function Stop-JumpShellMcpServer {
+function Stop-JumpshellMcpServer {
     [CmdletBinding()]
     param(
         [switch]$Force
     )
 
-    $status = Get-JumpShellMcp
+    $status = Get-JumpshellMcp
     if ($status.IsRunning -and $status.ProcessId) {
         Stop-Process -Id $status.ProcessId -Force:$Force -ErrorAction SilentlyContinue
         Start-Sleep -Milliseconds 100
     }
 
-    _Remove-JumpShellMcpState
-    return Get-JumpShellMcp
+    _Remove-JumpshellMcpState
+    return Get-JumpshellMcp
 }
 
-function Start-JumpShellMcpServer {
+function Start-JumpshellMcpServer {
     [CmdletBinding()]
     param(
         [switch]$Force,
@@ -167,27 +167,27 @@ function Start-JumpShellMcpServer {
 
     if ($OnImport) {
         if ($env:JUMPSHELL_MCP_SERVER_MODE -eq '1') {
-            return Get-JumpShellMcp
+            return Get-JumpshellMcp
         }
 
-        if (-not (_Test-JumpShellMcpAutoStartEnabled)) {
-            return Get-JumpShellMcp
+        if (-not (_Test-JumpshellMcpAutoStartEnabled)) {
+            return Get-JumpshellMcp
         }
     }
 
-    $status = Get-JumpShellMcp
+    $status = Get-JumpshellMcp
     if ($status.IsRunning -and -not $Force) {
         return $status
     }
 
     if ($status.IsRunning -and $Force) {
-        Stop-JumpShellMcpServer -Force | Out-Null
+        Stop-JumpshellMcpServer -Force | Out-Null
     }
 
-    $moduleRoot = _Get-JumpShellSourceRoot
-    $serverScript = _Get-JumpShellMcpServerScriptPath
+    $moduleRoot = _Get-JumpshellSourceRoot
+    $serverScript = _Get-JumpshellMcpServerScriptPath
     if (-not (Test-Path $serverScript)) {
-        throw "JumpShell MCP server script is missing: $serverScript"
+        throw "Jumpshell MCP server script is missing: $serverScript"
     }
 
     $pwsh = Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -195,7 +195,7 @@ function Start-JumpShellMcpServer {
         throw 'pwsh executable was not found in PATH. Install PowerShell 7 to run the MCP server.'
     }
 
-    $mcpDir = _Get-JumpShellMcpDirectory
+    $mcpDir = _Get-JumpshellMcpDirectory
     $stdoutLog = Join-Path $mcpDir 'server.stdout.log'
     $stderrLog = Join-Path $mcpDir 'server.stderr.log'
 
@@ -230,10 +230,10 @@ function Start-JumpShellMcpServer {
 
     $process = Start-Process @startParams
     if (-not $process) {
-        throw 'Failed to start JumpShell MCP server process.'
+        throw 'Failed to start Jumpshell MCP server process.'
     }
 
-    _Write-JumpShellMcpState -State @{
+    _Write-JumpshellMcpState -State @{
         pid = $process.Id
         startedAt = (Get-Date).ToString('o')
         moduleRoot = $moduleRoot
@@ -243,27 +243,27 @@ function Start-JumpShellMcpServer {
     }
 
     Start-Sleep -Milliseconds 250
-    $latest = Get-JumpShellMcp
+    $latest = Get-JumpshellMcp
 
     if (-not $Quiet -and -not $latest.IsRunning) {
-        Write-Warning "JumpShell MCP server process started but did not report as running. Check logs at '$stderrLog'."
+        Write-Warning "Jumpshell MCP server process started but did not report as running. Check logs at '$stderrLog'."
     }
 
     return $latest
 }
 
-function Install-JumpShellMcp {
+function Install-JumpshellMcp {
     [CmdletBinding()]
     param(
         [ValidateSet('User', 'Workspace')]
         [string]$Scope = 'User'
     )
 
-    $moduleRoot = _Get-JumpShellModuleRoot
-    $moduleSourceRoot = _Get-JumpShellSourceRoot
+    $moduleRoot = _Get-JumpshellModuleRoot
+    $moduleSourceRoot = _Get-JumpshellSourceRoot
     $installScript = Join-Path $moduleSourceRoot 'mcp\Install-Mcp.ps1'
     if (-not (Test-Path $installScript)) {
-        throw "JumpShell MCP install script not found: $installScript"
+        throw "Jumpshell MCP install script not found: $installScript"
     }
 
     return & $installScript -ModuleRoot $moduleSourceRoot -Scope $Scope -WorkspaceRoot $moduleRoot

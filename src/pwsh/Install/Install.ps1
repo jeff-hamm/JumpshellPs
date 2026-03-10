@@ -48,10 +48,10 @@ if ($Mcps -or $installAll) {
     if (Test-Path $mcpInstallScript) {
         try {
             $mcpConfig = & $mcpInstallScript -ModuleRoot $moduleSourceRoot -Scope User -WorkspaceRoot $ModuleRoot
-            Write-Host "Configured JumpShell MCP server in $($mcpConfig.Path)" -ForegroundColor DarkCyan
+            Write-Host "Configured Jumpshell MCP server in $($mcpConfig.Path)" -ForegroundColor DarkCyan
         }
         catch {
-            Write-Warning "Failed to configure JumpShell MCP server: $($_.Exception.Message)"
+            Write-Warning "Failed to configure Jumpshell MCP server: $($_.Exception.Message)"
         }
     }
 }

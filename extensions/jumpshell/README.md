@@ -1,6 +1,6 @@
-# JumpShell
+# Jumpshell
 
-**JumpShell** is a PowerShell module, MCP server, set of AI skills, and Python AI backend library — packaged together and delivered via a VS Code / Cursor extension.
+**Jumpshell** is a PowerShell module, MCP server, set of AI skills, and Python AI backend library — packaged together and delivered via a VS Code / Cursor extension.
 
 📖 **[Full documentation →](https://jeff-hamm.github.io/jumpshell/)**
 
@@ -32,12 +32,12 @@ Skills are installed to `~/.agents/skills` (configurable via `jumpshell.skillsPa
 
 ### MCP Server
 
-A **Model Context Protocol server** (`jumpshellps`) backed by the JumpShell PowerShell module. Once configured, Copilot agents can call shell utilities, file-system helpers, and module commands directly.
+A **Model Context Protocol server** (`jumpshellps`) backed by the Jumpshell PowerShell module. Once configured, Copilot agents can call shell utilities, file-system helpers, and module commands directly.
 
 **Setup options:**
 
-- **Extension command:** `JumpShell: Install MCP Configuration`
-- **Module command:** `Install-JumpShellMcp -Scope User`
+- **Extension command:** `Jumpshell: Install MCP Configuration`
+- **Module command:** `Install-JumpshellMcp -Scope User`
 - **Direct script:** `pwsh ./src/pwsh/mcp/Install-Mcp.ps1 -Scope User`
 
 MCP config is written to your `mcp.json` (user or workspace scope, controlled by `jumpshell.mcpConfigScope`).
@@ -45,9 +45,9 @@ MCP config is written to your `mcp.json` (user or workspace scope, controlled by
 **Runtime commands:**
 
 ```powershell
-Get-JumpShellMcp
-Start-JumpShellMcpServer
-Stop-JumpShellMcpServer -Force
+Get-JumpshellMcp
+Start-JumpshellMcpServer
+Stop-JumpshellMcpServer -Force
 ```
 
 📖 [MCP Server docs →](https://jeff-hamm.github.io/jumpshell/pwsh/MCP-Server)
@@ -93,7 +93,7 @@ The extension installs/updates `ai-backends` automatically alongside skills when
 
 ### PowerShell Module
 
-The **JumpShellPs** PowerShell module provides shell utilities, directory helpers, Git integration, Kubernetes shortcuts, SSH helpers, and MCP server hosting.
+The **JumpshellPs** PowerShell module provides shell utilities, directory helpers, Git integration, Kubernetes shortcuts, SSH helpers, and MCP server hosting.
 
 **Import:**
 
@@ -117,16 +117,16 @@ pwsh ./src/pwsh/Install.ps1 -Skills -Modules -Applications -Mcps
 
 ## VS Code Extension
 
-The extension is a delivery vehicle for the components above. On first install the **Setup / Configure JumpShell** wizard opens automatically, pre-selecting anything not yet installed.
+The extension is a delivery vehicle for the components above. On first install the **Setup / Configure Jumpshell** wizard opens automatically, pre-selecting anything not yet installed.
 
 ### Commands
 
 | Command | Description |
 |---|---|
-| `JumpShell: Setup / Configure JumpShell` | Check all components; install or configure anything missing |
-| `JumpShell: Update JumpShell` | Pull latest from git and refresh all installed components |
-| `JumpShell: Select Chat Model` | Pick the active Copilot chat model |
-| `JumpShell: Assign Model Hotkey` | Bind a keyboard shortcut to a specific model |
+| `Jumpshell: Setup / Configure Jumpshell` | Check all components; install or configure anything missing |
+| `Jumpshell: Update Jumpshell` | Pull latest from git and refresh all installed components |
+| `Jumpshell: Select Chat Model` | Pick the active Copilot chat model |
+| `Jumpshell: Assign Model Hotkey` | Bind a keyboard shortcut to a specific model |
 
 ### Configuration
 
@@ -136,7 +136,7 @@ The extension is a delivery vehicle for the components above. On first install t
 | `jumpshell.installMcpOnSkillsInstall` | `false` | Also install MCP config when skills are installed |
 | `jumpshell.installAiBackendsOnSkillsInstall` | `true` | Also install ai-backends when skills are installed |
 | `jumpshell.mcpConfigScope` | `user` | Write MCP config to `user` or `workspace` |
-| `jumpshell.moduleRootPath` | _(auto)_ | Explicit JumpShell module root path or repo root |
+| `jumpshell.moduleRootPath` | _(auto)_ | Explicit Jumpshell module root path or repo root |
 | `jumpshell.extensionReleaseRepo` | `jeff-hamm/jumpshell` | GitHub repo slug for update checks |
 | `jumpshell.includePreReleaseUpdates` | `false` | Include pre-release tags in update checks |
 

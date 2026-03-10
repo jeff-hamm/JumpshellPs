@@ -4,11 +4,11 @@
 # Set import flag to prevent circular imports
 $global:Jumpshell_ImportInProgress = $true
 
-$script:JumpShellSourceRoot = $PSScriptRoot
-$script:JumpShellRepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$global:JumpShellSourcePath = $script:JumpShellSourceRoot
-$global:JumpShellRepoRoot = $script:JumpShellRepoRoot
-$Env:JumpShellPath = $global:JumpShellPath = $script:JumpShellRepoRoot
+$script:JumpshellSourceRoot = $PSScriptRoot
+$script:JumpshellRepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$global:JumpshellSourcePath = $script:JumpshellSourceRoot
+$global:JumpshellRepoRoot = $script:JumpshellRepoRoot
+$Env:JumpshellPath = $global:JumpshellPath = $script:JumpshellRepoRoot
 $global:UserName = $env:UserName
 
 # Check for required modules
@@ -78,17 +78,17 @@ Write-Debug "Exporting public functions: $($publicFunctions -join ', ')"
 Export-ModuleMember -Function $publicFunctions
 Export-ModuleMember -Alias *
 # Optionally, export the map as a variable for user inspection
-Set-Variable -Name 'JumpShell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
+Set-Variable -Name 'Jumpshell_FunctionFileMap' -Value $script:FunctionFileMap -Scope Global
 
 
 Configure-Profile
 
-if (Get-Command -Name Start-JumpShellMcpServer -ErrorAction SilentlyContinue) {
+if (Get-Command -Name Start-JumpshellMcpServer -ErrorAction SilentlyContinue) {
     try {
-        Start-JumpShellMcpServer -OnImport -Quiet | Out-Null
+        Start-JumpshellMcpServer -OnImport -Quiet | Out-Null
     }
     catch {
-        Write-Verbose "JumpShell MCP autostart skipped: $($_.Exception.Message)"
+        Write-Verbose "Jumpshell MCP autostart skipped: $($_.Exception.Message)"
     }
 }
 

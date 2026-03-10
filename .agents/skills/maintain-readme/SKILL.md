@@ -6,7 +6,7 @@ argument-hint: 'Describe what changed (e.g., "added a new skill", "new MCP comma
 
 # Maintain README
 
-Keep `extensions/jumpshell/README.md` accurate when any of the four core JumpShell components change.
+Keep `extensions/jumpshell/README.md` accurate when any of the four core Jumpshell components change.
 
 ## README Location and Purpose
 

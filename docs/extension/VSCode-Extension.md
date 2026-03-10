@@ -7,20 +7,20 @@ title: VS Code Extension
 
 The extension source is in `extensions/jumpshell`.
 
-It manages JumpShell skill installation, MCP configuration, and optional Python backend sync.
+It manages Jumpshell skill installation, MCP configuration, and optional Python backend sync.
 
 ## Capabilities
 
 - Installs bundled skills into `~/.agents/skills`
 - Updates extension-managed skills on hash changes
 - Optionally installs/updates `ai-backends` Python source
-- Installs/updates JumpShell MCP server config
+- Installs/updates Jumpshell MCP server config
 - Performs startup auto-setup once per extension version
 
 ## Commands
 
-- `JumpShell: Update Skills`
-- `JumpShell: Install MCP Configuration`
+- `Jumpshell: Update Skills`
+- `Jumpshell: Install MCP Configuration`
 
 ## Settings
 
@@ -32,7 +32,7 @@ It manages JumpShell skill installation, MCP configuration, and optional Python 
 | `jumpshell.installMcpOnSkillsInstall` | `false` | Also run MCP config install during skill update |
 | `jumpshell.mcpConfigScope` | `user` | MCP config write target (`user` or `workspace`) |
 | `jumpshell.workspaceMcpDirectory` | `auto` | Workspace MCP location when scope is `workspace` (`auto`, `vscode`, or `cursor`) |
-| `jumpshell.moduleRootPath` | empty | Optional explicit JumpShell module/repo root |
+| `jumpshell.moduleRootPath` | empty | Optional explicit Jumpshell module/repo root |
 
 ## Build and Package
 
@@ -101,12 +101,12 @@ When scope is `workspace`, directory selection is controlled by `jumpshell.works
 ## Troubleshooting
 
 1. Skills did not update
-- Run `JumpShell: Update Skills`
-- Check extension output channel `JumpShell`
+- Run `Jumpshell: Update Skills`
+- Check extension output channel `Jumpshell`
 
 2. MCP install cannot find module root
 - Set `jumpshell.moduleRootPath`
-- Re-run `JumpShell: Install MCP Configuration`
+- Re-run `Jumpshell: Install MCP Configuration`
 
 3. TypeScript issues before package
 - Run `npm --prefix ./extensions/jumpshell run check`

@@ -3,7 +3,7 @@ layout: default
 title: Quick Reference
 ---
 
-# JumpShell Quick Reference
+# Jumpshell Quick Reference
 
 ## Load Module
 
@@ -28,13 +28,13 @@ pwsh ./extensions/Install.ps1 -VsixPath ./extensions/jumpshell.vsix
 
 ```powershell
 # Module-managed config
-Install-JumpShellMcp -Scope User
-Install-JumpShellMcp -Scope Workspace
+Install-JumpshellMcp -Scope User
+Install-JumpshellMcp -Scope Workspace
 
 # Process lifecycle
-Get-JumpShellMcp
-Start-JumpShellMcpServer
-Stop-JumpShellMcpServer -Force
+Get-JumpshellMcp
+Start-JumpshellMcpServer
+Stop-JumpshellMcpServer -Force
 ```
 
 ## Chat and Editing Analysis
@@ -49,7 +49,7 @@ Get-AiEditingSessions | Select-Object -First 5 SessionId, FileCount, OperationCo
 
 ```powershell
 Search-VsCodeChat -Query "workspaceStorage" -Path .
-Search-VsCodeChat -Query "Install-JumpShellMcp" -Path .
+Search-VsCodeChat -Query "Install-JumpshellMcp" -Path .
 Search-VsCodeChat -Query "Get-VSCode.*" -Regex -Path .
 ```
 

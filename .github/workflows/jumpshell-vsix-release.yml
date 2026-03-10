@@ -1,4 +1,4 @@
-name: Publish JumpShell VSIX
+name: Publish Jumpshell VSIX
 
 on:
   push:
@@ -82,7 +82,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: JumpShell ${{ steps.vars.outputs.version }}
+          name: Jumpshell ${{ steps.vars.outputs.version }}
           generate_release_notes: true
           files: |
             ${{ steps.vars.outputs.vsix_path }}

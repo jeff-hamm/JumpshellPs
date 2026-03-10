@@ -35,7 +35,7 @@ function openInstallTerminal(name: string, shellPath: string | undefined, lines:
 
 async function installPwshWindows(): Promise<void> {
   const terminal = openInstallTerminal(
-    'JumpShell — Install PowerShell',
+    'Jumpshell — Install PowerShell',
     'cmd.exe',
     [
       'echo Installing PowerShell via winget...',
@@ -69,7 +69,7 @@ async function installPwshMacOs(): Promise<void> {
     'brew install --cask powershell',
   );
 
-  const terminal = openInstallTerminal('JumpShell — Install PowerShell', '/bin/zsh', lines);
+  const terminal = openInstallTerminal('Jumpshell — Install PowerShell', '/bin/zsh', lines);
 
   await new Promise<void>((resolve) => {
     const disposable = vscode.window.onDidCloseTerminal((t) => {
@@ -146,7 +146,7 @@ async function installPwshLinux(): Promise<void> {
     'echo "Done. Run: pwsh"',
   ].join('\n');
 
-  const terminal = openInstallTerminal('JumpShell — Install PowerShell', '/bin/bash', [
+  const terminal = openInstallTerminal('Jumpshell — Install PowerShell', '/bin/bash', [
     `bash -c '${script.replace(/'/g, "'\\''")}'`,
   ]);
 
@@ -240,7 +240,7 @@ async function installPythonWindows(): Promise<void> {
 
   if (choice === 'winget install') {
     const terminal = openInstallTerminal(
-      'JumpShell — Install Python',
+      'Jumpshell — Install Python',
       'cmd.exe',
       [
         'winget install --id Python.Python.3 --source winget --accept-package-agreements --accept-source-agreements',
@@ -268,7 +268,7 @@ async function installPythonMacOs(): Promise<void> {
 
   lines.push('brew install python3');
 
-  const terminal = openInstallTerminal('JumpShell — Install Python', '/bin/bash', lines);
+  const terminal = openInstallTerminal('Jumpshell — Install Python', '/bin/bash', lines);
   await new Promise<void>((resolve) => {
     const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
   });
@@ -287,7 +287,7 @@ async function installPythonLinux(): Promise<void> {
     'fi',
   ].join('; ');
 
-  const terminal = openInstallTerminal('JumpShell — Install Python', '/bin/bash', [`bash -c '${lines}'`]);
+  const terminal = openInstallTerminal('Jumpshell — Install Python', '/bin/bash', [`bash -c '${lines}'`]);
   await new Promise<void>((resolve) => {
     const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
   });

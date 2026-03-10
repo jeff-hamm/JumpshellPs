@@ -25,13 +25,13 @@ pwsh ./extensions/Build.ps1 -Install
 ### 3. Configure MCP
 
 ```powershell
-Install-JumpShellMcp -Scope User
-Get-JumpShellMcp
+Install-JumpshellMcp -Scope User
+Get-JumpshellMcp
 ```
 
 Or run extension command:
 
-- `JumpShell: Install MCP Configuration`
+- `Jumpshell: Install MCP Configuration`
 
 ## Important Entry Points
 

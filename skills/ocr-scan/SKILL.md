@@ -130,7 +130,7 @@ Use `--list-models` to see live model availability for each backend.
 ## Notes
 
 - **Quality tiers are the preferred interface** — they auto-select the best model from what's available, so instructions don't go stale when models are updated or retired.
-- **Uses the `ai_backends` module** — backend calling, model discovery, and quality resolution are handled by the `ai_backends` Python package (pip-installed by the JumpShell extension, or `pip install -e src/python/ai-backends` for repo dev). The OCR script at [./scripts/ocr_scan.py](./scripts/ocr_scan.py) imports it automatically. See the `/agent-script` skill for how to use `ai_backends` in new scripts.
+- **Uses the `ai_backends` module** — backend calling, model discovery, and quality resolution are handled by the `ai_backends` Python package (pip-installed by the Jumpshell extension, or `pip install -e src/python/ai-backends` for repo dev). The OCR script at [./scripts/ocr_scan.py](./scripts/ocr_scan.py) imports it automatically. See the `/agent-script` skill for how to use `ai_backends` in new scripts.
 - **Model registry** is cached in the installed package at `ai_backends/.models_cache.json` (shared across all skills using the module) and auto-regenerates [references/available-models.md](./references/available-models.md) on refresh.
 - Output files are named `<source>.ocr.md` (single backend) or `<source>.<backend>.ocr.md` (when using `--all`).
 - **Environment variables**: `OCR_BACKEND` overrides the default backend, `OCR_INPUT_DIR` sets the default input directory (defaults to cwd), `OCR_OUTPUT_DIR` sets the `--all` transcript output directory.

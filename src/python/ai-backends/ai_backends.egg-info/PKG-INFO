@@ -33,7 +33,7 @@ pip install -e src/python/ai-backends
 # Or from this package directory
 pip install -e .
 
-# Extension-managed layout (installed by JumpShell extension)
+# Extension-managed layout (installed by Jumpshell extension)
 pip install -e ~/.agents/src/python/ai-backends
 
 # Optional: install directly from GitHub

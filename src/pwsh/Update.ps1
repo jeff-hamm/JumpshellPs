@@ -8,13 +8,13 @@ function Update-Jumpshell {
         [switch]$Modules,
         [switch]$Applications
     )
-    $root = $Env:JumpShellPath
+    $root = $Env:JumpshellPath
     if ([string]::IsNullOrWhiteSpace($root)) {
         $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     }
 
-    $sourceRoot = if ($global:JumpShellSourcePath) {
-        $global:JumpShellSourcePath
+    $sourceRoot = if ($global:JumpshellSourcePath) {
+        $global:JumpshellSourcePath
     } else {
         $candidate = Join-Path $root 'src\pwsh'
         if (Test-Path -LiteralPath $candidate) { $candidate } else { $PSScriptRoot }

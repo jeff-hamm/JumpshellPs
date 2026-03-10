@@ -47,7 +47,7 @@ This repository now has a split architecture with root compatibility shims and c
 | Import module from repo checkout | `Import-Module .\Jumpshell.psd1 -Force` |
 | Install/update extension VSIX | `pwsh ./Install.ps1 -Build` or `pwsh ./extensions/Build.ps1 -Install` |
 | Install module dependencies/skills/MCP/apps | `pwsh ./src/pwsh/Install.ps1` |
-| Manage MCP from module | `Install-JumpShellMcp`, `Start-JumpShellMcpServer`, `Get-JumpShellMcp` |
+| Manage MCP from module | `Install-JumpshellMcp`, `Start-JumpshellMcpServer`, `Get-JumpshellMcp` |
 
 ## Notes
 

@@ -17,7 +17,7 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'JumpShell: Checking component status…',
+        title: 'Jumpshell: Checking component status…',
         cancellable: false,
       },
       async () => {
@@ -38,7 +38,7 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
     items.push({
       label: '$(package) Skills',
       description: 'Not installed',
-      detail: 'Install JumpShell Copilot skill pack to ~/.agents/skills',
+      detail: 'Install Jumpshell Copilot skill pack to ~/.agents/skills',
       picked: true,
       run: () => installManagedSkills(context, 'install'),
     });
@@ -64,7 +64,7 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
     items.push({
       label: '$(plug) MCP Configuration',
       description: 'Not configured',
-      detail: 'Configure the JumpShellPs MCP server in mcp.json',
+      detail: 'Configure the JumpshellPs MCP server in mcp.json',
       picked: true,
       run: () => installMcpConfig(context),
     });
@@ -124,7 +124,7 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
 
   const selected = await vscode.window.showQuickPick(items, {
     canPickMany: true,
-    title: 'JumpShell Setup',
+    title: 'Jumpshell Setup',
     placeHolder: 'Pre-checked items need attention — press Enter to run selected actions.',
   });
 
@@ -141,7 +141,7 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
       const message = error instanceof Error ? error.message : String(error);
       outputChannel.appendLine(`[setup] Error: ${message}`);
       const cont = await vscode.window.showErrorMessage(
-        `JumpShell Setup — ${item.label.replace(/\$\([^)]+\)\s*/, '')}: ${message}`,
+        `Jumpshell Setup — ${item.label.replace(/\$\([^)]+\)\s*/, '')}: ${message}`,
         'Continue',
         'Stop'
       );

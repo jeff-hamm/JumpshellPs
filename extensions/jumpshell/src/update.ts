@@ -34,7 +34,7 @@ async function resolveRepoRoot(context: vscode.ExtensionContext): Promise<string
   return undefined;
 }
 
-export async function updateJumpShell(context: vscode.ExtensionContext): Promise<void> {
+export async function updateJumpshell(context: vscode.ExtensionContext): Promise<void> {
   const outputChannel = getOutputChannel();
   outputChannel.show(true);
 
@@ -75,7 +75,7 @@ export async function updateJumpShell(context: vscode.ExtensionContext): Promise
 
     if (behindCount > 0) {
       const choice = await vscode.window.showInformationMessage(
-        `JumpShell repo has ${behindCount} new commit(s). Pull now?`,
+        `Jumpshell repo has ${behindCount} new commit(s). Pull now?`,
         'Pull',
         'Skip'
       );
@@ -90,7 +90,7 @@ export async function updateJumpShell(context: vscode.ExtensionContext): Promise
         catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           outputChannel.appendLine(`[update] git pull failed: ${msg}`);
-          void vscode.window.showWarningMessage(`JumpShell: git pull failed — ${msg}`);
+          void vscode.window.showWarningMessage(`Jumpshell: git pull failed — ${msg}`);
         }
       }
     }
@@ -133,13 +133,13 @@ export async function updateJumpShell(context: vscode.ExtensionContext): Promise
   }
 
   if (tasks.length === 0) {
-    void vscode.window.showInformationMessage('JumpShell: Everything is up to date.');
+    void vscode.window.showInformationMessage('Jumpshell: Everything is up to date.');
     return;
   }
 
   const labelList = tasks.map((t) => t.label).join(', ');
   const choice = await vscode.window.showInformationMessage(
-    `JumpShell: Update ${labelList}?`,
+    `Jumpshell: Update ${labelList}?`,
     'Update All',
     'Cancel'
   );
@@ -157,7 +157,7 @@ export async function updateJumpShell(context: vscode.ExtensionContext): Promise
       const msg = error instanceof Error ? error.message : String(error);
       outputChannel.appendLine(`[update] Error updating ${task.label}: ${msg}`);
       const cont = await vscode.window.showErrorMessage(
-        `JumpShell Update — ${task.label}: ${msg}`,
+        `Jumpshell Update — ${task.label}: ${msg}`,
         'Continue',
         'Stop'
       );

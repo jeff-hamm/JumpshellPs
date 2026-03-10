@@ -16,12 +16,12 @@ argument-hint: 'Describe what the new script should do (e.g., "extract tables fr
 ## Prerequisites
 
 This skill depends on:
-- **`ai_backends` package** — installed via `pip` by the JumpShell extension (or `pip install -e src/python/ai-backends` for repo development). Provides backend calling, model discovery, and quality-based model selection.
+- **`ai_backends` package** — installed via `pip` by the Jumpshell extension (or `pip install -e src/python/ai-backends` for repo development). Provides backend calling, model discovery, and quality-based model selection.
 - **`/agent-customization` skill** — reference for creating the SKILL.md wrapper (frontmatter, structure, conventions)
 
 ## The `ai_backends` Module
 
-Lives in this repository at `src/python/ai-backends`. The JumpShell extension runs `pip install` (regular for VSIX users, editable for developers) so it's available as a normal Python package. It provides a unified interface to 6 AI backends:
+Lives in this repository at `src/python/ai-backends`. The Jumpshell extension runs `pip install` (regular for VSIX users, editable for developers) so it's available as a normal Python package. It provides a unified interface to 6 AI backends:
 
 | Backend | Type | Cost |
 |---------|------|------|
@@ -36,7 +36,7 @@ Backend cost is declared in `BACKENDS[name]["cost"]` (`"free"` or `"paid"`).
 
 ### Import Recipe
 
-`ai_backends` is pip-installed (the JumpShell extension handles this automatically), so the import is a single line:
+`ai_backends` is pip-installed (the Jumpshell extension handles this automatically), so the import is a single line:
 
 ```python
 import ai_backends
@@ -226,12 +226,12 @@ if __name__ == "__main__":
 ### 3. Add `requirements.txt`
 
 Always create `scripts/requirements.txt`. Use the git URL so the package is
-resolvable even without the JumpShell extension (pip skips the fetch if
+resolvable even without the Jumpshell extension (pip skips the fetch if
 `ai-backends` is already installed):
 
 ```
 # requirements.txt
-# Installed automatically by the JumpShell extension.
+# Installed automatically by the Jumpshell extension.
 # The git URL is a fallback for standalone use.
 ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
 
@@ -330,7 +330,7 @@ pip install easyocr              # easyocr (+ PyTorch, first run downloads ~100 
 ## Notes
 
 - Always create `run.ps1`, `run.sh`, and `requirements.txt` in `scripts/` alongside the Python file, even for simple scripts.
-- `ai_backends` lives at `src/python/ai-backends` in this repo. The JumpShell extension pip-installs it into site-packages automatically. No `sys.path` manipulation needed.
+- `ai_backends` lives at `src/python/ai-backends` in this repo. The Jumpshell extension pip-installs it into site-packages automatically. No `sys.path` manipulation needed.
 - Skills should reference it in `requirements.txt` as `ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends` so standalone use works without the extension.
 - Model availability changes frequently. Always prefer `--quality`/`--tier` tiers over hardcoded backend/model names.
 - The model registry cache lives inside the installed package at `ai_backends/.models_cache.json` and is shared across all consumers.

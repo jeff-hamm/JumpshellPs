@@ -31,10 +31,10 @@ export async function installAiBackends(
   const sourcePath = await resolveAiBackendsPath(context);
 
   if (!sourcePath) {
-    const msg = 'ai-backends bundled package not found — reinstall the JumpShell extension.';
+    const msg = 'ai-backends bundled package not found — reinstall the Jumpshell extension.';
     outputChannel.appendLine(`[ai-backends] ${msg}`);
     if (!options.silent) {
-      void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+      void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
     }
     return;
   }
@@ -50,7 +50,7 @@ export async function installAiBackends(
 
   const isWindows = process.platform === 'win32';
   const terminal = vscode.window.createTerminal({
-    name: 'JumpShell — Install ai-backends',
+    name: 'Jumpshell — Install ai-backends',
     shellPath: isWindows ? 'pwsh.exe' : undefined,
     isTransient: false,
   });
@@ -68,7 +68,7 @@ export async function installAiBackends(
 
   if (!options.silent) {
     void vscode.window.showInformationMessage(
-      'JumpShell: Installing ai-backends — check the terminal for progress.'
+      'Jumpshell: Installing ai-backends — check the terminal for progress.'
     );
   }
 }
@@ -248,7 +248,7 @@ export async function configureAiCli(context: vscode.ExtensionContext): Promise<
   }
 
   if (Object.keys(collected).length === 0 && enabledBackends.length === 0) {
-    void vscode.window.showInformationMessage('JumpShell: No changes made.');
+    void vscode.window.showInformationMessage('Jumpshell: No changes made.');
     return;
   }
 
@@ -285,12 +285,12 @@ export async function configureAiCli(context: vscode.ExtensionContext): Promise<
     const message = error instanceof Error ? error.message : String(error);
     outputChannel.appendLine(`[configure] Failed to write config file: ${message}`);
     void vscode.window.showWarningMessage(
-      `JumpShell: Could not write config to ${configPath}: ${message}`
+      `Jumpshell: Could not write config to ${configPath}: ${message}`
     );
   }
 
   void vscode.window.showInformationMessage(
-    `JumpShell: ${storedCount} credential(s) stored. ` +
+    `Jumpshell: ${storedCount} credential(s) stored. ` +
       `Enabled backends: ${enabledBackends.join(', ') || 'none'}.`
   );
 }

@@ -8,7 +8,7 @@ export function initOutputChannel(outputChannel: vscode.OutputChannel): void {
 
 export function getOutputChannel(): vscode.OutputChannel {
   if (!channel) {
-    throw new Error('JumpShell output channel has not been initialized.');
+    throw new Error('Jumpshell output channel has not been initialized.');
   }
 
   return channel;

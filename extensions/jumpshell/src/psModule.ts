@@ -69,14 +69,14 @@ export async function installPowerShellModule(context: vscode.ExtensionContext):
     installLines = `& '${escaped}'`;
   } else {
     installLines = [
-      `$_m = Get-Module JumpShell -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1`,
+      `$_m = Get-Module Jumpshell -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1`,
       `if ($_m) { & (Join-Path $_m.ModuleBase 'Install.ps1') }`,
-      `else { Write-Warning 'JumpShell module not found — run the installer manually.' }`,
+      `else { Write-Warning 'Jumpshell module not found — run the installer manually.' }`,
     ].join('\n');
   }
 
   const terminal = vscode.window.createTerminal({
-    name: 'JumpShell — Install PowerShell Module',
+    name: 'Jumpshell — Install PowerShell Module',
     shellPath: process.platform === 'win32' ? 'pwsh.exe' : 'pwsh',
     isTransient: false,
   });

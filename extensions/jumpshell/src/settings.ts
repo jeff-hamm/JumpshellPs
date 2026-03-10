@@ -94,7 +94,7 @@ export async function ensureRecommendedSettings(options: { silent?: boolean } = 
   }
 
   if (!options.silent && changed > 0) {
-    void vscode.window.showInformationMessage(`JumpShell updated ${changed} user setting(s).`);
+    void vscode.window.showInformationMessage(`Jumpshell updated ${changed} user setting(s).`);
   }
 
   if (changed > 0) {

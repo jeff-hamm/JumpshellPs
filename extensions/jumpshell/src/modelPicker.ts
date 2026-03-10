@@ -1,5 +1,5 @@
 /**
- * modelPicker.ts — Experimental model-picker automation for JumpShell.
+ * modelPicker.ts — Experimental model-picker automation for Jumpshell.
  *
  * Registers commands that attempt to switch the active Copilot Chat model
  * either via the Language Model API or via SendKeys-style UI automation.
@@ -222,7 +222,7 @@ async function sendPromptToFlow(
   } catch (err) {
     const msg = `Failed to open new chat session: ${err}`;
     outputChannel.appendLine(`[sendPromptTo] ${msg}`);
-    void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+    void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
     return;
   }
 
@@ -259,7 +259,7 @@ async function sendPromptToFlow(
     } catch (fallbackErr) {
       const msg = `Failed to send prompt: ${fallbackErr}`;
       outputChannel.appendLine(`[sendPromptTo] ${msg}`);
-      void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+      void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
     }
   }
 }
@@ -274,7 +274,7 @@ async function listCopilotModels(outputChannel: vscode.OutputChannel): Promise<v
   try {
     const models = await vscode.lm.selectChatModels();
     if (models.length === 0) {
-      void vscode.window.showInformationMessage('JumpShell: No Copilot LM models found.');
+      void vscode.window.showInformationMessage('Jumpshell: No Copilot LM models found.');
       return;
     }
 
@@ -296,7 +296,7 @@ async function listCopilotModels(outputChannel: vscode.OutputChannel): Promise<v
   } catch (err) {
     const msg = `Failed to list models: ${err}`;
     outputChannel.appendLine(`[model-picker] ${msg}`);
-    void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+    void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
   }
 }
 
@@ -322,7 +322,7 @@ async function automateModelPicker(
       `'github.copilot.chat.openModelPicker' may have been removed or renamed. ` +
       `Error: ${err}`;
     outputChannel.appendLine(`[model-picker] ${msg}`);
-    void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+    void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
     return;
   }
 
@@ -337,10 +337,10 @@ async function automateModelPicker(
     await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
 
     outputChannel.appendLine(`[model-picker] Selection submitted: "${modelLabel}"`);
-    void vscode.window.showInformationMessage(`JumpShell: Model selection submitted — "${modelLabel}"`);
+    void vscode.window.showInformationMessage(`Jumpshell: Model selection submitted — "${modelLabel}"`);
   } catch (err) {
     const msg = `SendKeys automation failed: ${err}`;
     outputChannel.appendLine(`[model-picker] ${msg}`);
-    void vscode.window.showErrorMessage(`JumpShell: ${msg}`);
+    void vscode.window.showErrorMessage(`Jumpshell: ${msg}`);
   }
 }

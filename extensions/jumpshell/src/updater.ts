@@ -52,7 +52,7 @@ export async function runStartupUpdateCheck(context: vscode.ExtensionContext): P
     }
 
     const action = await vscode.window.showInformationMessage(
-      `JumpShell ${latestVersion} is available (current: ${currentVersion}).`,
+      `Jumpshell ${latestVersion} is available (current: ${currentVersion}).`,
       'Install update',
       'View release',
       'Dismiss'
@@ -76,7 +76,7 @@ export async function checkForExtensionUpdates(context: vscode.ExtensionContext)
   const includePreReleases = vscode.workspace.getConfiguration('jumpshell').get<boolean>('includePreReleaseUpdates', false);
   const release = await getLatestRelease(repoSlug, includePreReleases);
   if (!release) {
-    void vscode.window.showWarningMessage(`JumpShell could not find a release in ${repoSlug}.`);
+    void vscode.window.showWarningMessage(`Jumpshell could not find a release in ${repoSlug}.`);
     return;
   }
 
@@ -87,7 +87,7 @@ export async function checkForExtensionUpdates(context: vscode.ExtensionContext)
   }
 
   if (compareSemver(currentVersion, latestVersion) >= 0) {
-    void vscode.window.showInformationMessage(`JumpShell is up to date. Current version: ${currentVersion}.`);
+    void vscode.window.showInformationMessage(`Jumpshell is up to date. Current version: ${currentVersion}.`);
     return;
   }
 
@@ -98,7 +98,7 @@ export async function checkForExtensionUpdates(context: vscode.ExtensionContext)
   }
 
   const action = await vscode.window.showInformationMessage(
-    `JumpShell ${latestVersion} is available (current: ${currentVersion}). Install now?`,
+    `Jumpshell ${latestVersion} is available (current: ${currentVersion}). Install now?`,
     'Install',
     'View release'
   );
@@ -132,7 +132,7 @@ async function downloadAndInstallRelease(
     await context.globalState.update(lastUpdateCheckStateKey, Date.now());
 
     const reloadAction = await vscode.window.showInformationMessage(
-      `JumpShell ${latestVersion} was installed. Reload window to activate the update.`,
+      `Jumpshell ${latestVersion} was installed. Reload window to activate the update.`,
       'Reload Window'
     );
 

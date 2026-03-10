@@ -16,7 +16,7 @@ export async function installMcpConfig(context: vscode.ExtensionContext, options
   const moduleSourceRoot = await resolveModuleSourceRoot(context);
   const serverScriptPath = path.join(moduleSourceRoot, 'mcp', 'server.ps1');
   if (!await pathExists(serverScriptPath)) {
-    throw new Error(`JumpShell MCP server script was not found at ${serverScriptPath}.`);
+    throw new Error(`Jumpshell MCP server script was not found at ${serverScriptPath}.`);
   }
 
   const template = await loadMcpTemplate(context);
@@ -26,7 +26,7 @@ export async function installMcpConfig(context: vscode.ExtensionContext, options
   });
 
   if (!isRecord(renderedTemplate) || !isRecord(renderedTemplate.servers)) {
-    throw new Error('JumpShell MCP template is invalid. Expected a top-level servers object.');
+    throw new Error('Jumpshell MCP template is invalid. Expected a top-level servers object.');
   }
 
   const targetPath = await resolveMcpConfigPath();
@@ -43,7 +43,7 @@ export async function installMcpConfig(context: vscode.ExtensionContext, options
   outputChannel.appendLine(`[mcp] configured ${targetPath}`);
 
   if (!options.silent) {
-    const action = await vscode.window.showInformationMessage(`JumpShell MCP configuration updated at ${targetPath}.`, 'Open file');
+    const action = await vscode.window.showInformationMessage(`Jumpshell MCP configuration updated at ${targetPath}.`, 'Open file');
     if (action === 'Open file') {
       const { revealInFileExplorer } = await import('./utils');
       await revealInFileExplorer(targetPath);
@@ -277,17 +277,17 @@ async function resolveModuleSourceRoot(context: vscode.ExtensionContext): Promis
     canSelectMany: false,
     canSelectFiles: false,
     canSelectFolders: true,
-    openLabel: 'Select JumpShell Module Folder'
+    openLabel: 'Select Jumpshell Module Folder'
   });
 
   const pickedPath = picked?.[0]?.fsPath;
   if (!pickedPath) {
-    throw new Error('JumpShell module root was not selected.');
+    throw new Error('Jumpshell module root was not selected.');
   }
 
   const resolvedPicked = await resolveSourceRootCandidate(pickedPath);
   if (!resolvedPicked) {
-    throw new Error(`The selected folder does not contain a valid JumpShell module: ${pickedPath}`);
+    throw new Error(`The selected folder does not contain a valid Jumpshell module: ${pickedPath}`);
   }
 
   return resolvedPicked;

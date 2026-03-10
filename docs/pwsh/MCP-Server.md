@@ -3,9 +3,9 @@ layout: default
 title: MCP Server
 ---
 
-# JumpShell MCP Server
+# Jumpshell MCP Server
 
-JumpShell exposes module functions as MCP tools over stdio so chat agents can call them directly.
+Jumpshell exposes module functions as MCP tools over stdio so chat agents can call them directly.
 
 ## Canonical Paths
 
@@ -22,7 +22,7 @@ Legacy root-level `mcp/` compatibility files were removed.
 
 Run command:
 
-- `JumpShell: Install MCP Configuration`
+- `Jumpshell: Install MCP Configuration`
 
 Relevant extension settings:
 
@@ -35,9 +35,9 @@ Relevant extension settings:
 
 ```powershell
 Import-Module .\Jumpshell.psd1 -Force
-Install-JumpShellMcp -Scope User
+Install-JumpshellMcp -Scope User
 # or
-Install-JumpShellMcp -Scope Workspace
+Install-JumpshellMcp -Scope Workspace
 ```
 
 ### Option C: Direct script
@@ -51,16 +51,16 @@ pwsh ./src/pwsh/mcp/Install-Mcp.ps1 -ModuleRoot (Resolve-Path .) -Scope User
 ```powershell
 Import-Module .\Jumpshell.psd1 -Force
 
-Get-JumpShellMcp
-Start-JumpShellMcpServer
-Stop-JumpShellMcpServer -Force
+Get-JumpshellMcp
+Start-JumpshellMcpServer
+Stop-JumpshellMcpServer -Force
 ```
 
 ## Autostart Behavior
 
-On module import, JumpShell attempts:
+On module import, Jumpshell attempts:
 
-- `Start-JumpShellMcpServer -OnImport -Quiet`
+- `Start-JumpshellMcpServer -OnImport -Quiet`
 
 Autostart is skipped when:
 
@@ -86,7 +86,7 @@ Template file `mcps/jumpshellps.json` contains:
 
 ## Logs and State
 
-State/log paths are written under JumpShell runtime directory:
+State/log paths are written under Jumpshell runtime directory:
 
 - `~/.jumpshell/mcp/server-state.json`
 - `~/.jumpshell/mcp/server.stdout.log`
@@ -98,20 +98,20 @@ State/log paths are written under JumpShell runtime directory:
 
 ```powershell
 Import-Module .\Jumpshell.psd1 -Force
-Get-JumpShellMcp | Format-List ModuleRoot,ServerScript,IsRunning
+Get-JumpshellMcp | Format-List ModuleRoot,ServerScript,IsRunning
 ```
 
 2. Reinstall config:
 
 ```powershell
-Install-JumpShellMcp -Scope User
+Install-JumpshellMcp -Scope User
 ```
 
 3. Restart process and inspect logs:
 
 ```powershell
-Stop-JumpShellMcpServer -Force
-Start-JumpShellMcpServer
+Stop-JumpshellMcpServer -Force
+Start-JumpshellMcpServer
 Get-Content ~/.jumpshell/mcp/server.stderr.log -Tail 200
 ```
 

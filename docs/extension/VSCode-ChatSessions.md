@@ -5,7 +5,7 @@ title: Chat Sessions
 
 # VS Code and Cursor Chat Session Functions
 
-JumpShell includes analysis utilities for chat history, edit sessions, and workspace storage correlation.
+Jumpshell includes analysis utilities for chat history, edit sessions, and workspace storage correlation.
 
 Primary implementation lives under `src/pwsh/vscode`.
 
@@ -51,7 +51,7 @@ $editSession.GetOperations()
 
 ## Alias Compatibility
 
-JumpShell auto-creates `-Ai-` aliases for many `-VSCodeChat-` commands.
+Jumpshell auto-creates `-Ai-` aliases for many `-VSCodeChat-` commands.
 
 Examples:
 
@@ -81,7 +81,7 @@ $session.GetMessages() | ForEach-Object {
 
 ```powershell
 Search-VsCodeChat -Query "workspaceStorage" -Path .
-Search-VsCodeChat -Query "Install-JumpShellMcp" -Path .
+Search-VsCodeChat -Query "Install-JumpshellMcp" -Path .
 Search-VsCodeChat -Query "Get-VSCode.*" -Regex -Path .
 ```
 

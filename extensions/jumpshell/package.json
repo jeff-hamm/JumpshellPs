@@ -1,7 +1,7 @@
 {
   "name": "jumpshell",
-  "displayName": "JumpShell",
-  "description": "Install and manage JumpShell Copilot skills from VS Code or Cursor.",
+  "displayName": "Jumpshell",
+  "description": "Install and manage Jumpshell Copilot skills from VS Code or Cursor.",
   "version": "1.0.0",
   "publisher": "electric-pink",
   "license": "MIT",
@@ -30,47 +30,47 @@
     "commands": [
       {
         "command": "jumpshell.configureShell",
-        "title": "Setup / Configure JumpShell",
-        "category": "JumpShell"
+        "title": "Setup / Configure Jumpshell",
+        "category": "Jumpshell"
       },
       {
-        "command": "jumpshell.updateJumpShell",
-        "title": "Update JumpShell",
-        "category": "JumpShell"
+        "command": "jumpshell.updateJumpshell",
+        "title": "Update Jumpshell",
+        "category": "Jumpshell"
       },
       {
         "command": "jumpshell.selectModel",
         "title": "Select Chat Model",
-        "category": "JumpShell"
+        "category": "Jumpshell"
       },
       {
         "command": "jumpshell.listModels",
         "title": "List Available Chat Models",
-        "category": "JumpShell"
+        "category": "Jumpshell"
       },
       {
         "command": "jumpshell.sendPromptTo",
         "title": "Send Prompt to Model",
-        "category": "JumpShell"
+        "category": "Jumpshell"
       },
       {
         "command": "jumpshell.assignModelHotkey",
         "title": "Assign Model Hotkey",
-        "category": "JumpShell"
+        "category": "Jumpshell"
       }
     ],
     "configuration": {
-      "title": "JumpShell",
+      "title": "Jumpshell",
       "properties": {
         "jumpshell.skillsPath": {
           "type": "string",
           "default": "~/.agents/skills",
-          "description": "Directory where JumpShell installs Copilot skills. Use an absolute path or a path starting with ~/."
+          "description": "Directory where Jumpshell installs Copilot skills. Use an absolute path or a path starting with ~/."
         },
         "jumpshell.installMcpOnSkillsInstall": {
           "type": "boolean",
           "default": false,
-          "description": "Also install/update JumpShell MCP configuration after running Update Skills."
+          "description": "Also install/update Jumpshell MCP configuration after running Update Skills."
         },
         "jumpshell.installAiBackendsOnSkillsInstall": {
           "type": "boolean",
@@ -84,7 +84,7 @@
             "workspace"
           ],
           "default": "user",
-          "description": "Where JumpShell writes MCP configuration. 'user' writes the active profile user mcp.json. 'workspace' writes workspace mcp.json under .vscode or .cursor."
+          "description": "Where Jumpshell writes MCP configuration. 'user' writes the active profile user mcp.json. 'workspace' writes workspace mcp.json under .vscode or .cursor."
         },
         "jumpshell.workspaceMcpDirectory": {
           "type": "string",
@@ -99,7 +99,7 @@
         "jumpshell.moduleRootPath": {
           "type": "string",
           "default": "",
-          "description": "Optional path to your JumpShell module root (or repo root). Leave blank to auto-detect."
+          "description": "Optional path to your Jumpshell module root (or repo root). Leave blank to auto-detect."
         }
       }
     }

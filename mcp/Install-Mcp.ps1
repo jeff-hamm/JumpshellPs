@@ -9,7 +9,7 @@ param(
 $sourceScript = Join-Path $PSScriptRoot '..\src\pwsh\mcp\Install-Mcp.ps1'
 $sourceScript = [System.IO.Path]::GetFullPath($sourceScript)
 if (-not (Test-Path -LiteralPath $sourceScript)) {
-    throw "JumpShell source MCP install script not found: $sourceScript"
+    throw "Jumpshell source MCP install script not found: $sourceScript"
 }
 
 & $sourceScript @PSBoundParameters
