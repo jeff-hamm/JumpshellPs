@@ -103,7 +103,7 @@ function Test-SrcChangedSinceLastTag {
         $_ -match '^src/' -or
         $_ -match '^skills/' -or
         $_ -match '^mcps/' -or
-        $_ -match '^extensions/jumpshell/src/'
+        $_ -match '^extensions/jumpshell/'
     }) {
         return $true
     }
