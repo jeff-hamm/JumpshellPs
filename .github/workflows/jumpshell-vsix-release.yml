@@ -38,21 +38,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(node -p "require('./extensions/jumpshell/package.json').version")"
+          PKG_VERSION="$(node -p "require('./extensions/jumpshell/package.json').version")"
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            # Tag push: version is authoritative from the tag, not package.json.
             TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
           else
             INPUT_TAG="${{ github.event.inputs.tag }}"
             if [[ -n "${INPUT_TAG}" ]]; then
               TAG="${INPUT_TAG}"
+              VERSION="${TAG#v}"
             else
+              VERSION="${PKG_VERSION}"
               TAG="v${VERSION}"
             fi
-          fi
-
-          if [[ "${TAG}" != "v${VERSION}" ]]; then
-            echo "Tag ${TAG} does not match package.json version v${VERSION}" >&2
-            exit 1
           fi
 
           VSIX_NAME="jumpshell-${VERSION}.vsix"
@@ -64,6 +63,10 @@ jobs:
           echo "vsix_name=${VSIX_NAME}" >> "$GITHUB_OUTPUT"
           echo "sha_name=${SHA_NAME}" >> "$GITHUB_OUTPUT"
           echo "vsix_path=${VSIX_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync package.json version to tag
+        working-directory: extensions/jumpshell
+        run: npm version ${{ steps.vars.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Build VSIX
         working-directory: extensions/jumpshell
