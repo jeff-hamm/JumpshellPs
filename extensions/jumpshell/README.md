@@ -1,59 +1,134 @@
 # JumpShell
 
-A VS Code extension that delivers the full **JumpShell** toolchain directly into your editor — AI skills, an MCP server, multi-LLM Python backends, and the JumpShell PowerShell module.
+**JumpShell** is a PowerShell module, MCP server, set of AI skills, and Python AI backend library — packaged together and delivered via a VS Code / Cursor extension.
 
 📖 **[Full documentation →](https://jeff-hamm.github.io/jumpshell/)**
 
 ---
 
-## Features
+## Components
 
-### AI Skills (`~/.agents/skills`)
+### AI Skills
 
-JumpShell bundles a curated pack of **GitHub Copilot agent customization files** — `.instructions.md`, `.prompt.md`, and `SKILL.md` workflows — installed directly into `~/.agents/skills` where VS Code Copilot picks them up automatically.
+A curated pack of **GitHub Copilot agent customization files** (`.instructions.md`, `.prompt.md`, `SKILL.md`) installed into `~/.agents/skills` where VS Code Copilot picks them up automatically.
 
-- **Install Skills** — copies all bundled skills into `~/.agents/skills` (prompts on conflicts)
-- **Update Skills** — syncs bundled skills, updating only files whose content has changed
-- Skills are tracked by the extension; only extension-managed files are removed on uninstall
+| Skill | Description |
+|---|---|
+| `agent-script` | Create terminal-based AI scripts using the `ai_backends` module |
+| `git-workflow` | Consistent branch/worktree discipline and commit message quality |
+| `ocr-scan` | OCR images and scans to Markdown across 7 backends |
+| `pdf-to-md` | Convert PDFs to clean Markdown |
+| `reasoning` | Toggle Copilot Responses API reasoning effort |
+| `setting` | Edit VS Code/Cursor settings with scope-aware targeting |
+| `rule` | Create and manage instruction/rules files |
+| `jumpdate` | Refresh instructions and skills from the remote repo |
+| `smart-router` | Route agent tasks to the best model |
 
-Included skills cover: `git-workflow`, `agent-script`, `ocr-scan`, `pdf-to-md`, `reasoning`, `setting`, `rule`, `jumpdate`, and more.
+Skills are installed to `~/.agents/skills` (configurable via `jumpshell.skillsPath`).
+
+📖 [Skills & Customization docs →](https://jeff-hamm.github.io/jumpshell/)
+
+---
 
 ### MCP Server
 
-JumpShell ships a **Model Context Protocol server** (`jumpshellps`) backed by the JumpShell PowerShell module, giving Copilot access to shell utilities, file system helpers, and module commands.
+A **Model Context Protocol server** (`jumpshellps`) backed by the JumpShell PowerShell module. Once configured, Copilot agents can call shell utilities, file-system helpers, and module commands directly.
 
-- **Install MCP Configuration** — writes the `jumpshellps` entry into your `mcp.json` (user or workspace scope)
-- Auto-detects the JumpShell module path; falls back to explicit `jumpshell.moduleRootPath` setting
+**Setup options:**
+
+- **Extension command:** `JumpShell: Install MCP Configuration`
+- **Module command:** `Install-JumpShellMcp -Scope User`
+- **Direct script:** `pwsh ./src/pwsh/mcp/Install-Mcp.ps1 -Scope User`
+
+MCP config is written to your `mcp.json` (user or workspace scope, controlled by `jumpshell.mcpConfigScope`).
+
+**Runtime commands:**
+
+```powershell
+Get-JumpShellMcp
+Start-JumpShellMcpServer
+Stop-JumpShellMcpServer -Force
+```
+
+📖 [MCP Server docs →](https://jeff-hamm.github.io/jumpshell/pwsh/MCP-Server)
+
+---
 
 ### AI Backends (`ai-backends` / `ai-cli`)
 
-A **Python multi-LLM backend library** with a unified CLI (`ai-cli`) supporting OpenAI, Anthropic, Gemini, and more. The package is bundled inside the extension and installed automatically when you install skills.
+A **Python multi-LLM backend library** with a unified `ai-cli` CLI supporting six providers:
 
-- **Install AI Backends** — runs `pip install --user` from the bundled package
-- **Configure AI Backends** — runs `ai-cli --configure` in a terminal to set API keys
-- Optional extras: `pip install ai-backends[openai]`, `[anthropic]`, `[gemini]`
-- Auto-installed on skills install when `jumpshell.installAiBackendsOnSkillsInstall` is enabled (default)
+| Backend | Type |
+|---|---|
+| `gemini` | API (free tier) |
+| `openai` | API (paid) |
+| `anthropic` | API (paid) |
+| `github-api` | API (free tier) |
+| `copilot-cli` | CLI (subscription) |
+| `cursor` | CLI (subscription) |
+
+**Install:**
+
+```bash
+pip install -e ./src/python/ai-backends
+# or from GitHub
+pip install git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
+```
+
+**Quick usage:**
+
+```python
+import ai_backends
+
+cache = ai_backends.ensure_registry()
+backend, model = ai_backends.resolve_quality("normal", cache)
+text = ai_backends.call_backend(backend, "Summarize this", model=model)
+```
+
+The extension installs/updates `ai-backends` automatically alongside skills when `jumpshell.installAiBackendsOnSkillsInstall` is `true`.
+
+📖 [AI Backends docs →](https://jeff-hamm.github.io/jumpshell/ai/AI-Backends)
+
+---
 
 ### PowerShell Module
 
-The **JumpShellPs** PowerShell module provides shell utilities, directory helpers, Git integration, Kubernetes shortcuts, MCP server hosting, and more. The module source is bundled in the extension.
+The **JumpShellPs** PowerShell module provides shell utilities, directory helpers, Git integration, Kubernetes shortcuts, SSH helpers, and MCP server hosting.
 
-- **Install PowerShell Module** — adds `Import-Module Jumpshell -Force` to your `$PROFILE` and runs `Install.ps1`
+**Import:**
+
+```powershell
+# From repo checkout
+Import-Module .\Jumpshell.psd1 -Force
+
+# Once installed
+Import-Module Jumpshell -Force
+```
+
+The module installer adds `Import-Module Jumpshell -Force` to your `$PROFILE` and optionally installs skills, applications, and MCP configuration:
+
+```powershell
+pwsh ./src/pwsh/Install.ps1 -Skills -Modules -Applications -Mcps
+```
+
+📖 [PowerShell Module docs →](https://jeff-hamm.github.io/jumpshell/pwsh/PowerShell-Module)
 
 ---
 
-## Commands
+## VS Code Extension
+
+The extension is a delivery vehicle for the components above. On first install the **Setup / Configure JumpShell** wizard opens automatically, pre-selecting anything not yet installed.
+
+### Commands
 
 | Command | Description |
 |---|---|
-| `JumpShell: Setup / Configure JumpShell` | Check all components and install/configure what's needed |
-| `JumpShell: Update JumpShell` | Pull latest from git repo and refresh all installed components |
+| `JumpShell: Setup / Configure JumpShell` | Check all components; install or configure anything missing |
+| `JumpShell: Update JumpShell` | Pull latest from git and refresh all installed components |
 | `JumpShell: Select Chat Model` | Pick the active Copilot chat model |
 | `JumpShell: Assign Model Hotkey` | Bind a keyboard shortcut to a specific model |
 
----
-
-## Configuration
+### Configuration
 
 | Setting | Default | Description |
 |---|---|---|
@@ -61,7 +136,7 @@ The **JumpShellPs** PowerShell module provides shell utilities, directory helper
 | `jumpshell.installMcpOnSkillsInstall` | `false` | Also install MCP config when skills are installed |
 | `jumpshell.installAiBackendsOnSkillsInstall` | `true` | Also install ai-backends when skills are installed |
 | `jumpshell.mcpConfigScope` | `user` | Write MCP config to `user` or `workspace` |
-| `jumpshell.moduleRootPath` | _(auto)_ | Explicit JumpShell module root path |
+| `jumpshell.moduleRootPath` | _(auto)_ | Explicit JumpShell module root path or repo root |
 | `jumpshell.extensionReleaseRepo` | `jeff-hamm/jumpshell` | GitHub repo slug for update checks |
 | `jumpshell.includePreReleaseUpdates` | `false` | Include pre-release tags in update checks |
 
@@ -69,34 +144,3 @@ The **JumpShellPs** PowerShell module provides shell utilities, directory helper
 
 📖 **[Full documentation →](https://jeff-hamm.github.io/jumpshell/)**
 
-## Development
-
-```bash
-npm install
-npm run build
-```
-
-`npm run build` does two things:
-
-1. Copies the repository's top-level `skills/` folder into `assets/skills/`.
-2. Compiles the extension from `src/` to `dist/`.
-
-For local extension-host development, the extension can install directly from the repo's `skills/` folder even before `assets/skills/` exists.
-
-## Packaging
-
-```bash
-npm run package
-```
-
-`vsce` will run `npm run build` through `vscode:prepublish`, so the packaged VSIX includes the current skill bundle.
-
-## GitHub VSIX Updates
-
-If JumpShell is installed from a VSIX instead of the VS Code Marketplace, run `JumpShell: Check GitHub VSIX Updates`.
-
-The command will:
-
-1. Query the configured GitHub releases repository.
-2. Compare the newest release tag with the currently installed extension version.
-3. Download the newest `.vsix` asset and install it when a newer version is available.
