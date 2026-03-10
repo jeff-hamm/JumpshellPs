@@ -39,6 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           PKG_VERSION="$(node -p "require('./extensions/jumpshell/package.json').version")"
+          PKG_PUBLISHER="$(node -p "require('./extensions/jumpshell/package.json').publisher")"
+          PKG_NAME="$(node -p "require('./extensions/jumpshell/package.json').name")"
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             # Tag push: version is authoritative from the tag, not package.json.
             TAG="${GITHUB_REF_NAME}"
@@ -54,8 +56,8 @@ jobs:
             fi
           fi
 
-          VSIX_NAME="jumpshell-${VERSION}.vsix"
-          SHA_NAME="jumpshell-${VERSION}.vsix.sha256"
+          VSIX_NAME="${PKG_NAME}-${VERSION}.vsix"
+          SHA_NAME="${PKG_NAME}-${VERSION}.vsix.sha256"
           VSIX_PATH="extensions/${VSIX_NAME}"
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -63,6 +65,8 @@ jobs:
           echo "vsix_name=${VSIX_NAME}" >> "$GITHUB_OUTPUT"
           echo "sha_name=${SHA_NAME}" >> "$GITHUB_OUTPUT"
           echo "vsix_path=${VSIX_PATH}" >> "$GITHUB_OUTPUT"
+          echo "publisher=${PKG_PUBLISHER}" >> "$GITHUB_OUTPUT"
+          echo "name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Sync package.json version to tag
         working-directory: extensions/jumpshell
@@ -105,7 +109,7 @@ jobs:
         working-directory: extensions/jumpshell
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx @vscode/vsce unpublish -f electric-pink.jumpshell || true
+        run: npx @vscode/vsce unpublish -f -p "$VSCE_PAT" ${{ steps.vars.outputs.publisher }}.${{ steps.vars.outputs.name }} || true
 
       - name: Publish to VS Code Marketplace
         if: steps.publish_check.outputs.has_pat == 'true'
