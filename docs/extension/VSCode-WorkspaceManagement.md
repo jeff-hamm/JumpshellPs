@@ -1,3 +1,8 @@
+---
+layout: default
+title: Workspace Management
+---
+
 # VS Code and Cursor Workspace Management
 
 JumpShell ships utilities for editor/profile detection, workspace storage lookup, and layout export/apply.
@@ -139,4 +144,4 @@ winget install SQLite.SQLite
 
 - [VSCode-ChatSessions.md](VSCode-ChatSessions.md)
 - [VSCode-QuickReference.md](VSCode-QuickReference.md)
-- [Repository-Layout.md](Repository-Layout.md)
+- [../pwsh/Repository-Layout.md](../pwsh/Repository-Layout.md)

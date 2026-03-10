@@ -49,9 +49,57 @@ function Set-PackageVersion {
     Set-Content -LiteralPath $PackageJsonPath -Value $updated -Encoding utf8NoBOM
 }
 
+function Get-LatestInputWriteTime {
+    param([string[]]$InputPaths)
+
+    $latest = [DateTime]::MinValue
+
+    foreach ($inputPath in $InputPaths) {
+        if (-not (Test-Path -LiteralPath $inputPath)) {
+            continue
+        }
+
+        $item = Get-Item -LiteralPath $inputPath
+        if (-not $item.PSIsContainer) {
+            if ($item.LastWriteTimeUtc -gt $latest) {
+                $latest = $item.LastWriteTimeUtc
+            }
+            continue
+        }
+
+        $files = Get-ChildItem -LiteralPath $inputPath -File -Recurse -ErrorAction SilentlyContinue
+        foreach ($file in $files) {
+            if ($file.LastWriteTimeUtc -gt $latest) {
+                $latest = $file.LastWriteTimeUtc
+            }
+        }
+    }
+
+    return $latest
+}
+
+function Get-LatestVsixPath {
+    param(
+        [string]$ExtensionsRoot,
+        [string]$ExtensionName
+    )
+
+    $pattern = "{0}*.vsix" -f $ExtensionName
+    $latest = Get-ChildItem -LiteralPath $ExtensionsRoot -Filter $pattern -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+
+    if ($null -eq $latest) {
+        return $null
+    }
+
+    return $latest.FullName
+}
+
 $extensionsRoot = $PSScriptRoot
 $extensionRoot = Join-Path $extensionsRoot 'jumpshell'
 $packageJsonPath = Join-Path $extensionRoot 'package.json'
+$repoRoot = Split-Path -Parent $extensionsRoot
 
 if (-not (Test-Path -LiteralPath $packageJsonPath -PathType Leaf)) {
     throw "Could not find extension package file: $packageJsonPath"
@@ -68,36 +116,73 @@ if ([string]::IsNullOrWhiteSpace($currentVersion)) {
     throw "Extension version is missing from $packageJsonPath"
 }
 
-$newVersion = Get-IncrementedBuildVersion -Version $currentVersion
-Set-PackageVersion -PackageJsonPath $packageJsonPath -NewVersion $newVersion
-
-Write-Host "Version: $currentVersion -> $newVersion" -ForegroundColor Green
-
-$versionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, $newVersion)
 $stableVsixPath = Join-Path $extensionsRoot ("{0}.vsix" -f $extensionName)
-$vsixPath = if ($VersionedFileName) { $versionedVsixPath } else { $stableVsixPath }
+$currentVersionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, $currentVersion)
 
-Push-Location $extensionRoot
-try {
-    & npm run package -- --out $vsixPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "npm run package failed with exit code $LASTEXITCODE"
+$inputPaths = @(
+    (Join-Path $extensionRoot 'package.json'),
+    (Join-Path $extensionRoot 'tsconfig.json'),
+    (Join-Path $extensionRoot '.vscodeignore'),
+    (Join-Path $extensionRoot 'README.md'),
+    (Join-Path $extensionRoot 'src'),
+    (Join-Path $extensionRoot 'assets'),
+    (Join-Path $extensionRoot 'scripts'),
+    (Join-Path $repoRoot 'skills'),
+    (Join-Path $repoRoot 'mcps'),
+    (Join-Path $repoRoot 'src\python\ai-backends')
+)
+
+$latestInputWriteTime = Get-LatestInputWriteTime -InputPaths $inputPaths
+$latestVsixPath = Get-LatestVsixPath -ExtensionsRoot $extensionsRoot -ExtensionName $extensionName
+
+$isStale = $true
+if (-not [string]::IsNullOrWhiteSpace($latestVsixPath) -and (Test-Path -LiteralPath $latestVsixPath -PathType Leaf)) {
+    $latestVsixWriteTime = (Get-Item -LiteralPath $latestVsixPath).LastWriteTimeUtc
+    $isStale = $latestInputWriteTime -gt $latestVsixWriteTime
+}
+
+$vsixPath = $null
+if ($isStale) {
+    $newVersion = Get-IncrementedBuildVersion -Version $currentVersion
+    Set-PackageVersion -PackageJsonPath $packageJsonPath -NewVersion $newVersion
+
+    Write-Host "Version: $currentVersion -> $newVersion" -ForegroundColor Green
+
+    $newVersionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, $newVersion)
+    $vsixPath = if ($VersionedFileName) { $newVersionedVsixPath } else { $stableVsixPath }
+
+    Push-Location $extensionRoot
+    try {
+        & npm run package -- --out $vsixPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm run package failed with exit code $LASTEXITCODE"
+        }
+    }
+    finally {
+        Pop-Location
     }
 }
-finally {
-    Pop-Location
+else {
+    Write-Host "No extension input changes detected. Skipping version bump and package." -ForegroundColor DarkCyan
+
+    if ($VersionedFileName -and (Test-Path -LiteralPath $currentVersionedVsixPath -PathType Leaf)) {
+        $vsixPath = $currentVersionedVsixPath
+    }
+    elseif (Test-Path -LiteralPath $stableVsixPath -PathType Leaf) {
+        $vsixPath = $stableVsixPath
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($latestVsixPath) -and (Test-Path -LiteralPath $latestVsixPath -PathType Leaf)) {
+        $vsixPath = $latestVsixPath
+    }
 }
 
-if (-not (Test-Path -LiteralPath $vsixPath -PathType Leaf)) {
-    $latestVsix = Get-ChildItem -LiteralPath $extensionsRoot -Filter '*.vsix' -File |
-        Sort-Object LastWriteTimeUtc -Descending |
-        Select-Object -First 1
-
-    if ($null -eq $latestVsix) {
-        throw "No VSIX file was produced in $extensionsRoot"
+if ([string]::IsNullOrWhiteSpace($vsixPath) -or -not (Test-Path -LiteralPath $vsixPath -PathType Leaf)) {
+    $latestVsixPath = Get-LatestVsixPath -ExtensionsRoot $extensionsRoot -ExtensionName $extensionName
+    if ([string]::IsNullOrWhiteSpace($latestVsixPath) -or -not (Test-Path -LiteralPath $latestVsixPath -PathType Leaf)) {
+        throw "No VSIX file is available in $extensionsRoot"
     }
 
-    $vsixPath = $latestVsix.FullName
+    $vsixPath = $latestVsixPath
 }
 
 Write-Host "Built VSIX: $vsixPath" -ForegroundColor Green

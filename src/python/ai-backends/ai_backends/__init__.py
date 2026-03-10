@@ -46,8 +46,11 @@ from ._core import (  # noqa: F401
     LLM_TYPES,
     MIME_MAP,
     SHELL,
+    _COPILOT_DEFAULT_ALLOW_TOOLS,
+    _COPILOT_DEFAULT_DENY_TOOLS,
     b64_encode,
     call_backend,
+    get_backend_default_model,
     get_github_token,
     has_images,
     is_available,
@@ -59,16 +62,28 @@ from ._core import (  # noqa: F401
 
 from ._models import (  # noqa: F401
     QUALITY_SYNONYMS,
+    build_default_model_selection_prompt,
+    build_model_rules_generation_prompt,
     cache_is_stale,
     compute_quality_assignments,
     discover_all_models,
     ensure_registry,
     get_cli_version,
+    get_model_rules_by_backend,
     infer_model_info,
     load_cache,
     match_model_knowledge,
+    refresh_backend_default_models,
+    refresh_model_rules,
     refresh_registry,
+    resolve_backend_default_model,
     resolve_quality,
     set_quality_overrides,
     write_reference_doc,
+)
+
+from ._config import (  # noqa: F401
+    DEFAULT_MODEL_SELECTION_TEMPLATE_PATH,
+    GENERATION_INSTRUCTION,
+    MODEL_RULES_TEMPLATE_PATH,
 )

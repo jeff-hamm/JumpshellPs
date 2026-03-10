@@ -1,22 +1,46 @@
 """ai_backends._core — Backend registry, callers, and availability checks."""
 
 import os
-import sys
 import re
 import base64
 import subprocess
 import logging
+import shutil
 from pathlib import Path
+
+from . import _config
 
 log = logging.getLogger("ai_backends")
 
-SHELL = sys.platform == "win32"
+# Use direct process execution for argv lists. On Windows, shell=True routes
+# through cmd.exe and can mangle multiline prompt arguments.
+SHELL = False
 
-MIME_MAP = {
-    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
-    ".tiff": "image/tiff", ".tif": "image/tiff", ".bmp": "image/bmp",
-    ".webp": "image/webp",
-}
+MIME_MAP = _config.MIME_MAP
+
+
+def _resolve_command(command: str) -> str:
+    """Resolve an executable name to an absolute path when possible."""
+    resolved = shutil.which(command)
+    if resolved:
+        return resolved
+
+    if os.name == "nt" and "." not in Path(command).name:
+        for ext in (".cmd", ".exe", ".bat"):
+            resolved = shutil.which(command + ext)
+            if resolved:
+                return resolved
+
+    return command
+
+
+def _prepare_command(cmd: list[str]) -> list[str]:
+    """Normalize command argv and resolve the executable path."""
+    if not cmd:
+        return cmd
+    prepared = [str(part) for part in cmd]
+    prepared[0] = _resolve_command(prepared[0])
+    return prepared
 
 
 def load_dotenv(path: Path) -> None:
@@ -139,8 +163,9 @@ def get_github_token() -> str | None:
     if token:
         return token
     try:
+        cmd = _prepare_command(["gh", "auth", "token"])
         r = subprocess.run(
-            ["gh", "auth", "token"],
+            cmd,
             capture_output=True, text=True, timeout=15, shell=SHELL,
         )
         if r.returncode == 0 and r.stdout.strip():
@@ -172,58 +197,86 @@ def _call_github(prompt: str, context_files: list[Path], model_name: str) -> str
 # ── CLI-based backends ────────────────────────────────────────────────────────
 
 def _clean_copilot_output(text: str) -> str:
-    """Strip copilot CLI tool execution traces from output."""
+    """Strip copilot CLI tool execution traces from output.
+
+    Tool traces (● tool:, └ result, ✔ done, etc.) can appear anywhere in the
+    output, not just at the top. Strip them throughout so that JSON extraction
+    only sees the model's actual response.
+    """
     lines = text.splitlines()
     cleaned: list[str] = []
-    skip_prefix = True
+    found_content = False
     for line in lines:
         stripped = line.lstrip()
-        if skip_prefix and (
-            stripped.startswith("✔ ")
-            or stripped.startswith("● ")
-            or stripped.startswith("└ ")
-            or stripped.startswith("$ ")
-            or stripped.startswith("...")
-        ):
+        # Strip tool-trace lines throughout (not just at the top).
+        if stripped.startswith(_config.COPILOT_OUTPUT_PREFIXES):
             continue
-        if skip_prefix and not stripped:
+        # Skip leading blank lines before any real content.
+        if not found_content and not stripped:
             continue
-        skip_prefix = False
+        found_content = True
         cleaned.append(line)
     return "\n".join(cleaned).strip()
 
 
-def _call_copilot(prompt: str, context_files: list[Path], model_name: str) -> str:
+_COPILOT_DEFAULT_ALLOW_TOOLS: tuple[str, ...] = ("read",)
+_COPILOT_DEFAULT_DENY_TOOLS: tuple[str, ...] = ("shell", "write", "edit")
+
+
+def _call_copilot(
+    prompt: str,
+    context_files: list[Path],
+    model_name: str,
+    allow_tools: list[str] | None = None,
+    deny_tools: list[str] | None = None,
+) -> str:
     """GitHub Copilot CLI — uses -p (prompt) with --add-path for context files."""
     full_prompt = (
         f"{prompt}\n\n"
+        "STRICT OUTPUT REQUIREMENTS. "
+        "Return only the requested final output. "
+        "No preface text. No confirmations. No questions. "
+        "If JSON is requested, return valid JSON only. "
         "NON-INTERACTIVE TASK. Do not ask questions. "
         "Do not provide options. Do not explain anything. "
         "Return only the requested output. "
         "No shell commands. No file edits."
     )
 
-    cmd = [
-        "copilot", "-p", full_prompt,
-        "--allow-tool", "read",
-        "--deny-tool", "shell",
-        "--deny-tool", "write",
-        "--deny-tool", "edit",
-        "--silent",
-        "--no-ask-user",
-    ]
+    effective_allow = allow_tools if allow_tools is not None else list(_COPILOT_DEFAULT_ALLOW_TOOLS)
+    effective_deny = deny_tools if deny_tools is not None else list(_COPILOT_DEFAULT_DENY_TOOLS)
+
+    cmd = ["copilot", "-p", full_prompt]
+    for tool in effective_allow:
+        cmd.extend(["--allow-tool", tool])
+    for tool in effective_deny:
+        cmd.extend(["--deny-tool", tool])
+    if "web_fetch" in effective_allow:
+        cmd.append("--allow-all-urls")
+    cmd.extend(["--silent", "--no-ask-user"])
     if model_name and model_name != "default":
         cmd.extend(["--model", model_name])
     for f in context_files:
         cmd.extend(["--add-path", str(f.resolve())])
 
+    cmd = _prepare_command(cmd)
+
+    # Run in the directory of the first context file so that @filename
+    # references in the prompt resolve correctly.
+    cwd = str(context_files[0].parent) if context_files else None
+
+    log.info(
+        "copilot prompt stats: chars=%d lines=%d",
+        len(full_prompt),
+        full_prompt.count("\n") + 1,
+    )
     log.info("copilot prompt:\n%s", full_prompt)
     cmd_display = [c if len(c) < 120 else c[:60] + "..." for c in cmd]
-    log.debug("copilot cmd: %s", cmd_display)
+    log.debug("copilot cmd (cwd=%s): %s", cwd, cmd_display)
 
     try:
         r = subprocess.run(
-            cmd, capture_output=True, timeout=300, shell=SHELL,
+            cmd, capture_output=True, timeout=300, shell=SHELL, cwd=cwd,
         )
     except FileNotFoundError:
         raise RuntimeError("copilot CLI not found — install from npm or GitHub")
@@ -252,10 +305,7 @@ def _call_copilot(prompt: str, context_files: list[Path], model_name: str) -> st
         text = text[text.index("\n") + 1 : text.rindex("```")].strip()
         log.debug("copilot stripped code fences, now %d chars", len(text))
 
-    preamble = re.match(
-        r"(?:Here is|Below is)[^\n]*(?:transcription|result|output)[^\n]*:?\s*\n+(?:---\s*\n+)?",
-        text, re.IGNORECASE,
-    )
+    preamble = re.match(_config.COPILOT_PREAMBLE_REGEX, text, re.IGNORECASE)
     if preamble:
         text = text[preamble.end():]
         log.debug("copilot stripped preamble (%d chars removed)", preamble.end())
@@ -266,7 +316,14 @@ def _call_copilot(prompt: str, context_files: list[Path], model_name: str) -> st
                     model_name, text[:1000])
         raise RuntimeError(
             "copilot returned a generic assistant reply instead of task output; "
-            "retry or use a different backend"
+            "use a different backend/model"
+        )
+    if "i'm ready to assist" in low or "i am ready to assist" in low:
+        log.warning("copilot returned generic ready-to-assist reply (model=%s). Full output:\n%s",
+                    model_name, text[:1000])
+        raise RuntimeError(
+            "copilot returned a generic assistant readiness reply instead of task output; "
+            "use a different backend/model"
         )
     if not text:
         log.warning("copilot produced empty output (model=%s, stdout=%d chars)",
@@ -286,6 +343,8 @@ def _call_cursor(prompt: str, context_files: list[Path], model_name: str) -> str
     cmd = ["agent", "-p", "--output-format", "text", full_prompt]
     if model_name and model_name != "default":
         cmd.extend(["--model", model_name])
+
+    cmd = _prepare_command(cmd)
 
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, shell=SHELL)
@@ -313,43 +372,38 @@ def _call_cursor(prompt: str, context_files: list[Path], model_name: str) -> str
 BACKENDS: dict[str, dict] = {
     "gemini": {
         "call": _call_gemini,
-        "default_model": "gemini-2.0-flash",
-        "type": "api",
-        "cost": "free",
+        **_config.BACKEND_SPECS["gemini"],
     },
     "openai": {
         "call": _call_openai,
-        "default_model": "gpt-4o",
-        "type": "api",
-        "cost": "paid",
+        **_config.BACKEND_SPECS["openai"],
     },
     "anthropic": {
         "call": _call_anthropic,
-        "default_model": "claude-sonnet-4-20250514",
-        "type": "api",
-        "cost": "paid",
+        **_config.BACKEND_SPECS["anthropic"],
     },
     "github-api": {
         "call": _call_github,
-        "default_model": "gpt-4o",
-        "type": "api",
-        "cost": "free",
+        **_config.BACKEND_SPECS["github-api"],
     },
     "copilot-cli": {
         "call": _call_copilot,
-        "default_model": "gemini-3-pro-preview",
-        "type": "cli",
-        "cost": "free",
+        **_config.BACKEND_SPECS["copilot-cli"],
     },
     "cursor": {
         "call": _call_cursor,
-        "default_model": "default",
-        "type": "cli",
-        "cost": "free",
+        **_config.BACKEND_SPECS["cursor"],
     },
 }
 
-LLM_TYPES = {"api", "cli"}
+LLM_TYPES = _config.LLM_TYPES
+
+
+def get_backend_default_model(backend_name: str, cache: dict | None = None) -> str:
+    """Resolve backend default model from cached/generated model selection."""
+    from . import _models
+
+    return _models.resolve_backend_default_model(backend_name, cache=cache)
 
 
 def call_backend(
@@ -357,15 +411,22 @@ def call_backend(
     prompt: str,
     context_files: list[Path] | Path | None = None,
     model: str | None = None,
+    allow_tools: list[str] | None = None,
+    deny_tools: list[str] | None = None,
+    reasoning: bool | None = None,
 ) -> str:
     """Call a backend with a prompt and optional context files.
 
     Context files are attached using the mechanism for each backend type:
-    - API backends: images are base64-encoded inline in the request
-    - CLI backends: files are provided via --add-path
+    - API backends: images are base64-encoded inline in the request; text files
+      are prepended to the prompt.
+    - CLI backends: files are provided via --add-path.
 
-    If context_files includes images, ensure the model supports vision
-    (use resolve_quality with vision=True, or check MODEL_KNOWLEDGE).
+    ``allow_tools`` / ``deny_tools`` are forwarded to CLI backends that support
+    tool restrictions (currently copilot-cli). API backends ignore them.
+
+    ``reasoning`` is used at the call site only for model selection (via
+    :func:`resolve_quality`); it is not forwarded to any backend.
     """
     if backend_name not in BACKENDS:
         raise ValueError(
@@ -373,8 +434,39 @@ def call_backend(
         )
     files = _normalize_files(context_files)
     be = BACKENDS[backend_name]
-    m = model or be["default_model"]
-    return be["call"](prompt, files, m)
+    m = model or get_backend_default_model(backend_name)
+
+    # API backends: inline text file contents into the prompt.
+    # CLI backends pass files via their native mechanism (e.g. --add-path).
+    if be.get("type") == "api" and files:
+        text_parts: list[str] = []
+        image_only: list[Path] = []
+        for f in files:
+            if f.suffix.lower() in MIME_MAP:
+                image_only.append(f)
+            elif f.exists():
+                text_parts.append(f.read_text(encoding="utf-8"))
+        if text_parts:
+            prompt = "\n\n".join(text_parts) + "\n\n" + prompt
+        files = image_only
+
+    log.info("request %s/%s prompt:\n%s", backend_name, m, prompt)
+    if files:
+        log.info(
+            "request %s/%s context_files: %s",
+            backend_name,
+            m,
+            ", ".join(str(f.resolve()) for f in files),
+        )
+
+    if backend_name == "copilot-cli":
+        response_text = be["call"](prompt, files, m,
+                                   allow_tools=allow_tools, deny_tools=deny_tools)
+    else:
+        response_text = be["call"](prompt, files, m)
+
+    log.info("response %s/%s:\n%s", backend_name, m, response_text)
+    return response_text
 
 
 def is_available(name: str) -> tuple[bool, str]:
@@ -390,8 +482,9 @@ def is_available(name: str) -> tuple[bool, str]:
         return (True, "") if get_github_token() else (False, "set GITHUB_TOKEN or gh auth login")
     if name == "copilot-cli":
         try:
+            cmd = _prepare_command(["copilot", "--version"])
             r = subprocess.run(
-                ["copilot", "--version"],
+                cmd,
                 capture_output=True, text=True, timeout=15, shell=SHELL,
             )
             return (True, "") if r.returncode == 0 else (False, "copilot CLI not working")
@@ -399,8 +492,9 @@ def is_available(name: str) -> tuple[bool, str]:
             return (False, "copilot CLI not installed")
     if name == "cursor":
         try:
+            cmd = _prepare_command(["agent", "--version"])
             r = subprocess.run(
-                ["agent", "--version"],
+                cmd,
                 capture_output=True, text=True, timeout=15, shell=SHELL,
             )
             return (True, "") if r.returncode == 0 else (False, "cursor agent CLI not working")
@@ -414,8 +508,9 @@ def is_available(name: str) -> tuple[bool, str]:
 def _list_copilot_models() -> list[str]:
     """Parse available models from copilot --help output."""
     try:
+        cmd = _prepare_command(["copilot", "--help"])
         r = subprocess.run(
-            ["copilot", "--help"],
+            cmd,
             capture_output=True, text=True, timeout=15, shell=SHELL,
         )
         if r.returncode != 0:
@@ -444,14 +539,10 @@ def _list_github_api_models() -> list[str]:
                 "GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference"
             ),
             api_key=token,
+            max_retries=0,
+            timeout=15.0,
         )
-        candidates = [
-            "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
-            "Llama-3.2-11B-Vision-Instruct", "Llama-3.2-90B-Vision-Instruct",
-            "Llama-3.3-70B-Instruct",
-            "Phi-4-multimodal-instruct",
-            "Mistral-Large",
-        ]
+        candidates = _config.GITHUB_API_MODEL_CANDIDATES
         available = []
         for model in candidates:
             try:
@@ -460,8 +551,12 @@ def _list_github_api_models() -> list[str]:
                     messages=[{"role": "user", "content": "hi"}],
                 )
                 available.append(model)
-            except Exception:
-                pass
+            except Exception as exc:
+                message = str(exc).lower()
+                if "429" in message or "rate limit" in message:
+                    log.info("github-api probe rate-limited; stopping further model probes")
+                    break
+                continue
         return available
     except Exception:
         return []
@@ -493,7 +588,7 @@ def _list_openai_models() -> list[str]:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
         all_models = [m.id for m in client.models.list().data]
-        known_prefixes = ("gpt-4o", "gpt-4.1", "gpt-4-turbo", "gpt-3.5", "o4", "o3", "o1")
+        known_prefixes = _config.OPENAI_MODEL_PREFIXES
         return sorted(m for m in all_models if any(m.startswith(p) for p in known_prefixes))
     except Exception:
         return []
@@ -503,12 +598,7 @@ def _list_anthropic_models() -> list[str]:
     """Return known Anthropic models (no list endpoint)."""
     if not os.getenv("ANTHROPIC_API_KEY"):
         return []
-    return [
-        "claude-opus-4-20250514",
-        "claude-sonnet-4.5-20250514",
-        "claude-sonnet-4-20250514",
-        "claude-haiku-3.5-20241022",
-    ]
+    return _config.ANTHROPIC_KNOWN_MODELS
 
 
 def list_models(name: str) -> list[str] | None:
@@ -524,7 +614,7 @@ def list_models(name: str) -> list[str] | None:
     if name == "anthropic":
         return _list_anthropic_models()
     if name == "cursor":
-        return ["default"]
+        return [_config.CURSOR_BOOTSTRAP_MODEL]
     return None
 
 
@@ -535,10 +625,13 @@ def print_model_catalog() -> None:
             ok, reason = is_available(name)
         except Exception:
             ok, reason = False, "check failed"
-        default = BACKENDS[name]["default_model"]
         if not ok:
             print(f"\n{name}:  (unavailable — {reason})")
             continue
+        try:
+            default = get_backend_default_model(name)
+        except Exception:
+            default = "(unresolved)"
         models = list_models(name)
         if models is None:
             print(f"\n{name}:  default={default}  (no live catalog)")

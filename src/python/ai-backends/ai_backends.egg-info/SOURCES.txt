@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 ai_backends/__init__.py
 ai_backends/__main__.py
+ai_backends/_config.py
 ai_backends/_core.py
 ai_backends/_models.py
 ai_backends.egg-info/PKG-INFO

@@ -46,8 +46,8 @@ Create or update a workspace-scoped JumpShell skill under `skills/` using the sa
    - This should increment extension version, package VSIX, and install into the active editor.
 
 6. Validate packaging and basic extension health.
-   - Confirm `create-jumpskill` appears in `extensions/jumpshell/assets/skills-manifest.json`.
-   - Confirm skill files are copied under `extensions/jumpshell/assets/skills/create-jumpskill/`.
+   - Confirm `<skill-name>` appears in `extensions/jumpshell/assets/skills-manifest.json`.
+   - Confirm skill files are copied under `extensions/jumpshell/assets/skills/<skill-name>/`.
    - Run a TypeScript sanity check:
      - `npm --prefix ./extensions/jumpshell run check`
 

@@ -1,3 +1,8 @@
+---
+layout: default
+title: VS Code Extension
+---
+
 # VS Code and Cursor Extension Guide
 
 The extension source is in `extensions/jumpshell`.
@@ -108,6 +113,6 @@ When scope is `workspace`, directory selection is controlled by `jumpshell.works
 
 ## Related Docs
 
-- [MCP-Server.md](MCP-Server.md)
-- [Repository-Layout.md](Repository-Layout.md)
-- [PowerShell-Module.md](PowerShell-Module.md)
+- [../pwsh/MCP-Server.md](../pwsh/MCP-Server.md)
+- [../pwsh/Repository-Layout.md](../pwsh/Repository-Layout.md)
+- [../pwsh/PowerShell-Module.md](../pwsh/PowerShell-Module.md)

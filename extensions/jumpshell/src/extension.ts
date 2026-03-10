@@ -69,6 +69,7 @@ let outputChannel: vscode.OutputChannel;
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('JumpShell');
   context.subscriptions.push(outputChannel);
+  registerCommand(context, 'jumpshell.installSkills', () => installManagedSkills(context, 'install'));
 
   registerCommand(context, 'jumpshell.updateSkills', () => installManagedSkills(context, 'update'));
   registerCommand(context, 'jumpshell.installMcpConfig', () => installMcpConfig(context));
@@ -104,7 +105,7 @@ async function runAutoSetup(context: vscode.ExtensionContext) {
   try {
     await installManagedSkills(context, 'install', {
       silent: true,
-      conflictBehavior: 'skip',
+      conflictBehavior: 'prompt',
       skipConfiguredMcpInstall: true
     });
 
@@ -1104,3 +1105,4 @@ async function pathExists(targetPath: string): Promise<boolean> {
     return false;
   }
 }
+

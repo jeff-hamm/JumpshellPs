@@ -1,3 +1,8 @@
+---
+layout: default
+title: Repository Layout
+---
+
 # Repository Layout
 
 This repository now has a split architecture with root compatibility shims and canonical source under `src`.

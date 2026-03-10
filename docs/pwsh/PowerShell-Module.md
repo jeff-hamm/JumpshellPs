@@ -1,3 +1,8 @@
+---
+layout: default
+title: PowerShell Module
+---
+
 # PowerShell Module Guide
 
 This document covers the JumpShell PowerShell module architecture after the source move to `src/pwsh`.
@@ -111,4 +116,4 @@ Get-Command -Module JumpShellPs | Sort-Object Name
 
 - [Repository-Layout.md](Repository-Layout.md)
 - [MCP-Server.md](MCP-Server.md)
-- [VSCode-Extension.md](VSCode-Extension.md)
+- [../extension/VSCode-Extension.md](../extension/VSCode-Extension.md)

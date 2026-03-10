@@ -1,0 +1,16 @@
+title: JumpShellPs Docs
+description: Documentation for JumpShellPs PowerShell module, extension tooling, and AI backends.
+
+# Theme
+theme: just-the-docs
+color_scheme: dark
+
+# UI / Navigation
+search_enabled: true
+nav_sort: case_insensitive
+heading_anchors: true
+
+# Build
+markdown: kramdown
+plugins:
+  - jekyll-include-cache

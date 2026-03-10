@@ -1,3 +1,8 @@
+---
+layout: default
+title: Quick Reference
+---
+
 # JumpShell Quick Reference
 
 ## Load Module
@@ -87,9 +92,9 @@ pwsh ./src/pwsh/Install.ps1 -Skills -Modules -Applications -Mcps
 
 ## Related Docs
 
-- [Repository-Layout.md](Repository-Layout.md)
-- [PowerShell-Module.md](PowerShell-Module.md)
+- [../pwsh/Repository-Layout.md](../pwsh/Repository-Layout.md)
+- [../pwsh/PowerShell-Module.md](../pwsh/PowerShell-Module.md)
 - [VSCode-Extension.md](VSCode-Extension.md)
-- [MCP-Server.md](MCP-Server.md)
+- [../pwsh/MCP-Server.md](../pwsh/MCP-Server.md)
 - [VSCode-ChatSessions.md](VSCode-ChatSessions.md)
 - [VSCode-WorkspaceManagement.md](VSCode-WorkspaceManagement.md)

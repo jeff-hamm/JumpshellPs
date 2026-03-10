@@ -20,6 +20,8 @@ all        = ["openai", "anthropic", "google-generativeai"]
 
 [project.scripts]
 ai-backends = "ai_backends.__main__:main"
+ai-cli = "ai_backends.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
+

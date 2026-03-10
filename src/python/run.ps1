@@ -41,7 +41,7 @@ Register-ArgumentCompleter -Native -CommandName 'ai-backends' -ScriptBlock {
     if ($word.StartsWith('-')) {
         '--prompt', '-p', '--backend', '-b', '--model', '-m',
         '--quality', '--tier', '-q', '--vision',
-        '--list-models', '--refresh-models', '--verbose', '-v' |
+        '--list-models', '--refresh-models', '--regenerate-available-models', '--verbose', '-v' |
         Where-Object { $_ -like "$word*" } |
         ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
     }

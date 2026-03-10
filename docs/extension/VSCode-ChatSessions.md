@@ -1,3 +1,8 @@
+---
+layout: default
+title: Chat Sessions
+---
+
 # VS Code and Cursor Chat Session Functions
 
 JumpShell includes analysis utilities for chat history, edit sessions, and workspace storage correlation.
@@ -119,4 +124,4 @@ Resolve active location through:
 
 - [VSCode-WorkspaceManagement.md](VSCode-WorkspaceManagement.md)
 - [VSCode-QuickReference.md](VSCode-QuickReference.md)
-- [PowerShell-Module.md](PowerShell-Module.md)
+- [../pwsh/PowerShell-Module.md](../pwsh/PowerShell-Module.md)

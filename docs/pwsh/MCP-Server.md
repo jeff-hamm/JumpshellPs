@@ -1,3 +1,8 @@
+---
+layout: default
+title: MCP Server
+---
+
 # JumpShell MCP Server
 
 JumpShell exposes module functions as MCP tools over stdio so chat agents can call them directly.
