@@ -84,3 +84,10 @@ jobs:
           files: |
             ${{ steps.vars.outputs.vsix_path }}
             extensions/${{ steps.vars.outputs.sha_name }}
+
+      - name: Publish to VS Code Marketplace
+        if: ${{ secrets.VSCE_PAT != '' }}
+        working-directory: extensions/jumpshell
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx @vscode/vsce publish --packagePath ../${{ steps.vars.outputs.vsix_name }}
