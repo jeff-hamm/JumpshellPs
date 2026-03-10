@@ -105,7 +105,7 @@ jobs:
         working-directory: extensions/jumpshell
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx @vscode/vsce unpublish electric-pink.jumpshell@${{ steps.vars.outputs.version }} 2>/dev/null || true
+        run: yes 2>/dev/null | npx @vscode/vsce unpublish electric-pink.jumpshell@${{ steps.vars.outputs.version }} || true
 
       - name: Publish to VS Code Marketplace
         if: steps.publish_check.outputs.has_pat == 'true'
