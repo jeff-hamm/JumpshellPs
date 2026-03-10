@@ -9,68 +9,6 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-function Get-IncrementedBuildVersion {
-    param([string]$Version)
-
-    $pattern = '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:\.\d+)*$'
-    $match = [regex]::Match($Version, $pattern)
-
-    if (-not $match.Success) {
-        throw "Unsupported version format '$Version'. Expected major.minor.patch (optionally with legacy extra numeric segments)"
-    }
-
-    $major = [int]$match.Groups['major'].Value
-    $minor = [int]$match.Groups['minor'].Value
-    $patch = [int]$match.Groups['patch'].Value
-
-    # VS Code extension versions must be strict semver (major.minor.patch).
-    return "$major.$minor.$($patch + 1)"
-}
-
-function Resolve-ExplicitVersion {
-    param(
-        [string]$RequestedVersion,
-        [string]$CurrentVersion
-    )
-
-    # Parse current version.
-    $curMatch = [regex]::Match($CurrentVersion, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)')
-    if (-not $curMatch.Success) {
-        throw "Current version '$CurrentVersion' is not valid semver."
-    }
-
-    $curMajor = [int]$curMatch.Groups['major'].Value
-    $curMinor = [int]$curMatch.Groups['minor'].Value
-    $curPatch = [int]$curMatch.Groups['patch'].Value
-
-    # Parse requested version: 1, 2, or 3 digits.
-    $reqMatch = [regex]::Match($RequestedVersion, '^(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?$')
-    if (-not $reqMatch.Success) {
-        throw "Version '$RequestedVersion' is not valid. Expected 1, 2, or 3 numeric segments (e.g. 1, 1.2, 1.2.3)."
-    }
-
-    $reqMajor = [int]$reqMatch.Groups['major'].Value
-    $hasMinor = $reqMatch.Groups['minor'].Success
-    $hasPatch = $reqMatch.Groups['patch'].Success
-    $reqMinor = if ($hasMinor) { [int]$reqMatch.Groups['minor'].Value } else { 0 }
-    $reqPatch = if ($hasPatch) { [int]$reqMatch.Groups['patch'].Value } else { 0 }
-
-    if ($reqMajor -ne $curMajor) {
-        return "$reqMajor.$reqMinor.$reqPatch"
-    }
-
-    if ($hasMinor -and $reqMinor -ne $curMinor) {
-        return "$reqMajor.$reqMinor.$reqPatch"
-    }
-
-    if ($hasPatch) {
-        return "$reqMajor.$reqMinor.$reqPatch"
-    }
-
-    # Requested version matches current — fall through to auto-bump.
-    return $null
-}
-
 function Set-PackageVersion {
     param(
         [string]$PackageJsonPath,
@@ -162,9 +100,6 @@ if ([string]::IsNullOrWhiteSpace($currentVersion)) {
     throw "Extension version is missing from $packageJsonPath"
 }
 
-$stableVsixPath = Join-Path $extensionsRoot ("{0}.vsix" -f $extensionName)
-$currentVersionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, $currentVersion)
-
 $inputPaths = @(
     (Join-Path $extensionRoot 'package.json'),
     (Join-Path $extensionRoot 'tsconfig.json'),
@@ -178,30 +113,28 @@ $inputPaths = @(
     (Join-Path $repoRoot 'src\python\ai-backends')
 )
 
-$latestInputWriteTime = Get-LatestInputWriteTime -InputPaths $inputPaths
-$latestVsixPath = Get-LatestVsixPath -ExtensionsRoot $extensionsRoot -ExtensionName $extensionName
+$vsixPath = $null
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    # Caller has already resolved the final version; just write it.
+    Set-PackageVersion -PackageJsonPath $packageJsonPath -NewVersion $Version
+    Write-Host "Version set to $Version" -ForegroundColor Green
+    # Re-read after write so the VSIX path uses the new version.
+    $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+}
 
+$stableVsixPath = Join-Path $extensionsRoot ("{0}.vsix" -f $extensionName)
+$newVersionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, ([string]$packageJson.version))
+$vsixPath = if ($VersionedFileName) { $newVersionedVsixPath } else { $stableVsixPath }
+
+$latestVsixPath = Get-LatestVsixPath -ExtensionsRoot $extensionsRoot -ExtensionName $extensionName
 $isStale = $true
 if (-not [string]::IsNullOrWhiteSpace($latestVsixPath) -and (Test-Path -LiteralPath $latestVsixPath -PathType Leaf)) {
+    $latestInputWriteTime = Get-LatestInputWriteTime -InputPaths $inputPaths
     $latestVsixWriteTime = (Get-Item -LiteralPath $latestVsixPath).LastWriteTimeUtc
     $isStale = $latestInputWriteTime -gt $latestVsixWriteTime
 }
 
-$vsixPath = $null
-$explicitVersion = $null
-if (-not [string]::IsNullOrWhiteSpace($Version)) {
-    $explicitVersion = Resolve-ExplicitVersion -RequestedVersion $Version -CurrentVersion $currentVersion
-}
-
-if ($explicitVersion -or $isStale) {
-    $newVersion = if ($explicitVersion) { $explicitVersion } else { Get-IncrementedBuildVersion -Version $currentVersion }
-    Set-PackageVersion -PackageJsonPath $packageJsonPath -NewVersion $newVersion
-
-    Write-Host "Version: $currentVersion -> $newVersion" -ForegroundColor Green
-
-    $newVersionedVsixPath = Join-Path $extensionsRoot ("{0}-{1}.vsix" -f $extensionName, $newVersion)
-    $vsixPath = if ($VersionedFileName) { $newVersionedVsixPath } else { $stableVsixPath }
-
+if ($isStale -or -not [string]::IsNullOrWhiteSpace($Version)) {
     Push-Location $extensionRoot
     try {
         & npm run package -- --out $vsixPath
@@ -214,12 +147,9 @@ if ($explicitVersion -or $isStale) {
     }
 }
 else {
-    Write-Host "No extension input changes detected. Skipping version bump and package." -ForegroundColor DarkCyan
+    Write-Host "No extension input changes detected. Skipping package." -ForegroundColor DarkCyan
 
-    if ($VersionedFileName -and (Test-Path -LiteralPath $currentVersionedVsixPath -PathType Leaf)) {
-        $vsixPath = $currentVersionedVsixPath
-    }
-    elseif (Test-Path -LiteralPath $stableVsixPath -PathType Leaf) {
+    if (Test-Path -LiteralPath $stableVsixPath -PathType Leaf) {
         $vsixPath = $stableVsixPath
     }
     elseif (-not [string]::IsNullOrWhiteSpace($latestVsixPath) -and (Test-Path -LiteralPath $latestVsixPath -PathType Leaf)) {

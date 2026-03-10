@@ -13,10 +13,12 @@ const repoRoot = path.resolve(extensionRoot, '..', '..');
 const sourceRoot = path.join(repoRoot, 'skills');
 const sourceMcpRoot = path.join(repoRoot, 'mcps');
 const sourceAiBackendsRoot = path.join(repoRoot, 'src', 'python', 'ai-backends');
+const sourcePwshRoot = path.join(repoRoot, 'src', 'pwsh');
 const assetsRoot = path.join(extensionRoot, 'assets');
 const targetRoot = path.join(assetsRoot, 'skills');
 const targetMcpRoot = path.join(assetsRoot, 'mcps');
 const targetAiBackendsRoot = path.join(assetsRoot, 'src', 'python', 'ai-backends');
+const targetPwshRoot = path.join(assetsRoot, 'src', 'pwsh');
 const manifestPath = path.join(assetsRoot, 'skills-manifest.json');
 
 async function main() {
@@ -63,6 +65,11 @@ async function main() {
   await fs.rm(targetAiBackendsRoot, { recursive: true, force: true });
   if (await pathExists(sourceAiBackendsRoot)) {
     await copyDirectory(sourceAiBackendsRoot, targetAiBackendsRoot);
+  }
+
+  await fs.rm(targetPwshRoot, { recursive: true, force: true });
+  if (await pathExists(sourcePwshRoot)) {
+    await copyDirectory(sourcePwshRoot, targetPwshRoot);
   }
 
   await fs.writeFile(manifestPath, JSON.stringify(payload, null, 2) + '\n', 'utf8');

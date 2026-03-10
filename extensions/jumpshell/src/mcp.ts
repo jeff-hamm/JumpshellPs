@@ -129,6 +129,17 @@ async function resolveUserMcpPath(): Promise<string> {
   return path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
 }
 
+export async function checkMcpConfigured(): Promise<boolean> {
+  try {
+    const targetPath = await resolveMcpConfigPath();
+    const config = await loadMcpConfig(targetPath);
+    return isRecord(config.servers) && 'jumpshellps' in config.servers;
+  }
+  catch {
+    return false;
+  }
+}
+
 async function getActiveProfilePath(basePath: string): Promise<string | undefined> {
   const storagePath = path.join(basePath, 'User', 'globalStorage', 'storage.json');
   if (!await pathExists(storagePath)) {

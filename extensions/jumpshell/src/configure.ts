@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import { getOutputChannel } from './output';
 import { execFileAsync } from './utils';
 
-async function resolveAiCli(): Promise<string | undefined> {
+export async function resolveAiCli(): Promise<string | undefined> {
   const candidates = process.platform === 'win32'
     ? ['ai-cli', 'ai-cli.exe', 'ai-backends', 'ai-backends.exe']
     : ['ai-cli', 'ai-backends'];

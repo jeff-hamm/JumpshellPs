@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { getOutputChannel } from './output';
 import { pathExists, collectFiles, hashFiles, copyDirectory, shouldIgnoreName, revealInFileExplorer } from './utils';
 import { installMcpConfig } from './mcp';
+import { installAiBackends } from './aiBackends';
 import { ensureRecommendedSettings } from './settings';
 
 type SkillManifestEntry = {
@@ -175,6 +176,17 @@ export async function installManagedSkills(context: vscode.ExtensionContext, mod
     }
   }
 
+  const autoInstallAiBackends = vscode.workspace.getConfiguration('jumpshell').get<boolean>('installAiBackendsOnSkillsInstall', true);
+  if (autoInstallAiBackends) {
+    try {
+      await installAiBackends(context, { silent: true });
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      outputChannel.appendLine(`[warn] ai-backends install skipped: ${message}`);
+    }
+  }
+
   const summary = `${mode === 'install' ? 'Installed' : 'Updated'} JumpShell skills in ${targetDir}. Installed ${installedCount}, updated ${updatedCount}, skipped ${skippedCount}, removed stale ${removedStaleCount}.`;
   const action = await vscode.window.showInformationMessage(summary, 'Open folder');
   if (action === 'Open folder') {
@@ -320,4 +332,38 @@ async function deleteReceipt(context: vscode.ExtensionContext): Promise<void> {
 
 function getReceiptPath(context: vscode.ExtensionContext): string {
   return path.join(context.globalStorageUri.fsPath, receiptFileName);
+}
+
+export type SkillsStatus = {
+  installed: boolean;
+  upToDate: boolean;
+  installedCount: number;
+  updateCount: number;
+};
+
+export async function checkSkillsStatus(context: vscode.ExtensionContext): Promise<SkillsStatus> {
+  const receipt = await loadReceipt(context);
+  if (!receipt || Object.keys(receipt.skills).length === 0) {
+    return { installed: false, upToDate: false, installedCount: 0, updateCount: 0 };
+  }
+
+  try {
+    const skillSource = await resolveSkillSource(context);
+    const manifest = await loadManifest(skillSource);
+    let updateCount = 0;
+    for (const entry of manifest) {
+      const installed = receipt.skills[entry.name];
+      const targetExists = await pathExists(path.join(receipt.targetDir, entry.relativePath));
+      if (!installed || installed.hash !== entry.hash || !targetExists) {
+        updateCount++;
+      }
+    }
+
+    const installedCount = Object.keys(receipt.skills).length;
+    return { installed: true, upToDate: updateCount === 0, installedCount, updateCount };
+  }
+  catch {
+    const installedCount = Object.keys(receipt.skills).length;
+    return { installed: true, upToDate: true, installedCount, updateCount: 0 };
+  }
 }

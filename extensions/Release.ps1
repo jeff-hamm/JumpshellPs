@@ -75,17 +75,90 @@ function Resolve-VsixPath {
     throw "No VSIX file is available in $ExtensionsRoot"
 }
 
+function Get-IncrementedPatchVersion {
+    param([string]$Version)
+
+    $match = [regex]::Match($Version, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)')
+    if (-not $match.Success) {
+        throw "Cannot increment version '$Version'. Expected major.minor.patch."
+    }
+
+    $major = [int]$match.Groups['major'].Value
+    $minor = [int]$match.Groups['minor'].Value
+    $patch = [int]$match.Groups['patch'].Value
+    return "$major.$minor.$($patch + 1)"
+}
+
+function Test-SrcChangedSinceLastTag {
+    param([string]$RepoRoot)
+
+    $lastTag = git -C $RepoRoot describe --tags --abbrev=0 2>$null
+    if ([string]::IsNullOrWhiteSpace($lastTag)) {
+        # No prior tag — treat everything as changed.
+        return $true
+    }
+
+    $changedFiles = git -C $RepoRoot diff --name-only $lastTag HEAD 2>$null
+    if ($changedFiles | Where-Object {
+        $_ -match '^src/' -or
+        $_ -match '^skills/' -or
+        $_ -match '^mcps/' -or
+        $_ -match '^extensions/jumpshell/src/'
+    }) {
+        return $true
+    }
+
+    return $false
+}
+
 if (-not (Test-Path -LiteralPath $packageJsonPath -PathType Leaf)) {
     throw "Could not find extension package file: $packageJsonPath"
 }
 
-# ── Build ──────────────────────────────────────────────────────────────────────
+# ── Determine version to build ────────────────────────────────────────────────
+$packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+$currentVersion = [string]$packageJson.version
+if ([string]::IsNullOrWhiteSpace($currentVersion)) {
+    throw "Extension version is missing from $packageJsonPath"
+}
+
+# Detect whether the caller specified an explicit 3-digit version (e.g. 1.2.3).
+$isThreeDigitVersion = $false
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $isThreeDigitVersion = $Version -match '^\d+\.\d+\.\d+$'
+}
+
+$resolvedVersion = $currentVersion
+if ($isThreeDigitVersion) {
+    # Exact 3-digit version: use as-is, no auto-bump.
+    $resolvedVersion = $Version
+}
+else {
+    # Resolve a partial version spec (e.g. "1" or "1.0") into a base, then bump patch if src changed.
+    $baseVersion = $currentVersion
+    if (-not [string]::IsNullOrWhiteSpace($Version)) {
+        # Expand partial version against the current one.
+        $parts = $Version -split '\.'
+        $curParts = $currentVersion -split '\.'
+        while ($parts.Count -lt 3) { $parts += $curParts[$parts.Count] }
+        $baseVersion = $parts -join '.'
+    }
+
+    $srcChanged = Test-SrcChangedSinceLastTag -RepoRoot $repoRoot
+    if ($srcChanged) {
+        $resolvedVersion = Get-IncrementedPatchVersion -Version $baseVersion
+        Write-Host "Src changed since last tag — bumping version: $currentVersion -> $resolvedVersion" -ForegroundColor Cyan
+    }
+    else {
+        $resolvedVersion = $baseVersion
+        Write-Host "No src changes since last tag. Using version $resolvedVersion" -ForegroundColor DarkCyan
+    }
+}
+
+
 $builtVsixPath = $null
 if (-not $NoBuild) {
-    $buildArgs = @{}
-    if (-not [string]::IsNullOrWhiteSpace($Version)) {
-        $buildArgs['Version'] = $Version
-    }
+    $buildArgs = @{ Version = $resolvedVersion }
 
     $buildScript = Join-Path $extensionsRoot 'Build.ps1'
     $builtVsixPath = & $buildScript @buildArgs
@@ -96,9 +169,6 @@ if (-not $NoBuild) {
     if ($builtVsixPath -is [array]) {
         $builtVsixPath = $builtVsixPath[-1]
     }
-}
-elseif (-not [string]::IsNullOrWhiteSpace($Version)) {
-    Write-Warning '-NoBuild was specified with -Version. The version in package.json was not updated by Build.ps1.'
 }
 
 # ── Read the final version from package.json ───────────────────────────────────

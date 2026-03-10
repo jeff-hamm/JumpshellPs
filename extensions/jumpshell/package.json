@@ -2,7 +2,7 @@
   "name": "jumpshell",
   "displayName": "JumpShell",
   "description": "Install and manage JumpShell Copilot skills from VS Code or Cursor.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "electric-pink",
   "license": "MIT",
   "repository": {
@@ -29,28 +29,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "jumpshell.installSkills",
-        "title": "Install Skills (Prompt on Conflicts)",
+        "command": "jumpshell.configureShell",
+        "title": "Setup / Configure JumpShell",
         "category": "JumpShell"
       },
       {
-        "command": "jumpshell.updateSkills",
-        "title": "Update Skills",
-        "category": "JumpShell"
-      },
-      {
-        "command": "jumpshell.installJumpshellMcp",
-        "title": "Install MCP Configuration",
-        "category": "JumpShell"
-      },
-      {
-        "command": "jumpshell.configureJumpshell",
-        "title": "Configure AI Backends",
-        "category": "JumpShell"
-      },
-      {
-        "command": "jumpshell.checkExtensionUpdates",
-        "title": "Check GitHub VSIX Updates",
+        "command": "jumpshell.updateJumpShell",
+        "title": "Update JumpShell",
         "category": "JumpShell"
       },
       {
@@ -134,6 +119,8 @@
     "typescript": "^5.9.3"
   }
 }
+
+
 
 
 

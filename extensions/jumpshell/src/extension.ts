@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { initOutputChannel } from './output';
-import { installManagedSkills } from './skills';
-import { installMcpConfig } from './mcp';
-import { runStartupUpdateCheck, checkForExtensionUpdates } from './updater';
+import { runStartupUpdateCheck } from './updater';
 import { ensureRecommendedSettings } from './settings';
-import { configureJumpshell } from './configure';
+import { configureShell } from './setup';
+import { updateJumpShell } from './update';
 import { registerModelPickerCommands } from './modelPicker';
 import { registerHotkeyCommands } from './hotkey';
+
+const firstRunStateKey = 'hasRunSetup';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -16,17 +17,21 @@ export function activate(context: vscode.ExtensionContext): void {
   initOutputChannel(outputChannel);
 
   context.subscriptions.push(
-    registerCommand('jumpshell.installSkills', () => installManagedSkills(context, 'install')),
-    registerCommand('jumpshell.updateSkills', () => installManagedSkills(context, 'update')),
-    registerCommand('jumpshell.installJumpshellMcp', () => installMcpConfig(context)),
-    registerCommand('jumpshell.configureJumpshell', () => configureJumpshell(context)),
-    registerCommand('jumpshell.checkExtensionUpdates', () => checkForExtensionUpdates(context))
+    registerCommand('jumpshell.configureShell', () => configureShell(context)),
+    registerCommand('jumpshell.updateJumpShell', () => updateJumpShell(context))
   );
 
   registerModelPickerCommands(context, outputChannel);
 
   void ensureRecommendedSettings({ silent: true });
   void runStartupUpdateCheck(context);
+
+  // On first activation, open the setup wizard automatically.
+  const hasRunSetup = context.globalState.get<boolean>(firstRunStateKey, false);
+  if (!hasRunSetup) {
+    void context.globalState.update(firstRunStateKey, true);
+    void vscode.commands.executeCommand('jumpshell.configureShell');
+  }
 }
 
 export function deactivate(): void {
