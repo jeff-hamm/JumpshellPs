@@ -23,6 +23,7 @@ Relevant extension settings:
 
 - `jumpshell.installMcpOnSkillsInstall`
 - `jumpshell.mcpConfigScope` (`user` or `workspace`)
+- `jumpshell.workspaceMcpDirectory` (`auto`, `vscode`, or `cursor`)
 - `jumpshell.moduleRootPath` (optional explicit module/repo path)
 
 ### Option B: Module command

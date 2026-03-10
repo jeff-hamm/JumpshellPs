@@ -225,15 +225,15 @@ if __name__ == "__main__":
 
 ### 3. Add `requirements.txt`
 
-Always create `scripts/requirements.txt`. Reference `ai_backends` via the shared
-relative editable path so the same file works in both layouts:
+Always create `scripts/requirements.txt`. Use the git URL so the package is
+resolvable even without the JumpShell extension (pip skips the fetch if
+`ai-backends` is already installed):
 
 ```
 # requirements.txt
-# Relative from scripts/ in both layouts:
-# - Repo checkout:        skills/<skill>/scripts -> ../../../src/python/ai-backends
-# - Extension-managed:    ~/.agents/skills/...   -> ~/.agents/src/python/ai-backends
--e ../../../src/python/ai-backends
+# Installed automatically by the JumpShell extension.
+# The git URL is a fallback for standalone use.
+ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends
 
 # Add any backend-specific extras:
 # openai
@@ -241,12 +241,12 @@ relative editable path so the same file works in both layouts:
 # google-generativeai
 ```
 
-If the script genuinely needs no extras beyond `ai_backends`, a comment-only file
+If the script genuinely needs no extras beyond `ai_backends`, a one-liner
 still documents the dependency:
 
 ```
 # requirements.txt
--e ../../../src/python/ai-backends
+ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends
 ```
 
 ### 4. Add `run.ps1` and `run.sh`
@@ -308,11 +308,10 @@ Install from `requirements.txt`:
 pip install -r scripts/requirements.txt
 ```
 
-For local development of `ai_backends` itself, an explicit editable install is also
-valid (run from the skill `scripts/` folder):
+For local development of `ai_backends` itself, use an editable install from the repo root:
 
 ```powershell
-pip install -e ../../../src/python/ai-backends
+pip install -e src/python/ai-backends
 ```
 
 Common per-backend extras:
@@ -331,10 +330,10 @@ pip install easyocr              # easyocr (+ PyTorch, first run downloads ~100 
 ## Notes
 
 - Always create `run.ps1`, `run.sh`, and `requirements.txt` in `scripts/` alongside the Python file, even for simple scripts.
-- `ai_backends` lives at `src/python/ai-backends` in this repo, and at `~/.agents/src/python/ai-backends` in extension-managed installs. No `sys.path` manipulation needed.
-- Skills should reference it in `requirements.txt` as `-e ../../../src/python/ai-backends` so one file works in both repo and extension layouts.
+- `ai_backends` lives at `src/python/ai-backends` in this repo. The JumpShell extension pip-installs it into site-packages automatically. No `sys.path` manipulation needed.
+- Skills should reference it in `requirements.txt` as `ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends` so standalone use works without the extension.
 - Model availability changes frequently. Always prefer `--quality`/`--tier` tiers over hardcoded backend/model names.
-- The model registry cache lives inside the active package at `ai_backends/.models_cache.json` (for editable installs this is typically under `src/python/ai-backends/ai_backends/.models_cache.json` or `~/.agents/src/python/ai-backends/ai_backends/.models_cache.json`).
+- The model registry cache lives inside the installed package at `ai_backends/.models_cache.json` and is shared across all consumers.
 - Each skill can optionally write its own `references/available-models.md` by passing `reference_doc_path` to `ensure_registry()` or `refresh_registry()`.
 - All backends use the same calling convention: `call_backend(name, prompt, context_files, model)` — the module handles encoding, API differences, and CLI wrapping internally.
 - Model knowledge is inferred dynamically from model names using pattern rules (not a static lookup table). Unknown models get sensible defaults.

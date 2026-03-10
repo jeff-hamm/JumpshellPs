@@ -2,7 +2,7 @@
   "name": "jumpshell",
   "displayName": "JumpShell",
   "description": "Install and manage JumpShell Copilot skills from VS Code or Cursor.",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "publisher": "jeff-hamm",
   "license": "MIT",
   "repository": {
@@ -99,5 +99,7 @@
     "typescript": "^5.9.3"
   }
 }
+
+
 
 

@@ -2,7 +2,7 @@
 #
 # ai-backends is pip-installed by the JumpShell extension.
 # For repo development: pip install -e src/python/ai-backends
-ai-backends
+ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends
 
 # Backend-specific extras — uncomment what you need:
 # openai

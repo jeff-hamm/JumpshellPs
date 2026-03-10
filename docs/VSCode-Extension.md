@@ -26,6 +26,7 @@ It manages JumpShell skill installation, MCP configuration, and optional Python 
 | `jumpshell.aiBackendsPath` | empty | Optional explicit ai-backends target path |
 | `jumpshell.installMcpOnSkillsInstall` | `false` | Also run MCP config install during skill update |
 | `jumpshell.mcpConfigScope` | `user` | MCP config write target (`user` or `workspace`) |
+| `jumpshell.workspaceMcpDirectory` | `auto` | Workspace MCP location when scope is `workspace` (`auto`, `vscode`, or `cursor`) |
 | `jumpshell.moduleRootPath` | empty | Optional explicit JumpShell module/repo root |
 
 ## Build and Package
@@ -85,6 +86,12 @@ The extension installs MCP config by:
 4. Writing merged config into:
 - user profile `mcp.json`, or
 - workspace `.vscode/mcp.json`
+
+When scope is `workspace`, directory selection is controlled by `jumpshell.workspaceMcpDirectory`:
+
+- `auto`: choose by active editor and existing files
+- `vscode`: force `.vscode/mcp.json`
+- `cursor`: force `.cursor/mcp.json`
 
 ## Troubleshooting
 
