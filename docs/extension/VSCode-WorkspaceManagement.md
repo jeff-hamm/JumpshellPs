@@ -12,7 +12,7 @@ Implementation lives in `src/pwsh/vscode`.
 ## Load Module
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 ```
 
 ## Editor Context Functions

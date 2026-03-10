@@ -199,7 +199,7 @@ async function resolveModuleSourceRoot(context: vscode.ExtensionContext): Promis
 
 async function resolveSourceRootCandidate(basePath: string): Promise<string | undefined> {
   const sourceCandidate = path.join(basePath, 'src', 'pwsh');
-  const sourceManifest = path.join(sourceCandidate, 'JumpShellPs.psd1');
+  const sourceManifest = path.join(sourceCandidate, 'Jumpshell.psd1');
   const sourceServer = path.join(sourceCandidate, 'mcp', 'server.ps1');
   if (await pathExists(sourceManifest) && await pathExists(sourceServer)) {
     return sourceCandidate;
@@ -211,7 +211,7 @@ async function resolveSourceRootCandidate(basePath: string): Promise<string | un
   const isSourceRootPath = baseName === 'pwsh' && parentName === 'src';
 
   if (isSourceRootPath) {
-    const directManifest = path.join(basePath, 'JumpShellPs.psd1');
+    const directManifest = path.join(basePath, 'Jumpshell.psd1');
     const directServer = path.join(basePath, 'mcp', 'server.ps1');
     if (await pathExists(directManifest) && await pathExists(directServer)) {
       return basePath;
@@ -222,7 +222,7 @@ async function resolveSourceRootCandidate(basePath: string): Promise<string | un
 }
 
 async function detectModuleRootFromPowerShell(): Promise<string | undefined> {
-  const command = '$m = Get-Module -ListAvailable -Name JumpShellPs | Sort-Object Version -Descending | Select-Object -First 1; if ($m) { [Console]::Out.WriteLine($m.ModuleBase) }';
+  const command = '$m = Get-Module -ListAvailable -Name Jumpshell | Sort-Object Version -Descending | Select-Object -First 1; if ($m) { [Console]::Out.WriteLine($m.ModuleBase) }';
   const binaries = process.platform === 'win32' ? ['pwsh.exe', 'pwsh'] : ['pwsh'];
 
   for (const binary of binaries) {
@@ -268,7 +268,7 @@ async function loadMcpTemplate(context: vscode.ExtensionContext): Promise<Record
 
   return {
     servers: {
-      jumpshellPs: {
+      jumpshell: {
         type: 'stdio',
         command: 'pwsh',
         args: [

@@ -8,7 +8,7 @@ param(
 )
 
 # Skip installation checks during module import - only run when explicitly called
-if ($global:JumpshellPs_ImportInProgress) {
+if ($global:Jumpshell_ImportInProgress) {
     return
 }
 
@@ -22,10 +22,10 @@ else {
 }
 
 $moduleParentPath = if ($ModulePath) { $ModulePath } else { Split-Path -Parent $ModuleRoot }
-if (-not $NoPull -and -not (Test-Path (Join-Path $moduleParentPath 'JumpshellPs'))) {
+if (-not $NoPull -and -not (Test-Path (Join-Path $moduleParentPath 'jumpshell'))) {
     Push-Location $moduleParentPath
     try {
-        git clone https://github.com/jeff-hamm/JumpshellPs.git
+        git clone https://github.com/jeff-hamm/jumpshell.git
     }
     finally {
         Pop-Location
@@ -40,16 +40,16 @@ if ($Applications) { $installArgs['Applications'] = $true }
 
 & (Join-Path $PSScriptRoot 'Install\Install.ps1') @installArgs
 
-# Import JumpshellPs module if not already imported or being imported
+# Import Jumpshell module if not already imported or being imported
 # Skip this during module load (when dot-sourced from .psm1) to avoid recursion
-$jumpshellModule = Get-Module -Name "JumpshellPs" -ErrorAction SilentlyContinue
-$isCurrentlyImporting = $global:JumpshellPs_ImportInProgress -eq $true
+$jumpshellModule = Get-Module -Name "Jumpshell" -ErrorAction SilentlyContinue
+$isCurrentlyImporting = $global:Jumpshell_ImportInProgress -eq $true
 
 if (-not $isCurrentlyImporting -and -not $jumpshellModule) {
-    Write-Host "Importing JumpshellPs module..." -ForegroundColor Cyan
-    Import-Module (Join-Path $ModuleRoot 'JumpShellPs.psd1') -Force
+    Write-Host "Importing Jumpshell module..." -ForegroundColor Cyan
+    Import-Module (Join-Path $ModuleRoot 'Jumpshell.psd1') -Force
 } elseif ($jumpshellModule) {
-    Write-Debug "JumpshellPs module already imported (version: $($jumpshellModule.Version))"
+    Write-Debug "Jumpshell module already imported (version: $($jumpshellModule.Version))"
 } else {
     Write-Debug "Module import in progress, skipping duplicate import"
 }

@@ -3,7 +3,7 @@ param(
     [ValidateSet('User', 'Workspace')]
     [string]$Scope = 'User',
     [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot),
-    [string]$ServerName = 'jumpshellPs'
+    [string]$ServerName = 'jumpshell'
 )
 
 $sourceScript = Join-Path $PSScriptRoot '..\src\pwsh\mcp\Install-Mcp.ps1'

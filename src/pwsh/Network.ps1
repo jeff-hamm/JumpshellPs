@@ -1,4 +1,4 @@
-# Network utilities for JumpShellPs
+# Network utilities for Jumpshell
 
 function Add-WSLPortForward {
     <#

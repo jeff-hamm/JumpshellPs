@@ -158,7 +158,7 @@ function resolveExtensionReleaseRepo(context: vscode.ExtensionContext): string {
     return parsed;
   }
 
-  return 'jeff-hamm/JumpshellPs';
+  return 'jeff-hamm/jumpshell';
 }
 
 function parseGitHubRepoSlug(repositoryUrl: unknown): string | undefined {

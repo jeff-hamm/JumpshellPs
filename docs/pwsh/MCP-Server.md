@@ -34,7 +34,7 @@ Relevant extension settings:
 ### Option B: Module command
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 Install-JumpShellMcp -Scope User
 # or
 Install-JumpShellMcp -Scope Workspace
@@ -49,7 +49,7 @@ pwsh ./src/pwsh/mcp/Install-Mcp.ps1 -ModuleRoot (Resolve-Path .) -Scope User
 ## Runtime Lifecycle Commands
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 
 Get-JumpShellMcp
 Start-JumpShellMcpServer
@@ -77,7 +77,7 @@ $env:JUMPSHELL_MCP_AUTOSTART = '0'
 
 Template file `mcps/jumpshellps.json` contains:
 
-- `servers.jumpshellPs.type = stdio`
+- `servers.jumpshell.type = stdio`
 - `command = pwsh`
 - `args` for `-File ${serverScript}` and `-ModuleRoot ${moduleRoot}`
 - environment values:
@@ -97,7 +97,7 @@ State/log paths are written under JumpShell runtime directory:
 1. Validate module path resolution:
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 Get-JumpShellMcp | Format-List ModuleRoot,ServerScript,IsRunning
 ```
 
@@ -115,4 +115,4 @@ Start-JumpShellMcpServer
 Get-Content ~/.jumpshell/mcp/server.stderr.log -Tail 200
 ```
 
-4. In editor, verify server entry exists (`jumpshellPs`) and reset cached tools if needed.
+4. In editor, verify server entry exists (`jumpshell`) and reset cached tools if needed.

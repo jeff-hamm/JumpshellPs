@@ -1,6 +1,6 @@
-# JumpShellPs
+# Jumpshell
 
-JumpShellPs is a multi-surface automation repo with:
+Jumpshell is a multi-surface automation repo with:
 
 - PowerShell module sources in `src/pwsh`
 - Python backend sources in `src/python`
@@ -13,7 +13,7 @@ JumpShellPs is a multi-surface automation repo with:
 ### 1. Import module from repository checkout
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 ```
 
 ### 2. Build and install extension (optional)
@@ -37,8 +37,8 @@ Or run extension command:
 
 | Entry point | Purpose |
 |---|---|
-| `JumpShellPs.psd1` | Root module shim to `src/pwsh/JumpShellPs.psm1` |
-| `JumpShellPs.psm1` | Root compatibility module shim |
+| `Jumpshell.psd1` | Root module shim to `src/pwsh/Jumpshell.psm1` |
+| `Jumpshell.psm1` | Root compatibility module shim |
 | `Install.ps1` | Root extension install workflow wrapper |
 | `src/pwsh/Install.ps1` | Module dependency/skills/apps/MCP installer |
 | `extensions/Build.ps1` | Build VSIX (optionally install) |
@@ -52,7 +52,7 @@ Or run extension command:
 |- docs/
 |- src/
 |  |- pwsh/
-|  |  |- JumpShellPs.psm1
+|  |  |- Jumpshell.psm1
 |  |  |- Install/
 |  |  |- mcp/
 |  |  |- vscode/

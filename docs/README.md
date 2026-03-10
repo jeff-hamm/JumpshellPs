@@ -1,6 +1,6 @@
-# JumpShellPs Documentation
+# Jumpshell Documentation
 
-This folder is the primary documentation set for the refactored JumpShellPs repository.
+This folder is the primary documentation set for the refactored Jumpshell repository.
 
 ## Jekyll Site
 
@@ -61,7 +61,7 @@ One-time repo setting:
 
 ## Scope Notes
 
-- Root-level `JumpShellPs.psd1` and `JumpShellPs.psm1` are compatibility shims.
+- Root-level `Jumpshell.psd1` and `Jumpshell.psm1` are compatibility shims.
 - Canonical PowerShell implementation now lives in `src/pwsh`.
 - Canonical MCP scripts now live in `src/pwsh/mcp`.
 - Extension MCP template lives at `mcps/jumpshellps.json` and is bundled into extension assets.

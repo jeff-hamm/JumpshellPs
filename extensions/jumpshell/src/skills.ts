@@ -239,7 +239,7 @@ async function resolveSkillSource(context: vscode.ExtensionContext): Promise<Ski
     };
   }
 
-  throw new Error('No bundled skill assets or repository skills folder could be found. Run the build first or open the JumpshellPs repo.');
+  throw new Error('No bundled skill assets or repository skills folder could be found. Run the build first or open the jumpshell repo.');
 }
 
 async function loadManifest(skillSource: SkillSource): Promise<SkillManifestEntry[]> {

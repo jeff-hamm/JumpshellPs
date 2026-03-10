@@ -6,7 +6,7 @@ param(
     [string]$CacheFilePath
 )
 
-$manifestPath = Join-Path $ModuleRoot 'JumpshellPs.psd1'
+$manifestPath = Join-Path $ModuleRoot 'Jumpshell.psd1'
 & (Join-Path $PSScriptRoot 'Install-HomeAssistantModule.ps1') -ModulePath (Split-Path $ModuleRoot)
 
 if (Test-Path $manifestPath) {

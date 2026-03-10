@@ -23,7 +23,7 @@ function Update-Jumpshell {
     
     $ModulePath = ($env:PSModulePath -split ';' | Select-Object -First 1)
     if (-not $NoPull) {
-        Push-Location "$ModulePath\JumpshellPs"
+        Push-Location "$ModulePath\jumpshell"
         try {
             git pull
         }

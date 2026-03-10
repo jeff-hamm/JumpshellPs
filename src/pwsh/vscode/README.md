@@ -1,13 +1,13 @@
 # VS Code Utilities
 
-This folder contains the PowerShell and Python utilities used by `JumpShellPs` to inspect VS Code/Copilot chat history, correlate chat to file edits, manage workspace storage/layout state, and archive sessions for analysis.
+This folder contains the PowerShell and Python utilities used by `Jumpshell` to inspect VS Code/Copilot chat history, correlate chat to file edits, manage workspace storage/layout state, and archive sessions for analysis.
 
 ## Quick Start
 
 Import the module from the repo root:
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 ```
 
 Common first commands:

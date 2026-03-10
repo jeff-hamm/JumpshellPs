@@ -6,7 +6,7 @@ param(
 
     [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot),
 
-    [string]$ServerName = 'jumpshellPs'
+    [string]$ServerName = 'jumpshell'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,12 +27,12 @@ function Resolve-ModuleSourceRoot {
         }
 
         $sourceCandidate = Join-Path $candidate 'src\pwsh'
-        $manifestAtSource = Join-Path $sourceCandidate 'JumpShellPs.psd1'
+        $manifestAtSource = Join-Path $sourceCandidate 'Jumpshell.psd1'
         if (Test-Path -LiteralPath $manifestAtSource) {
             return $sourceCandidate
         }
 
-        $manifestAtRoot = Join-Path $candidate 'JumpShellPs.psd1'
+        $manifestAtRoot = Join-Path $candidate 'Jumpshell.psd1'
         if (Test-Path -LiteralPath $manifestAtRoot) {
             return $candidate
         }

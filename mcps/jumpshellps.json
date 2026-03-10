@@ -1,6 +1,6 @@
 {
   "servers": {
-    "jumpshellPs": {
+    "jumpshell": {
       "type": "stdio",
       "command": "pwsh",
       "args": [

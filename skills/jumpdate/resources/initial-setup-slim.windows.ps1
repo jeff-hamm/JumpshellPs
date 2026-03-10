@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 $ErrorActionPreference = 'Stop'
-$B = "https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/main/ai/global-instructions"
+$B = "https://raw.githubusercontent.com/jeff-hamm/jumpshell/main/ai/global-instructions"
 $T = Join-Path $env:TEMP 'jumpshell'
 New-Item -Path $T -ItemType Directory -Force | Out-Null
 

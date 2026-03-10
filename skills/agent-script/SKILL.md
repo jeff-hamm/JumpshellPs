@@ -233,7 +233,7 @@ resolvable even without the JumpShell extension (pip skips the fetch if
 # requirements.txt
 # Installed automatically by the JumpShell extension.
 # The git URL is a fallback for standalone use.
-ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends
+ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
 
 # Add any backend-specific extras:
 # openai
@@ -246,7 +246,7 @@ still documents the dependency:
 
 ```
 # requirements.txt
-ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends
+ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
 ```
 
 ### 4. Add `run.ps1` and `run.sh`
@@ -331,7 +331,7 @@ pip install easyocr              # easyocr (+ PyTorch, first run downloads ~100 
 
 - Always create `run.ps1`, `run.sh`, and `requirements.txt` in `scripts/` alongside the Python file, even for simple scripts.
 - `ai_backends` lives at `src/python/ai-backends` in this repo. The JumpShell extension pip-installs it into site-packages automatically. No `sys.path` manipulation needed.
-- Skills should reference it in `requirements.txt` as `ai-backends @ git+https://github.com/jeff-hamm/JumpshellPs.git#subdirectory=src/python/ai-backends` so standalone use works without the extension.
+- Skills should reference it in `requirements.txt` as `ai-backends @ git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends` so standalone use works without the extension.
 - Model availability changes frequently. Always prefer `--quality`/`--tier` tiers over hardcoded backend/model names.
 - The model registry cache lives inside the installed package at `ai_backends/.models_cache.json` and is shared across all consumers.
 - Each skill can optionally write its own `references/available-models.md` by passing `reference_doc_path` to `ensure_registry()` or `refresh_registry()`.

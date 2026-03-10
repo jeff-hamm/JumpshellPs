@@ -1,6 +1,6 @@
 param(
     [string]$ModuleRoot = (Split-Path -Parent $PSScriptRoot),
-    [string]$ModuleName = 'JumpShellPs',
+    [string]$ModuleName = 'Jumpshell',
     [string]$ProtocolVersion = '2025-06-18'
 )
 

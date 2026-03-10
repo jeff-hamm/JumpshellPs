@@ -11,8 +11,8 @@ This repository now has a split architecture with root compatibility shims and c
 
 | Path | Purpose |
 |---|---|
-| `JumpShellPs.psd1` | Root module manifest shim that points to `src/pwsh/JumpShellPs.psm1` |
-| `JumpShellPs.psm1` | Root module shim that imports the source manifest |
+| `Jumpshell.psd1` | Root module manifest shim that points to `src/pwsh/Jumpshell.psm1` |
+| `Jumpshell.psm1` | Root module shim that imports the source manifest |
 | `Install.ps1` | Root extension install entrypoint (delegates to `extensions/Install.ps1`) |
 | `src/pwsh` | Canonical PowerShell module implementation |
 | `src/python` | Python sources, including `ai-backends` |
@@ -44,7 +44,7 @@ This repository now has a split architecture with root compatibility shims and c
 
 | Goal | Entry point |
 |---|---|
-| Import module from repo checkout | `Import-Module .\JumpShellPs.psd1 -Force` |
+| Import module from repo checkout | `Import-Module .\Jumpshell.psd1 -Force` |
 | Install/update extension VSIX | `pwsh ./Install.ps1 -Build` or `pwsh ./extensions/Build.ps1 -Install` |
 | Install module dependencies/skills/MCP/apps | `pwsh ./src/pwsh/Install.ps1` |
 | Manage MCP from module | `Install-JumpShellMcp`, `Start-JumpShellMcpServer`, `Get-JumpShellMcp` |

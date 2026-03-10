@@ -10,7 +10,7 @@ quality tiers.
 ## Install
 
 ```bash
-# Editable install from the JumpshellPs repo root
+# Editable install from the jumpshell repo root
 pip install -e src/python/ai-backends
 
 # Or from this package directory
@@ -20,7 +20,7 @@ pip install -e .
 pip install -e ~/.agents/src/python/ai-backends
 
 # Optional: install directly from GitHub
-pip install git+https://github.com/jeff-hamm/ai-backends
+pip install git+https://github.com/jeff-hamm/jumpshell.git#subdirectory=src/python/ai-backends
 ```
 
 ## Optional backend dependencies

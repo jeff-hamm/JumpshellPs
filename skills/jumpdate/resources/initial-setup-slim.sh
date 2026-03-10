@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-B="https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/main/ai/global-instructions"
+B="https://raw.githubusercontent.com/jeff-hamm/jumpshell/main/ai/global-instructions"
 T="/tmp/jumpshell"
 mkdir -p "$T"
 

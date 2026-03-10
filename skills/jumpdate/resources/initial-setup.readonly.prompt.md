@@ -691,10 +691,10 @@ Download and run this repo's bootstrap setup file from raw GitHub.
 ## Required Workflow
 1. Resolve the skill directory: the directory containing this `SKILL.md` file (e.g. `~/.agents/skills/jumpdate/`). All relative paths below are under that directory.
 2. Build the raw URL using this fixed repo path template:
-  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
+  - `https://raw.githubusercontent.com/jeff-hamm/jumpshell/<branch>/ai/global-instructions/dist/initial-setup.readonly.prompt.md`
   - Default `<branch>` is `main`.
 3. If step 2 returns 404, try the legacy fallback path:
-  - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
+  - `https://raw.githubusercontent.com/jeff-hamm/jumpshell/<branch>/dist/initial-setup.readonly.prompt.md`
 4. If `<skill-dir>/resources/initial-setup.readonly.prompt.md` exists, compute its hash and save it.
 5. Download the raw file to `<skill-dir>/resources/initial-setup.readonly.prompt.md` (create the `resources/` directory if needed).
 6. If the downloaded file does not start with `# Initial Copilot Setup`, or if the hash matches the previously saved hash, inform the user and ask whether to run it anyway. If they say no, stop the flow. If they say yes, continue.
@@ -2149,7 +2149,7 @@ function Resolve-WithModuleIfAvailable {
   $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
   if (-not $command) {
     try {
-      Import-Module JumpShellPs -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
+      Import-Module Jumpshell -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
       $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
     }
     catch {

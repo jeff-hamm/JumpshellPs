@@ -1,4 +1,4 @@
-$script:JumpShellMcpServerName = 'jumpshellPs'
+$script:JumpShellMcpServerName = 'jumpshell'
 
 function _Get-JumpShellModuleRoot {
     if ($global:JumpShellRepoRoot) {
@@ -17,11 +17,11 @@ function _Get-JumpShellSourceRoot {
 
     $moduleRoot = _Get-JumpShellModuleRoot
     $sourceCandidate = Join-Path $moduleRoot 'src\pwsh'
-    if (Test-Path -LiteralPath (Join-Path $sourceCandidate 'JumpShellPs.psd1')) {
+    if (Test-Path -LiteralPath (Join-Path $sourceCandidate 'Jumpshell.psd1')) {
         return $sourceCandidate
     }
 
-    if (Test-Path -LiteralPath (Join-Path $moduleRoot 'JumpShellPs.psd1')) {
+    if (Test-Path -LiteralPath (Join-Path $moduleRoot 'Jumpshell.psd1')) {
         return $moduleRoot
     }
 

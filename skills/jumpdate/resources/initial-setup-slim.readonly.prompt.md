@@ -6,7 +6,7 @@
 
 **Windows (pwsh)**
 ```powershell
-$B="https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/main/ai/global-instructions"; $T="$env:TEMP\jumpshell"; New-Item -Force -ItemType Directory $T|Out-Null
+$B="https://raw.githubusercontent.com/jeff-hamm/jumpshell/main/ai/global-instructions"; $T="$env:TEMP\jumpshell"; New-Item -Force -ItemType Directory $T|Out-Null
 iwr "$B/src/user-skills/common/scripts/resolve-editor.ps1" -OutFile "$T\resolve-editor.ps1"
 $P=& pwsh "$T\resolve-editor.ps1" --profile; $S=& pwsh "$T\resolve-editor.ps1" --skills
 $R=& pwsh "$T\resolve-editor.ps1" --rules; $SET=& pwsh "$T\resolve-editor.ps1" --settings setting
@@ -14,7 +14,7 @@ $R=& pwsh "$T\resolve-editor.ps1" --rules; $SET=& pwsh "$T\resolve-editor.ps1" -
 
 **macOS/Linux (bash)**
 ```bash
-B="https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/main/ai/global-instructions"; T=/tmp/jumpshell; mkdir -p "$T"
+B="https://raw.githubusercontent.com/jeff-hamm/jumpshell/main/ai/global-instructions"; T=/tmp/jumpshell; mkdir -p "$T"
 curl -fsSL "$B/src/user-skills/common/scripts/resolve-editor.sh" -o "$T/resolve-editor.sh"
 P=$(bash "$T/resolve-editor.sh" --profile); S=$(bash "$T/resolve-editor.sh" --skills)
 R=$(bash "$T/resolve-editor.sh" --rules); SET=$(bash "$T/resolve-editor.sh" --settings setting)

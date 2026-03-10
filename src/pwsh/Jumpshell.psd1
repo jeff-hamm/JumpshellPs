@@ -1,9 +1,10 @@
 @{
-    RootModule        = 'src\\pwsh\\JumpShellPs.psm1'
+    # Script module or binary module file associated with this manifest
+    RootModule        = 'Jumpshell.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'b1e7e2e2-1c2a-4e2a-9b2e-123456789abc'
     Author            = 'Your Name'
-    Description       = 'JumpShell root shim module that loads src/pwsh implementation.'
+    Description       = 'JumpShell PowerShell 7 Module'
     PowerShellVersion = '7.0'
     FunctionsToExport = '*'
     CmdletsToExport   = @()
@@ -15,7 +16,8 @@
         'HomeAssistantPs',
         'pwsh-dotenv',
         'Microsoft.PowerShell.SecretManagement',
-        'CredMan',
+#        'Microsoft.PowerShell.CredManStore',
+        "CredMan",
         'Pscx'
     )
 }

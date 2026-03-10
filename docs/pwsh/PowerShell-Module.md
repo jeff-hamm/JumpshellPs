@@ -12,25 +12,25 @@ This document covers the JumpShell PowerShell module architecture after the sour
 ### Repository checkout (recommended for development)
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 ```
 
 ### Installed module path
 
 ```powershell
-Import-Module JumpShellPs -Force
+Import-Module Jumpshell -Force
 ```
 
 ## Root Compatibility Shims
 
-- `JumpShellPs.psd1` points root module loading at `src/pwsh/JumpShellPs.psm1`.
-- `JumpShellPs.psm1` imports `src/pwsh/JumpShellPs.psd1`.
+- `Jumpshell.psd1` points root module loading at `src/pwsh/Jumpshell.psm1`.
+- `Jumpshell.psm1` imports `src/pwsh/Jumpshell.psd1`.
 - `Install.ps1` at root is now extension-focused and calls `extensions/Install.ps1`.
 
 ## Source Module Layout
 
-- Source manifest: `src/pwsh/JumpShellPs.psd1`
-- Source loader: `src/pwsh/JumpShellPs.psm1`
+- Source manifest: `src/pwsh/Jumpshell.psd1`
+- Source loader: `src/pwsh/Jumpshell.psm1`
 - Feature scripts: `src/pwsh/*.ps1`
 - Installer internals: `src/pwsh/Install/*`
 - MCP integration: `src/pwsh/Mcp.ps1`, `src/pwsh/mcp/*`
@@ -38,7 +38,7 @@ Import-Module JumpShellPs -Force
 
 ## Module Load Flow
 
-On import, `src/pwsh/JumpShellPs.psm1`:
+On import, `src/pwsh/Jumpshell.psm1`:
 
 1. Sets source/repo globals:
 - `JumpShellSourcePath`
@@ -102,14 +102,14 @@ Canonical scripts resolve under `src/pwsh/mcp`.
 
 ```powershell
 # Confirm source-root import path
-Import-Module .\JumpShellPs.psd1 -Force
-(Get-Module JumpShellPs).Path
+Import-Module .\Jumpshell.psd1 -Force
+(Get-Module Jumpshell).Path
 
 # Confirm MCP script resolution
 Get-JumpShellMcp | Format-List ModuleRoot,ServerScript
 
 # List exported functions
-Get-Command -Module JumpShellPs | Sort-Object Name
+Get-Command -Module Jumpshell | Sort-Object Name
 ```
 
 ## Related Docs

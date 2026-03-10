@@ -700,10 +700,10 @@ Two installer variants are available:
    - Default: **slim** → filename `initial-setup-slim.readonly.prompt.md`
    - If the user passed `full` or the agent cannot run shell commands: **full** → filename `initial-setup.readonly.prompt.md`
 3. Build the raw URL:
-   - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/ai/global-instructions/dist/<filename>`
+   - `https://raw.githubusercontent.com/jeff-hamm/jumpshell/<branch>/ai/global-instructions/dist/<filename>`
    - Default `<branch>` is `main`.
 4. If step 3 returns 404 and the variant is **full**, try the legacy fallback path:
-   - `https://raw.githubusercontent.com/jeff-hamm/JumpshellPs/<branch>/dist/initial-setup.readonly.prompt.md`
+   - `https://raw.githubusercontent.com/jeff-hamm/jumpshell/<branch>/dist/initial-setup.readonly.prompt.md`
 5. Download the raw file to `<skill-dir>/resources/<filename>` (create the `resources/` directory if needed).
 6. Run the downloaded file as a prompt.
 
@@ -2240,7 +2240,7 @@ function Resolve-WithModuleIfAvailable {
   $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
   if (-not $command) {
     try {
-      Import-Module JumpShellPs -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
+      Import-Module Jumpshell -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
       $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
     }
     catch {

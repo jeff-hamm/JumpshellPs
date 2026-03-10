@@ -50,8 +50,8 @@ function Edit-JumpShell {
 }
 
 function Reload-JumpShell {
-    $moduleName = 'JumpShellPs'
-    $modulePath = Join-Path $script:JumpShellPath 'JumpShellPs.psd1'
+    $moduleName = 'Jumpshell'
+    $modulePath = Join-Path $script:JumpShellPath 'Jumpshell.psd1'
     if (Get-Module -Name $moduleName) {
         Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
     }

@@ -1,8 +1,8 @@
-# JumpShellPs.psm1
+# Jumpshell.psm1
 # Auto-generated module file to load all scripts in correct order and export public functions
 
 # Set import flag to prevent circular imports
-$global:JumpshellPs_ImportInProgress = $true
+$global:Jumpshell_ImportInProgress = $true
 
 $script:JumpShellSourceRoot = $PSScriptRoot
 $script:JumpShellRepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -93,4 +93,4 @@ if (Get-Command -Name Start-JumpShellMcpServer -ErrorAction SilentlyContinue) {
 }
 
 # Clear import flag - module loading complete
-$global:JumpshellPs_ImportInProgress = $false
+$global:Jumpshell_ImportInProgress = $false

@@ -12,7 +12,7 @@ Primary implementation lives under `src/pwsh/vscode`.
 ## Quick Start
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 
 Get-VSCodeChatSessions -Path . | Select-Object -First 5 Title, MessageCount, LastModified
 Get-VSCodeChatEditingSessions -Path . | Select-Object -First 5 SessionId, FileCount, OperationCount

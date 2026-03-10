@@ -16,7 +16,7 @@ function Get-SkillsHash {
 
 function Get-ModulesManifestHash {
     param([string]$ModuleRoot)
-    $manifestPath = Join-Path $ModuleRoot 'JumpshellPs.psd1'
+    $manifestPath = Join-Path $ModuleRoot 'Jumpshell.psd1'
     if (-not (Test-Path $manifestPath)) { return $null }
     $manifest = Import-PowerShellDataFile -Path $manifestPath
     $names = @($manifest.RequiredModules | ForEach-Object {

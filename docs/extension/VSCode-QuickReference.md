@@ -8,7 +8,7 @@ title: Quick Reference
 ## Load Module
 
 ```powershell
-Import-Module .\JumpShellPs.psd1 -Force
+Import-Module .\Jumpshell.psd1 -Force
 ```
 
 ## Extension Workflows

@@ -4,9 +4,9 @@ title: Home
 nav_order: 1
 ---
 
-# JumpShellPs Documentation
+# Jumpshell Documentation
 
-This site contains documentation for the refactored JumpShellPs repository.
+This site contains documentation for the refactored Jumpshell repository.
 
 ## Start Here
 

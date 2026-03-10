@@ -1416,16 +1416,16 @@
     },
     "workbench.explorer.treeViewState": {
       "focus": [
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/Backups"
       ],
       "selection": [
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/Backups"
       ],
       "expanded": [
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/vscode-workspaces",
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Install",
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/docs",
-        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs::file:///c%3A/OneDrive/Documents/PowerShell/Modules/JumpshellPs/Backups"
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/vscode-workspaces",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/Install",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/docs",
+        "file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell::file:///c%3A/OneDrive/Documents/PowerShell/Modules/Jumpshell/Backups"
       ],
       "scrollTop": 0
     },
