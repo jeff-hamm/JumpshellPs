@@ -1,0 +1,531 @@
+$ErrorActionPreference = "Stop"
+
+function Get-Usage {
+  @"
+Usage:
+  ./resolve-editor.ps1 [--name|--profile|--user|--rules|--skills|--settings [type]|--workspace] [--workspace] [--git-commit]
+
+Modes:
+  --name                  Return editor name (default)
+  --profile               Return current editor profile (User config) path
+  --user                  Return current editor preferred user path
+  --rules                 Return user rules/instructions path; add --workspace for workspace-scoped path
+  --skills                Return user skills path; add --workspace for workspace-scoped path
+  --settings [type]       Return settings dir (default) or a specific file: setting|task|mcp|keybinding
+                          e.g. --settings task  ->  .../tasks.json
+  --workspace             Workspace-level .agents/.cursor/.claude path (standalone or scope modifier)
+
+Flags:
+  --git-commit            After resolving path, also run change-control before-phase (backup + git status).
+                          No-op when resolved path is not an existing file.
+  --relative              When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
+"@
+}
+
+function Resolve-WithModuleIfAvailable {
+  param([string]$Flag)
+
+  $modeMap = @{
+    '--name' = 'Name'
+    '--profile' = 'Profile'
+    '--user' = 'User'
+    '--rules' = 'Rules'
+    '--workspace' = 'Workspace'
+  }
+
+  if (-not $modeMap.ContainsKey($Flag)) {
+    return $null
+  }
+
+  $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
+  if (-not $command) {
+    try {
+      Import-Module JumpShellPs -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
+      $command = Get-Command -Name 'Resolve-EditorPath' -ErrorAction SilentlyContinue
+    }
+    catch {
+      $command = $null
+    }
+  }
+
+  if (-not $command) {
+    return $null
+  }
+
+  try {
+    $editor = & $command.Name -Mode 'Name'
+    if ([string]::IsNullOrWhiteSpace([string]$editor)) {
+      return $null
+    }
+
+    $scopePath = if ($Flag -eq '--name') {
+      ''
+    }
+    else {
+      & $command.Name -Mode $modeMap[$Flag]
+    }
+
+    if ($Flag -ne '--name' -and [string]::IsNullOrWhiteSpace([string]$scopePath)) {
+      return $null
+    }
+
+    return [PSCustomObject]@{
+      Editor = [string]$editor
+      ScopePath = [string]$scopePath
+    }
+  }
+  catch {
+    return $null
+  }
+
+  return $null
+}
+
+function Export-ScopeContext {
+  param(
+    [string]$Editor,
+    [string]$ScopePath
+  )
+
+  $resolvedEditor = [string]$Editor
+  $resolvedScopePath = if ($null -eq $ScopePath) { '' } else { [string]$ScopePath }
+
+  Set-Variable -Name 'EDITOR' -Scope Script -Value $resolvedEditor -Force
+  Set-Variable -Name 'SCOPE_PATH' -Scope Script -Value $resolvedScopePath -Force
+
+  $Env:EDITOR = $resolvedEditor
+  $Env:SCOPE_PATH = $resolvedScopePath
+}
+
+function Write-PathTuple {
+  param(
+    [string]$Editor,
+    [string]$ScopePath
+  )
+
+  $tuple = @([string]$Editor, [string]$ScopePath)
+  Write-Output ($tuple | ConvertTo-Json -Compress)
+}
+
+function Select-FirstExisting {
+  param([string[]]$Candidates)
+
+  foreach ($candidate in $Candidates) {
+    if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate)) {
+      return $candidate
+    }
+  }
+
+  return ($Candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
+}
+
+function Get-HintText {
+  $hints = @(
+    $Env:VSCODE_IPC_HOOK,
+    $Env:VSCODE_GIT_ASKPASS_MAIN,
+    $Env:TERM_PROGRAM,
+    $Env:TERM_PROGRAM_VERSION,
+    $Env:CLAUDECODE,
+    $Env:CLAUDE_CONFIG_DIR
+  )
+
+  if ($Env:VSCODE_PID -and ($Env:VSCODE_PID -as [int])) {
+    try {
+      $hostProcess = Get-Process -Id ([int]$Env:VSCODE_PID) -ErrorAction Stop
+      $hints += $hostProcess.ProcessName
+      if ($hostProcess.Path) {
+        $hints += $hostProcess.Path
+      }
+    }
+    catch {
+      # Ignore process lookup errors.
+    }
+  }
+
+  return ($hints | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+}
+
+function Get-EditorOrder {
+  $hintText = Get-HintText
+
+  if ($hintText -match 'Code - Insiders|code-insiders') {
+    return @('Code - Insiders', 'Code', 'Cursor', 'Claude')
+  }
+
+  if ($hintText -match 'Cursor') {
+    return @('Cursor', 'Code', 'Code - Insiders', 'Claude')
+  }
+
+  if ($hintText -match 'Claude|claude') {
+    return @('Claude', 'Code', 'Code - Insiders', 'Cursor')
+  }
+
+  return @('Code', 'Code - Insiders', 'Cursor', 'Claude')
+}
+
+function Get-ProfileCandidatesForEditor {
+  param([string]$Editor)
+
+  if ($IsWindows) {
+    $appData = if ($Env:APPDATA) { $Env:APPDATA } else { $Env:AppData }
+    if (-not $appData) {
+      return @()
+    }
+
+    switch ($Editor) {
+      'Code' { return @(Join-Path $appData 'Code\User') }
+      'Code - Insiders' { return @(Join-Path $appData 'Code - Insiders\User') }
+      'Cursor' { return @(Join-Path $appData 'Cursor\User') }
+      'Claude' { return @((Join-Path $appData 'Claude\User'), (Join-Path $appData 'Claude')) }
+      default { return @() }
+    }
+  }
+
+  if ($IsMacOS) {
+    switch ($Editor) {
+      'Code' { return @("$HOME/Library/Application Support/Code/User") }
+      'Code - Insiders' { return @("$HOME/Library/Application Support/Code - Insiders/User") }
+      'Cursor' { return @("$HOME/Library/Application Support/Cursor/User") }
+      'Claude' { return @("$HOME/Library/Application Support/Claude/User", "$HOME/Library/Application Support/Claude") }
+      default { return @() }
+    }
+  }
+
+  switch ($Editor) {
+    'Code' { return @("$HOME/.config/Code/User") }
+    'Code - Insiders' { return @("$HOME/.config/Code - Insiders/User") }
+    'Cursor' { return @("$HOME/.config/Cursor/User") }
+    'Claude' { return @("$HOME/.config/Claude/User", "$HOME/.config/Claude") }
+    default { return @() }
+  }
+}
+
+function Resolve-EditorName {
+  $ordered = Get-EditorOrder
+
+  foreach ($editor in $ordered) {
+    $candidates = Get-ProfileCandidatesForEditor -Editor $editor
+    foreach ($candidate in $candidates) {
+      if (Test-Path -LiteralPath $candidate) {
+        return $editor
+      }
+    }
+  }
+
+  return $ordered[0]
+}
+
+function Resolve-ProfilePath {
+  $editor = Resolve-EditorName
+  $candidates = Get-ProfileCandidatesForEditor -Editor $editor
+  return (Select-FirstExisting -Candidates $candidates)
+}
+
+function Resolve-UserPath {
+  $editor = Resolve-EditorName
+  if ($editor -eq 'Cursor') {
+    return (Join-Path $HOME '.cursor')
+  }
+
+  if ($editor -eq 'Claude') {
+    return (Join-Path $HOME '.claude')
+  }
+
+  return (Join-Path $HOME '.agents')
+}
+
+function Resolve-RulesPath {
+  $editor = Resolve-EditorName
+  $userPath = Resolve-UserPath
+  if ($editor -eq 'Cursor') {
+    return (Join-Path $userPath 'rules')
+  }
+
+  if ($editor -eq 'Claude') {
+    $claudeCandidates = @(
+      (Join-Path $userPath 'commands'),
+      (Join-Path $userPath 'rules'),
+      $userPath
+    )
+
+    return (Select-FirstExisting -Candidates $claudeCandidates)
+  }
+
+  return (Join-Path $userPath 'instructions')
+}
+
+function Resolve-WorkspaceRoot {
+  $start = (Get-Location).Path
+
+  $git = Get-Command git -ErrorAction SilentlyContinue
+  if ($null -ne $git) {
+    try {
+      $gitRoot = (& git -C $start rev-parse --show-toplevel 2>$null)
+      if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($gitRoot)) {
+        $resolvedGitRoot = $gitRoot.Trim()
+        if (Test-Path -LiteralPath $resolvedGitRoot) {
+          return $resolvedGitRoot
+        }
+      }
+    }
+    catch {
+      # Ignore git lookup errors.
+    }
+  }
+
+  $current = $start
+  while (-not [string]::IsNullOrWhiteSpace($current)) {
+    $hasWorkspaceFile = @(Get-ChildItem -LiteralPath $current -File -Filter '*.code-workspace' -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0
+    $hasMarker =
+      (Test-Path -LiteralPath (Join-Path $current '.git')) -or
+      (Test-Path -LiteralPath (Join-Path $current '.vscode')) -or
+      (Test-Path -LiteralPath (Join-Path $current '.cursor')) -or
+      (Test-Path -LiteralPath (Join-Path $current '.agents')) -or
+      (Test-Path -LiteralPath (Join-Path $current '.claude')) -or
+      $hasWorkspaceFile
+
+    if ($hasMarker) {
+      return $current
+    }
+
+    $parent = Split-Path -Path $current -Parent
+    if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
+      break
+    }
+
+    $current = $parent
+  }
+
+  return $start
+}
+
+function Resolve-WorkspacePath {
+  $editor = Resolve-EditorName
+  $workspaceRoot = Resolve-WorkspaceRoot
+
+  if ($editor -eq 'Cursor') {
+    return (Join-Path $workspaceRoot '.cursor')
+  }
+
+  if ($editor -eq 'Claude') {
+    return (Join-Path $workspaceRoot '.claude')
+  }
+
+  return (Join-Path $workspaceRoot '.agents')
+}
+
+function Resolve-WorkspaceRulesPath {
+  $editor = Resolve-EditorName
+  $workspacePath = Resolve-WorkspacePath
+
+  if ($editor -eq 'Cursor') {
+    return (Join-Path $workspacePath 'rules')
+  }
+
+  if ($editor -eq 'Claude') {
+    $candidates = @(
+      (Join-Path $workspacePath 'commands'),
+      (Join-Path $workspacePath 'rules'),
+      $workspacePath
+    )
+    return (Select-FirstExisting -Candidates $candidates)
+  }
+
+  return (Join-Path $workspacePath 'instructions')
+}
+
+function Resolve-SkillsPath {
+  param([switch]$Workspace)
+
+  $editor = Resolve-EditorName
+
+  if ($Workspace) {
+    $workspacePath = Resolve-WorkspacePath
+    return (Join-Path $workspacePath 'skills')
+  }
+
+  $userPath = Resolve-UserPath
+  return (Join-Path $userPath 'skills')
+}
+
+function Resolve-SettingsPath {
+  param([switch]$Workspace, [string]$Subtype)
+
+  $fileMap = @{
+    'setting'    = 'settings.json'
+    'task'       = 'tasks.json'
+    'mcp'        = 'mcp.json'
+    'keybinding' = 'keybindings.json'
+  }
+
+  $dirPath = if ($Workspace) {
+    $editor = Resolve-EditorName
+    $workspaceRoot = Resolve-WorkspaceRoot
+    if ($editor -eq 'Cursor') { Join-Path $workspaceRoot '.cursor' }
+    elseif ($editor -eq 'Claude') { Join-Path $workspaceRoot '.claude' }
+    else { Join-Path $workspaceRoot '.vscode' }
+  } else {
+    Resolve-ProfilePath
+  }
+
+  if ([string]::IsNullOrWhiteSpace($Subtype)) { return $dirPath }
+
+  $fileName = $fileMap[$Subtype.ToLower()]
+  if ($null -eq $fileName) {
+    [Console]::Error.WriteLine("Unknown settings subtype '$Subtype'. Valid types: setting, task, mcp, keybinding")
+    exit 2
+  }
+
+  return (Join-Path $dirPath $fileName)
+}
+
+function Invoke-BeforePhase {
+  param([string]$FilePath)
+
+  if ([string]::IsNullOrWhiteSpace($FilePath)) { return }
+  # Only run before-phase when the resolved path is an existing file
+  if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return }
+
+  $ccScript = Join-Path $PSScriptRoot 'change-control.ps1'
+  if (-not (Test-Path -LiteralPath $ccScript)) {
+    [Console]::Error.WriteLine("[resolve-editor] change-control.ps1 not found: $ccScript")
+    return
+  }
+
+  $out = & pwsh -NoProfile -File $ccScript --phase before --file $FilePath 2>&1
+  $out | ForEach-Object { [Console]::Error.WriteLine([string]$_) }
+}
+
+function Get-WorkspaceRelativePath {
+  param([string]$ScopePath)
+  $workspaceRoot = Resolve-WorkspaceRoot
+  return [System.IO.Path]::GetRelativePath($workspaceRoot, $ScopePath)
+}
+
+$validModes = @('--name','--profile','--user','--rules','--skills','--settings','--workspace')
+$modeArg = $null
+$workspaceFlag = $false
+$gitCommitFlag = $false
+$relativeFlag = $false
+$settingsSubtype = $null
+
+$i = 0
+while ($i -lt $args.Count) {
+  $a = $args[$i]
+  if ($a -eq '--workspace') {
+    $workspaceFlag = $true
+  }
+  elseif ($a -eq '--git-commit') {
+    $gitCommitFlag = $true
+  }
+  elseif ($a -eq '--relative') {
+    $relativeFlag = $true
+  }
+  elseif ($a -eq '--settings') {
+    if ($null -ne $modeArg) {
+      [Console]::Error.WriteLine('Multiple mode flags supplied.')
+      [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+      exit 2
+    }
+    $modeArg = '--settings'
+    # Check if the next arg is a subtype (not a flag)
+    if (($i + 1) -lt $args.Count -and -not ($args[$i + 1] -match '^--')) {
+      $i++
+      $settingsSubtype = $args[$i]
+    }
+  }
+  elseif ($validModes -contains $a) {
+    if ($null -ne $modeArg) {
+      [Console]::Error.WriteLine('Multiple mode flags supplied.')
+      [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+      exit 2
+    }
+    $modeArg = $a
+  }
+  else {
+    [Console]::Error.WriteLine("Unknown argument: $a")
+    [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+    exit 2
+  }
+  $i++
+}
+
+$mode = if ($null -ne $modeArg) { $modeArg } else { '--name' }
+# --workspace alone (no other type) retains legacy behaviour; promote to a mode
+if ($null -eq $modeArg -and $workspaceFlag) { $mode = '--workspace'; $workspaceFlag = $false }
+
+$moduleResolved = Resolve-WithModuleIfAvailable -Flag $mode
+
+if ($mode -eq '--name') {
+  $editorName = if ($moduleResolved -and -not [string]::IsNullOrWhiteSpace($moduleResolved.Editor)) {
+    [string]$moduleResolved.Editor
+  }
+  else {
+    Resolve-EditorName
+  }
+
+  Export-ScopeContext -Editor $editorName -ScopePath ''
+  Write-Output $editorName
+  exit 0
+}
+
+# For legacy modes (non-composite), attempt module resolution first
+if (-not $workspaceFlag -and $moduleResolved -and -not [string]::IsNullOrWhiteSpace($moduleResolved.Editor) -and -not [string]::IsNullOrWhiteSpace($moduleResolved.ScopePath)) {
+  Export-ScopeContext -Editor $moduleResolved.Editor -ScopePath $moduleResolved.ScopePath
+  Write-Output $moduleResolved.ScopePath
+  exit 0
+}
+
+switch ($mode) {
+  '--profile' {
+    $editorName = Resolve-EditorName
+    $scopePath = Resolve-ProfilePath
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  '--user' {
+    $editorName = Resolve-EditorName
+    $scopePath = Resolve-UserPath
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  '--rules' {
+    $editorName = Resolve-EditorName
+    $scopePath = if ($workspaceFlag) { Resolve-WorkspaceRulesPath } else { Resolve-RulesPath }
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  '--skills' {
+    $editorName = Resolve-EditorName
+    $scopePath = Resolve-SkillsPath -Workspace:$workspaceFlag
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  '--settings' {
+    $editorName = Resolve-EditorName
+    $scopePath = Resolve-SettingsPath -Workspace:$workspaceFlag -Subtype $settingsSubtype
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  '--workspace' {
+    $editorName = Resolve-EditorName
+    $scopePath = Resolve-WorkspacePath
+    if ($relativeFlag) { $scopePath = Get-WorkspaceRelativePath -ScopePath $scopePath }
+    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    Write-Output $scopePath
+    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+  }
+  default {
+    [Console]::Error.WriteLine("Unknown mode: $mode")
+    [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+    exit 2
+  }
+}

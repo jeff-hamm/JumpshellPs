@@ -1,0 +1,1549 @@
+"""
+OCR handwritten scanned notes to Markdown.
+
+Backends:
+  LLM APIs      : gemini, openai, anthropic, github-api
+  CLI tools     : copilot-cli (GitHub Copilot CLI), cursor (Cursor Agent CLI)
+  Traditional   : easyocr
+
+Usage:
+  python ocr_scan.py                            # default backend (copilot-cli)
+  python ocr_scan.py -q normal "scan.jpg"       # quality-based model selection
+  python ocr_scan.py -q high "scans/"           # best model, whole directory
+  python ocr_scan.py -b copilot-cli "scan.jpg"  # explicit backend
+  python ocr_scan.py --all                      # run every available backend
+  python ocr_scan.py --combine                  # combine existing transcripts via LLM
+  python ocr_scan.py --all --combine            # run all, then combine
+  python ocr_scan.py --resume                   # skip files with existing output
+  python ocr_scan.py --force                    # regenerate everything
+  python ocr_scan.py --refresh-models           # refresh model registry cache
+
+Quality tiers (--quality / -q):
+  low  / fast    : best free, vision-capable model
+  normal / default : best standard-cost model
+  high / slow    : best possible model at any cost
+"""
+
+import os
+import sys
+import re
+import argparse
+import base64
+import subprocess
+import logging
+import time
+from pathlib import Path
+from datetime import datetime
+from collections import defaultdict
+import json
+
+_SHELL = sys.platform == "win32"
+
+log = logging.getLogger("ocr_scan")
+
+APP_VERSION = "3.0.0"
+
+SCRIPT_DIR = Path(__file__).parent
+DEFAULT_INPUT_DIR = Path.cwd()
+INPUT_DIR = Path(os.getenv("OCR_INPUT_DIR", str(DEFAULT_INPUT_DIR))).expanduser()
+OUTPUT_DIR = Path(os.getenv("OCR_OUTPUT_DIR", str(SCRIPT_DIR / "transcripts"))).expanduser()
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp", ".webp"}
+
+TRANSCRIPTION_PROMPT = """\
+You are an expert forensic document transcriber specializing in handwritten text.
+
+Produce a faithful, complete transcription of ALL handwritten text in this scanned \
+document image, formatted as clean Markdown.
+
+Rules:
+1. ACCURACY -- Transcribe every word exactly as written. Preserve original spelling, \
+abbreviations, punctuation, and capitalization.
+2. STRUCTURE -- Maintain the document's visual layout using Markdown:
+   - Titles or headers become # or ## headings
+   - Dashed / bulleted / numbered lists become Markdown list syntax
+   - Addresses, datelines: preserve line breaks
+   - Paragraphs: separate with blank lines
+3. EMPHASIS -- Underlined text becomes **bold**. Circled or boxed text becomes **bold**.
+4. SIGNATURES -- Transcribe as *[Signature: Best-reading-of-name]* when partially \
+readable, or *[Signature: illegible]* when not.
+5. UNCERTAINTY -- If a word is unclear, give your best reading followed by [?]. \
+Example: "recieved [?]"
+6. CROSSED-OUT TEXT -- Render as ~~strikethrough~~. Interlinear additions in \
+(parentheses with note).
+7. COMPLETENESS -- Include ALL text: headers, footers, dates, addresses, margin \
+notes, page numbers, "cc:" lines, everything.
+
+Output ONLY the transcription. No commentary, no code blocks, no preamble.\
+"""
+
+COMBINE_PROMPT = """\
+You are an expert forensic document transcriber performing a final accuracy review.
+
+I am showing you a scanned handwritten document along with multiple independent \
+transcriptions produced by different OCR systems.
+
+Your task:
+1. Read the original image carefully yourself first
+2. Compare each transcription against what you see in the image
+3. Where transcriptions agree, that reading is very likely correct
+4. Where they disagree, determine the correct reading from the image
+5. If a word is genuinely ambiguous even with the image, mark it with [?]
+
+Formatting rules (same as individual transcription):
+- Transcribe exactly as written -- preserve spelling, abbreviations, punctuation
+- Use Markdown: headings for titles, lists for dash/bullet items, line breaks for addresses
+- Underlined becomes **bold**, signatures become *[Signature: Name]*, unclear becomes word [?]
+- Crossed-out becomes ~~strikethrough~~
+- Include ALL text: headers, dates, addresses, margin notes, CC lines, everything
+
+{transcriptions}
+
+Now examine the image and produce the single best combined transcription.
+Output ONLY the transcription. No commentary, no explanation, no code blocks.\
+"""
+
+NAME_PROMPT = """\
+You are naming a scanned handwritten legal note file.
+
+Given the image and OCR transcript, propose:
+1) A concise descriptive filename title (3-8 words max)
+2) The document date if clearly present in the note
+
+Rules:
+- Return STRICT JSON only: {"title":"...","document_date":"YYYY-MM-DD or null"}
+- "title" must be filesystem-safe words only (letters, numbers, spaces, hyphen)
+- No punctuation except hyphen in title words
+- Prefer a specific topic like "Move Out Notice" instead of generic "Handwritten Note"
+- document_date must be YYYY-MM-DD if visible; otherwise null
+
+OCR transcript context:
+{transcript}
+"""
+
+
+# ── .env loader ───────────────────────────────────────────────────────────────
+
+def _load_dotenv(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k:
+            os.environ[k] = v
+
+
+_load_dotenv(SCRIPT_DIR / ".env")
+
+
+# ── Image helpers ─────────────────────────────────────────────────────────────
+
+_MIME = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".tiff": "image/tiff", ".tif": "image/tiff", ".bmp": "image/bmp",
+    ".webp": "image/webp",
+}
+
+
+def _b64(path: Path) -> str:
+    return base64.b64encode(path.read_bytes()).decode()
+
+
+def _mime(path: Path) -> str:
+    return _MIME.get(path.suffix.lower(), "image/jpeg")
+
+
+# ── LLM API callers ──────────────────────────────────────────────────────────
+
+def _call_gemini(image_path: Path, prompt: str, model_name: str) -> str:
+    import google.generativeai as genai
+
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "Set GEMINI_API_KEY or GOOGLE_API_KEY. "
+            "Free -> https://aistudio.google.com/apikey"
+        )
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(model_name)
+    resp = model.generate_content(
+        [prompt, {"mime_type": _mime(image_path), "data": image_path.read_bytes()}],
+        generation_config=genai.types.GenerationConfig(temperature=0),
+    )
+    return resp.text
+
+
+def _call_openai(image_path: Path, prompt: str, model_name: str) -> str:
+    from openai import OpenAI
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("Set OPENAI_API_KEY")
+    client = OpenAI(api_key=api_key)
+    resp = client.chat.completions.create(
+        model=model_name, temperature=0, max_tokens=4096,
+        messages=[{"role": "user", "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {
+                "url": f"data:{_mime(image_path)};base64,{_b64(image_path)}",
+                "detail": "high",
+            }},
+        ]}],
+    )
+    return resp.choices[0].message.content
+
+
+def _call_anthropic(image_path: Path, prompt: str, model_name: str) -> str:
+    import anthropic
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("Set ANTHROPIC_API_KEY")
+    client = anthropic.Anthropic(api_key=api_key)
+    resp = client.messages.create(
+        model=model_name, max_tokens=4096, temperature=0,
+        messages=[{"role": "user", "content": [
+            {"type": "image", "source": {
+                "type": "base64",
+                "media_type": _mime(image_path),
+                "data": _b64(image_path),
+            }},
+            {"type": "text", "text": prompt},
+        ]}],
+    )
+    return resp.content[0].text
+
+
+def _get_github_token() -> str | None:
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        return token
+    try:
+        r = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True, text=True, timeout=15, shell=_SHELL,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def _call_github(image_path: Path, prompt: str, model_name: str) -> str:
+    from openai import OpenAI
+
+    token = _get_github_token()
+    if not token:
+        raise RuntimeError("Set GITHUB_TOKEN or run: gh auth login")
+    base_url = os.getenv("GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference")
+    log.debug("github-api: model=%s base_url=%s", model_name, base_url)
+    client = OpenAI(
+        base_url=base_url,
+        api_key=token,
+    )
+    resp = client.chat.completions.create(
+        model=model_name, temperature=0, max_tokens=4096,
+        messages=[{"role": "user", "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {
+                "url": f"data:{_mime(image_path)};base64,{_b64(image_path)}",
+                "detail": "high",
+            }},
+        ]}],
+    )
+    text = resp.choices[0].message.content
+    log.info("github-api/%s -> %d chars", model_name, len(text))
+    return text
+
+
+# ── CLI-based backends ────────────────────────────────────────────────────────
+
+def _clean_copilot_output(text: str) -> str:
+    """
+    Copilot CLI may prepend tool execution traces. Strip those and keep
+    only the model answer body.
+    """
+    lines = text.splitlines()
+    cleaned: list[str] = []
+    skip_prefix = True
+    for line in lines:
+        stripped = line.lstrip()
+        # Skip trace lines like: "✔ Read file", "└ 23 lines...", "$ command", "● Read file"
+        if skip_prefix and (
+            stripped.startswith("✔ ")
+            or stripped.startswith("● ")
+            or stripped.startswith("└ ")
+            or stripped.startswith("$ ")
+            or stripped.startswith("...")
+        ):
+            continue
+        if skip_prefix and not stripped:
+            continue
+        skip_prefix = False
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
+
+
+def _call_copilot(image_path: Path, prompt: str, model_name: str) -> str:
+    """GitHub Copilot CLI — uses -p (prompt) with --silent/--no-ask-user flags."""
+    abs_img = str(image_path.resolve())
+    # Use absolute @path so copilot reads exactly this file and nothing else
+    full_prompt = (
+        f"Transcribe ONLY this one document image: @{abs_img}\n\n"
+        "Do NOT read or transcribe any other files in the directory.\n\n"
+        f"{prompt}\n\n"
+        "NON-INTERACTIVE TASK. Do not ask questions. "
+        "Do not provide options. Do not explain anything. "
+        "Return only the final markdown transcription. "
+        "No shell commands. No file edits."
+    )
+
+    cmd = [
+        "copilot", "-p", full_prompt,
+        "--allow-tool", "read",
+        "--deny-tool", "shell",
+        "--deny-tool", "write",
+        "--deny-tool", "edit",
+        "--silent",
+        "--no-ask-user",
+    ]
+    if model_name and model_name != "default":
+        cmd.extend(["--model", model_name])
+
+    log.info("copilot prompt:\n%s", full_prompt)
+    cmd_display = [c if len(c) < 120 else c[:60] + "..." for c in cmd]
+    log.debug("copilot cmd: %s", cmd_display)
+    log.debug("copilot cwd: %s", image_path.parent)
+
+    try:
+        r = subprocess.run(
+            cmd,
+            capture_output=True,
+            timeout=300,
+            shell=_SHELL,
+            cwd=str(image_path.parent),
+        )
+    except FileNotFoundError:
+        raise RuntimeError("copilot CLI not found — install from npm or GitHub")
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("copilot CLI timed out (5 min)")
+
+    # Decode with UTF-8, falling back to latin-1 to avoid cp1252 errors
+    stdout = r.stdout.decode("utf-8", errors="replace")
+    stderr = r.stderr.decode("utf-8", errors="replace") if r.stderr else ""
+
+    log.debug("copilot exit=%d  stdout=%d chars  stderr=%d chars",
+              r.returncode, len(stdout), len(stderr))
+    if stderr:
+        log.debug("copilot stderr: %s", stderr[:500])
+    log.debug("copilot raw stdout (first 500): %s", stdout[:500])
+
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"copilot exited {r.returncode}: {(stderr or stdout)[:300]}"
+        )
+
+    text = _clean_copilot_output(stdout)
+    log.debug("copilot cleaned output (%d chars, first 300): %s",
+              len(text), text[:300])
+
+    if text.startswith("```") and text.endswith("```"):
+        text = text[text.index("\n") + 1 : text.rindex("```")].strip()
+        log.debug("copilot stripped code fences, now %d chars", len(text))
+
+    # Strip preamble like "Here is the transcription of the document:\n\n---"
+    preamble = re.match(
+        r"(?:Here is|Below is)[^\n]*transcription[^\n]*:?\s*\n+(?:---\s*\n+)?",
+        text, re.IGNORECASE,
+    )
+    if preamble:
+        text = text[preamble.end():]
+        log.debug("copilot stripped preamble (%d chars removed)", preamble.end())
+
+    low = text.lower()
+    if "how can i assist" in low or "would you like me to" in low:
+        log.warning("copilot returned generic reply (model=%s). Full output:\n%s",
+                    model_name, text[:1000])
+        raise RuntimeError(
+            "copilot returned a generic assistant reply instead of OCR text; "
+            "retry or use backend 'github-api' for reliable subscription OCR"
+        )
+    if not text:
+        log.warning("copilot produced empty output (model=%s, stdout=%d chars)",
+                    model_name, len(stdout))
+        raise RuntimeError("copilot produced empty output")
+    log.info("copilot-cli/%s -> %d chars", model_name, len(text))
+    return text
+
+
+def _call_cursor(image_path: Path, prompt: str, model_name: str) -> str:
+    """Cursor Agent CLI — uses -p (print/non-interactive) mode."""
+    abs_img = str(image_path.resolve())
+    full_prompt = f"{prompt}\n\nImage to transcribe: {abs_img}"
+
+    cmd = ["agent", "-p", "--output-format", "text", full_prompt]
+    if model_name and model_name != "default":
+        cmd.extend(["--model", model_name])
+
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, shell=_SHELL)
+    except FileNotFoundError:
+        raise RuntimeError(
+            "cursor agent CLI not found — install: "
+            "irm 'https://cursor.com/install?win32=true' | iex"
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("cursor agent CLI timed out (5 min)")
+
+    if r.returncode != 0:
+        raise RuntimeError(
+            f"cursor agent exited {r.returncode}: {(r.stderr or r.stdout)[:300]}"
+        )
+
+    text = r.stdout.strip()
+    if not text:
+        raise RuntimeError("cursor agent produced empty output")
+    return text
+
+
+# ── Traditional OCR ───────────────────────────────────────────────────────────
+
+_easyocr_reader = None
+
+
+def _ocr_easyocr(image_path: Path, prompt: str, model_name: str) -> str:
+    global _easyocr_reader
+    try:
+        import easyocr
+    except ImportError:
+        raise RuntimeError("pip install easyocr  (first run downloads ~100 MB model)")
+
+    if _easyocr_reader is None:
+        langs = model_name.split("+") if model_name else ["en"]
+        print(f"       Loading EasyOCR ({'+'.join(langs)}) ...")
+        _easyocr_reader = easyocr.Reader(langs, gpu=False)
+
+    results = _easyocr_reader.readtext(str(image_path), detail=0, paragraph=True)
+    return "\n\n".join(results)
+
+
+# ── Backend registry ──────────────────────────────────────────────────────────
+
+BACKENDS: dict[str, dict] = {
+    "gemini": {
+        "call": _call_gemini,
+        "default_model": "gemini-2.0-flash",
+        "type": "api",
+    },
+    "openai": {
+        "call": _call_openai,
+        "default_model": "gpt-4o",
+        "type": "api",
+    },
+    "anthropic": {
+        "call": _call_anthropic,
+        "default_model": "claude-sonnet-4-20250514",
+        "type": "api",
+    },
+    "github-api": {
+        "call": _call_github,
+        "default_model": "gpt-4o",
+        "type": "api",
+    },
+    "copilot-cli": {
+        "call": _call_copilot,
+        "default_model": "gemini-3-pro-preview",
+        "type": "cli",
+    },
+    "cursor": {
+        "call": _call_cursor,
+        "default_model": "default",
+        "type": "cli",
+    },
+    "easyocr": {
+        "call": _ocr_easyocr,
+        "default_model": "en",
+        "type": "traditional",
+    },
+}
+
+# Backends that support image+prompt (needed for --combine)
+_LLM_TYPES = {"api", "cli"}
+
+
+# ── Model knowledge base ──────────────────────────────────────────────────────
+
+# Each entry: (name_prefix, quality_score, cost_tier, vision_capable)
+# quality_score: 0-100, higher = better OCR quality
+# cost_tier: 0=free/included, 1=budget, 2=standard, 3=premium
+MODEL_KNOWLEDGE: list[tuple[str, int, int, bool]] = [
+    # Anthropic
+    ("claude-opus-4",          98, 3, True),
+    ("claude-sonnet-4.5",      92, 2, True),
+    ("claude-sonnet-4",        88, 2, True),
+    ("claude-haiku-3.5",       65, 1, True),
+    # OpenAI
+    ("o4-mini",                90, 2, True),
+    ("o3-mini",                85, 2, True),
+    ("gpt-4.1",                93, 3, True),
+    ("gpt-4.1-mini",           75, 1, True),
+    ("gpt-4.1-nano",           55, 0, True),
+    ("gpt-4o",                 85, 2, True),
+    ("gpt-4o-mini",            68, 1, True),
+    # Google
+    ("gemini-3-pro",           92, 2, True),
+    ("gemini-2.5-pro",         88, 2, True),
+    ("gemini-2.5-flash",       72, 1, True),
+    ("gemini-2.0-flash",       68, 1, True),
+    # Meta (via GitHub Models)
+    ("Llama-3.2-90B-Vision",   70, 0, True),
+    ("Llama-3.2-11B-Vision",   55, 0, True),
+    # Microsoft (via GitHub Models)
+    ("Phi-4-multimodal",       50, 0, True),
+]
+
+# Backend cost profiles: "free" = no per-token cost (subscription/free-tier)
+BACKEND_COST_PROFILES: dict[str, str] = {
+    "copilot-cli": "free",
+    "github-api": "free",
+    "gemini": "free",
+    "cursor": "free",
+    "openai": "paid",
+    "anthropic": "paid",
+    "easyocr": "free",
+}
+
+QUALITY_SYNONYMS: dict[str, str] = {
+    "fast": "low", "slow": "high", "default": "normal",
+}
+
+_CACHE_PATH = SCRIPT_DIR / ".models_cache.json"
+_REFERENCE_DOC_PATH = SCRIPT_DIR / ".." / "references" / "available-models.md"
+_CACHE_MAX_AGE_DAYS = 7
+
+
+# ── Dynamic model catalog ─────────────────────────────────────────────────────
+
+def _list_copilot_models() -> list[str]:
+    """Parse available models from copilot --help output."""
+    try:
+        r = subprocess.run(
+            ["copilot", "--help"],
+            capture_output=True, text=True, timeout=15, shell=_SHELL,
+        )
+        if r.returncode != 0:
+            return []
+        text = r.stdout + (r.stderr or "")
+        # Extract model names — look for known provider prefixes in quoted strings
+        models = re.findall(
+            r'"((?:claude|gpt|gemini|o\d)[\w.+-]+)"', text,
+        )
+        if models:
+            return models
+        # Fallback: look for known model name patterns
+        models = re.findall(
+            r"\b(claude-[\w.-]+|gpt-[\w.-]+|gemini-[\w.-]+|o\d[\w.-]*)\b", text,
+        )
+        return sorted(set(models))
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return []
+
+
+def _list_github_api_models() -> list[str]:
+    """Probe GitHub Models API for known vision-capable models."""
+    token = _get_github_token()
+    if not token:
+        return []
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            base_url=os.getenv(
+                "GITHUB_MODELS_BASE_URL", "https://models.github.ai/inference"
+            ),
+            api_key=token,
+        )
+        # GitHub Models has no /models list endpoint; probe known candidates
+        candidates = [
+            "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+            "Llama-3.2-11B-Vision-Instruct", "Phi-4-multimodal-instruct",
+        ]
+        available = []
+        for model in candidates:
+            try:
+                client.chat.completions.create(
+                    model=model, max_tokens=1,
+                    messages=[{"role": "user", "content": "hi"}],
+                )
+                available.append(model)
+            except Exception:
+                pass
+        return available
+    except Exception:
+        return []
+
+
+def _list_gemini_models() -> list[str]:
+    """Discover available Gemini models with vision support."""
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return []
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                models.append(m.name.replace("models/", ""))
+        return sorted(models)
+    except Exception:
+        return []
+
+
+def _list_openai_models() -> list[str]:
+    """Discover available OpenAI vision-capable models."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return []
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        all_models = [m.id for m in client.models.list().data]
+        vision_prefixes = ("gpt-4o", "gpt-4.1", "gpt-4-turbo", "o4", "o3", "o1")
+        return sorted(m for m in all_models if any(m.startswith(p) for p in vision_prefixes))
+    except Exception:
+        return []
+
+
+def _list_anthropic_models() -> list[str]:
+    """Return known Anthropic vision-capable models (no list endpoint)."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return []
+    return [
+        "claude-opus-4-20250514",
+        "claude-sonnet-4.5-20250514",
+        "claude-sonnet-4-20250514",
+        "claude-haiku-3.5-20241022",
+    ]
+
+
+def _list_models_for_backend(name: str) -> list[str] | None:
+    """Return available models for a backend, or None if unsupported."""
+    if name == "copilot-cli":
+        return _list_copilot_models()
+    if name == "github-api":
+        return _list_github_api_models()
+    if name == "gemini":
+        return _list_gemini_models()
+    if name == "openai":
+        return _list_openai_models()
+    if name == "anthropic":
+        return _list_anthropic_models()
+    if name == "easyocr":
+        return ["en"]
+    if name == "cursor":
+        return ["default"]
+    return None
+
+
+def _print_model_catalog() -> None:
+    """Print available models for every accessible backend."""
+    for name in BACKENDS:
+        try:
+            ok, reason = _is_available(name)
+        except Exception:
+            ok, reason = False, "check failed"
+        default = BACKENDS[name]["default_model"]
+        if not ok:
+            print(f"\n{name}:  (unavailable — {reason})")
+            continue
+        models = _list_models_for_backend(name)
+        if models is None:
+            print(f"\n{name}:  default={default}  (no live catalog)")
+        elif not models:
+            print(f"\n{name}:  default={default}  (catalog query failed)")
+        else:
+            print(f"\n{name}:  (* = default)")
+            for m in models:
+                print(f"  {m} *" if m == default else f"  {m}")
+
+
+def _is_available(name: str) -> tuple[bool, str]:
+    """Return (ok, reason_if_not) for a backend."""
+    if name == "gemini":
+        ok = bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+        return (True, "") if ok else (False, "set GEMINI_API_KEY")
+    if name == "openai":
+        return (True, "") if os.getenv("OPENAI_API_KEY") else (False, "set OPENAI_API_KEY")
+    if name == "anthropic":
+        return (True, "") if os.getenv("ANTHROPIC_API_KEY") else (False, "set ANTHROPIC_API_KEY")
+    if name == "github-api":
+        return (True, "") if _get_github_token() else (False, "set GITHUB_TOKEN or gh auth login")
+    if name == "copilot-cli":
+        try:
+            r = subprocess.run(
+                ["copilot", "--version"],
+                capture_output=True, text=True, timeout=15, shell=_SHELL,
+            )
+            return (True, "") if r.returncode == 0 else (False, "copilot CLI not working")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return (False, "copilot CLI not installed")
+    if name == "cursor":
+        try:
+            r = subprocess.run(
+                ["agent", "--version"],
+                capture_output=True, text=True, timeout=15, shell=_SHELL,
+            )
+            return (True, "") if r.returncode == 0 else (False, "cursor agent CLI not working")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return (False, "cursor agent CLI not installed")
+    if name == "easyocr":
+        try:
+            import easyocr  # noqa: F401
+            return True, ""
+        except ImportError:
+            return False, "pip install easyocr"
+    return False, "unknown backend"
+
+
+# ── Model registry & quality system ───────────────────────────────────────────
+
+def _get_cli_version(cmd: str) -> str | None:
+    """Get version string for a CLI tool."""
+    try:
+        r = subprocess.run(
+            [cmd, "--version"],
+            capture_output=True, text=True, timeout=15, shell=_SHELL,
+        )
+        return r.stdout.strip() if r.returncode == 0 else None
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+
+def _load_cache() -> dict | None:
+    """Load the models cache, returning None if missing or corrupt."""
+    if not _CACHE_PATH.exists():
+        return None
+    try:
+        data = json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
+        if data.get("format_version") != 2:
+            return None
+        return data
+    except (json.JSONDecodeError, KeyError):
+        return None
+
+
+def _save_cache(data: dict) -> None:
+    data["format_version"] = 2
+    data["updated"] = datetime.now().isoformat()
+    _CACHE_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def _cache_is_stale(cache: dict) -> tuple[bool, str]:
+    """Check if cache needs refresh (CLI version change or age)."""
+    # Time-based staleness
+    updated = cache.get("updated")
+    if updated:
+        try:
+            age = datetime.now() - datetime.fromisoformat(updated)
+            if age.days >= _CACHE_MAX_AGE_DAYS:
+                return True, f"cache is {age.days} days old"
+        except ValueError:
+            pass
+
+    cached_versions = cache.get("cli_versions", {})
+    copilot_ver = _get_cli_version("copilot")
+    if copilot_ver and copilot_ver != cached_versions.get("copilot-cli"):
+        return True, f"copilot-cli version changed"
+    cursor_ver = _get_cli_version("agent")
+    if cursor_ver and cursor_ver != cached_versions.get("cursor"):
+        return True, f"cursor version changed"
+    return False, "up-to-date"
+
+
+def _match_model_knowledge(model_name: str) -> tuple[int, int, bool] | None:
+    """Match a model name against the knowledge base.
+
+    Returns (quality_score, cost_tier, vision_capable) or None.
+    """
+    name_lower = model_name.lower()
+    for prefix, quality, cost, vision in MODEL_KNOWLEDGE:
+        if name_lower.startswith(prefix.lower()):
+            return quality, cost, vision
+    return None
+
+
+def _discover_all_models() -> dict[str, list[str]]:
+    """Discover available models for all accessible backends."""
+    result: dict[str, list[str]] = {}
+    for name in BACKENDS:
+        ok, _ = _is_available(name)
+        if not ok:
+            continue
+        models = _list_models_for_backend(name)
+        if models:
+            result[name] = models
+    return result
+
+
+def _compute_quality_assignments(
+    available: dict[str, list[str]],
+) -> dict[str, dict[str, str]]:
+    """Compute best backend+model for each quality tier.
+
+    Returns ``{"low": {"backend": ..., "model": ...}, ...}``.
+    """
+    # Build scored candidate list
+    candidates: list[tuple[str, str, int, int]] = []  # (backend, model, quality, eff_cost)
+    for backend, models in available.items():
+        is_free = BACKEND_COST_PROFILES.get(backend) == "free"
+        for model in models:
+            info = _match_model_knowledge(model)
+            if info is None:
+                continue
+            quality, cost_tier, vision = info
+            if not vision:
+                continue
+            effective_cost = 0 if is_free else cost_tier
+            candidates.append((backend, model, quality, effective_cost))
+
+    assignments: dict[str, dict[str, str]] = {}
+
+    # low/fast: best quality among free options (effective_cost == 0)
+    free = [c for c in candidates if c[3] == 0]
+    if free:
+        best = max(free, key=lambda c: c[2])
+        assignments["low"] = {"backend": best[0], "model": best[1]}
+
+    # normal/default: best quality where effective_cost <= 2
+    normal = [c for c in candidates if c[3] <= 2]
+    if normal:
+        best = max(normal, key=lambda c: c[2])
+        assignments["normal"] = {"backend": best[0], "model": best[1]}
+
+    # high/slow: absolute best quality
+    if candidates:
+        best = max(candidates, key=lambda c: c[2])
+        assignments["high"] = {"backend": best[0], "model": best[1]}
+
+    return assignments
+
+
+def _refresh_model_registry(quiet: bool = False) -> dict:
+    """Full refresh: discover models, compute assignments, save cache."""
+    if not quiet:
+        print("Refreshing model registry...")
+
+    available = _discover_all_models()
+    assignments = _compute_quality_assignments(available)
+
+    cli_versions: dict[str, str] = {}
+    copilot_ver = _get_cli_version("copilot")
+    if copilot_ver:
+        cli_versions["copilot-cli"] = copilot_ver
+    cursor_ver = _get_cli_version("agent")
+    if cursor_ver:
+        cli_versions["cursor"] = cursor_ver
+
+    cache = {
+        "cli_versions": cli_versions,
+        "available_models": available,
+        "quality_assignments": assignments,
+    }
+    _save_cache(cache)
+    _write_reference_doc(cache)
+
+    if not quiet:
+        for tier in ("low", "normal", "high"):
+            if tier in assignments:
+                a = assignments[tier]
+                print(f"  {tier}: {a['backend']}/{a['model']}")
+        print()
+    return cache
+
+
+def _ensure_model_registry() -> dict:
+    """Load cache; refresh if stale or missing."""
+    cache = _load_cache()
+    if cache is None:
+        return _refresh_model_registry()
+    stale, reason = _cache_is_stale(cache)
+    if stale:
+        log.info("Cache stale: %s", reason)
+        return _refresh_model_registry()
+    return cache
+
+
+def _resolve_quality(quality: str, cache: dict) -> tuple[str, str]:
+    """Resolve a quality tier name to (backend, model)."""
+    tier = QUALITY_SYNONYMS.get(quality, quality)
+    assignments = cache.get("quality_assignments", {})
+    if tier not in assignments:
+        raise RuntimeError(
+            f"No model available for quality '{tier}'. "
+            f"Available tiers: {', '.join(assignments.keys()) or 'none'}. "
+            "Run with --refresh-models to re-scan."
+        )
+    assignment = assignments[tier]
+    backend, model = assignment["backend"], assignment["model"]
+    ok, reason = _is_available(backend)
+    if not ok:
+        raise RuntimeError(
+            f"Quality '{tier}' resolved to {backend}/{model}, "
+            f"but {backend} is unavailable: {reason}"
+        )
+    return backend, model
+
+
+def _write_reference_doc(cache: dict) -> None:
+    """Write the available-models reference Markdown document."""
+    ref_dir = _REFERENCE_DOC_PATH.parent
+    ref_dir.mkdir(parents=True, exist_ok=True)
+
+    lines = [
+        "# Available OCR Models & Quality Assignments",
+        "",
+        f"*Auto-generated by ocr_scan.py v{APP_VERSION} "
+        f"on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
+        "",
+        "> This file is regenerated when CLI versions change or the cache expires.",
+        "> Do not edit manually.",
+        "",
+    ]
+
+    # Quality assignments table
+    assignments = cache.get("quality_assignments", {})
+    if assignments:
+        tier_syn = {"low": "fast", "normal": "default", "high": "slow"}
+        lines += [
+            "## Quality Tiers",
+            "",
+            "| Quality | Synonym | Backend | Model |",
+            "|---------|---------|---------|-------|",
+        ]
+        for tier in ("low", "normal", "high"):
+            if tier in assignments:
+                a = assignments[tier]
+                lines.append(
+                    f"| `{tier}` | `{tier_syn.get(tier, '')}` "
+                    f"| `{a['backend']}` | `{a['model']}` |"
+                )
+        lines.append("")
+
+    # Per-backend model lists
+    available = cache.get("available_models", {})
+    if available:
+        lines += ["## Available Models by Backend", ""]
+        for backend in sorted(available.keys()):
+            cost = BACKEND_COST_PROFILES.get(backend, "unknown")
+            lines.append(f"### {backend} ({cost})")
+            lines.append("")
+            for m in available[backend]:
+                info = _match_model_knowledge(m)
+                if info:
+                    q, c, v = info
+                    lines.append(
+                        f"- `{m}` — quality: {q}, "
+                        f"cost-tier: {c}, vision: {'yes' if v else 'no'}"
+                    )
+                else:
+                    lines.append(f"- `{m}` — (unranked)")
+            lines.append("")
+
+    # CLI versions
+    cli_versions = cache.get("cli_versions", {})
+    if cli_versions:
+        lines += ["## CLI Versions (at last refresh)", ""]
+        for cli, ver in sorted(cli_versions.items()):
+            lines.append(f"- **{cli}**: `{ver}`")
+        lines.append("")
+
+    _REFERENCE_DOC_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+# ── Resume helpers ────────────────────────────────────────────────────────────
+
+def _read_signature(md_path: Path) -> dict[str, str | None]:
+    result: dict[str, str | None] = {
+        "app_version": None, "backend": None, "model": None, "sources": None,
+    }
+    if not md_path.exists():
+        return result
+    text = md_path.read_text(encoding="utf-8")
+    for key, tag in [
+        ("app_version", "APP_VERSION"), ("backend", "BACKEND"),
+        ("model", "MODEL"), ("sources", "SOURCES"),
+    ]:
+        m = re.search(rf"<!--\s*{tag}:\s*(.+?)\s*-->", text)
+        if m:
+            result[key] = m.group(1).strip()
+    return result
+
+
+def _should_skip(
+    output: Path, resume: bool, force: bool, backend: str, model: str,
+) -> tuple[bool, str]:
+    if force:
+        return False, "force"
+    if not output.exists():
+        return False, "missing"
+    if resume:
+        return True, "resume"
+    sig = _read_signature(output)
+    if (
+        sig["app_version"] == APP_VERSION
+        and sig["backend"] == backend
+        and sig["model"] == model
+    ):
+        return True, "up-to-date"
+    return False, "stale"
+
+
+# ── Output helpers ────────────────────────────────────────────────────────────
+
+def _build_output(
+    stem: str, img_name: str, transcript: str, backend: str, model: str,
+) -> str:
+    def _yaml_quote(value: str) -> str:
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+
+    def _default_title(value: str) -> str:
+        cleaned = re.sub(r"[_.-]+", " ", value).strip()
+        cleaned = re.sub(r"\s+", " ", cleaned)
+        return cleaned or "OCR Document"
+
+    page_title = _default_title(stem)
+    for line in transcript.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        m = re.match(r"^#{1,6}\s+(.+)$", stripped)
+        if m and m.group(1).strip():
+            page_title = m.group(1).strip()
+            break
+
+    return "\n".join([
+        "---",
+        f"title: {_yaml_quote(page_title)}",
+        "layout: page-two-col",
+        "parent: \"Notes from Cheri\"",
+        "---",
+        "",
+        f"# {stem}",
+        "",
+        f"**Source:** `{img_name}`  ",
+        f"![Source image](./{img_name})",
+        f"**OCR Backend:** {backend} (`{model}`)  ",
+        f"**Transcribed:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ",
+        f"<!-- APP_VERSION: {APP_VERSION} -->",
+        f"<!-- BACKEND: {backend} -->",
+        f"<!-- MODEL: {model} -->",
+        "",
+        "---",
+        "",
+        transcript.strip(),
+        "",
+    ])
+
+
+def _build_combined(
+    stem: str, img_name: str, transcript: str,
+    combine_be: str, model: str, sources: list[str],
+) -> str:
+    return "\n".join([
+        f"# {stem} (Combined)",
+        "",
+        f"**Source:** `{img_name}`  ",
+        f"**Combined from:** {', '.join(sources)}  ",
+        f"**Combine backend:** {combine_be} (`{model}`)  ",
+        f"**Transcribed:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ",
+        f"<!-- APP_VERSION: {APP_VERSION} -->",
+        f"<!-- BACKEND: combined -->",
+        f"<!-- MODEL: {model} -->",
+        f"<!-- SOURCES: {','.join(sorted(sources))} -->",
+        "",
+        "---",
+        "",
+        transcript.strip(),
+        "",
+    ])
+
+
+def _extract_transcript(md_path: Path) -> str:
+    """Return just the body text after the first --- separator."""
+    text = md_path.read_text(encoding="utf-8")
+    parts = text.split("\n---\n", 1)
+    return parts[1].strip() if len(parts) == 2 else text.strip()
+
+
+def _find_transcripts(stem: str) -> dict[str, str]:
+    """Discover all <stem>.<backend>.md files and return {backend: text}."""
+    results: dict[str, str] = {}
+    prefix = stem + "."
+    for f in OUTPUT_DIR.iterdir():
+        if not f.name.endswith(".md"):
+            continue
+        name_no_ext = f.name[:-3]
+        if not name_no_ext.startswith(prefix):
+            continue
+        backend_name = name_no_ext[len(prefix):]
+        if backend_name and backend_name != "combined" and backend_name in BACKENDS:
+            results[backend_name] = _extract_transcript(f)
+    return results
+
+
+# ── OCR / combine dispatch ────────────────────────────────────────────────────
+
+def _run_ocr(image_path: Path, backend: str, model: str) -> str:
+    log.info("OCR start: %s/%s on %s", backend, model, image_path.name)
+    t0 = time.monotonic()
+    text = BACKENDS[backend]["call"](image_path, TRANSCRIPTION_PROMPT, model)
+    elapsed = time.monotonic() - t0
+    log.info("OCR done: %s/%s -> %d chars in %.1fs", backend, model, len(text), elapsed)
+    return text
+
+
+def _run_combine(
+    image_path: Path, transcripts: dict[str, str], backend: str, model: str,
+) -> str:
+    parts = [
+        f"--- TRANSCRIPTION FROM {name} ---\n{text}"
+        for name, text in sorted(transcripts.items())
+    ]
+    prompt = COMBINE_PROMPT.replace("{transcriptions}", "\n\n".join(parts))
+    return BACKENDS[backend]["call"](image_path, prompt, model)
+
+
+# ── Processing helpers ────────────────────────────────────────────────────────
+
+def _extract_json_object(text: str) -> dict:
+    raw = text.strip()
+    if raw.startswith("```") and raw.endswith("```"):
+        raw = raw[raw.index("\n") + 1 : raw.rindex("```")].strip()
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        raw = raw[start : end + 1]
+    return json.loads(raw)
+
+
+def _slugify_filename_title(title: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9 -]+", " ", title)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    cleaned = cleaned.replace(" ", "-")
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
+    if not cleaned:
+        return "handwritten-note"
+    return cleaned.lower()[:80]
+
+
+def _scan_date_from_image(image_path: Path) -> str:
+    # Example: scan-2026.02.28-6U34BER.jpg
+    m = re.search(r"(\d{4})[._-](\d{2})[._-](\d{2})", image_path.name)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    return datetime.fromtimestamp(image_path.stat().st_mtime).strftime("%Y-%m-%d")
+
+
+def _normalize_doc_date(value: str | None) -> str | None:
+    if not value:
+        return None
+    v = value.strip()
+    if not v or v.lower() == "null":
+        return None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+        return v
+    for fmt in ("%m/%d/%y", "%m/%d/%Y", "%b %d, %Y", "%B %d, %Y"):
+        try:
+            return datetime.strptime(v, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
+def _fallback_title_from_transcript(transcript: str) -> str:
+    lines = [ln.strip() for ln in transcript.splitlines() if ln.strip()]
+    for ln in lines:
+        if ln.startswith("#"):
+            return _slugify_filename_title(ln.lstrip("# ").strip())
+    if lines:
+        return _slugify_filename_title(lines[0][:80])
+    return "handwritten-note"
+
+
+def _suggest_filename_metadata(
+    image_path: Path,
+    transcript: str,
+    backend: str,
+    model: str,
+) -> tuple[str, str | None]:
+    prompt = NAME_PROMPT.replace("{transcript}", transcript[:3000])
+    try:
+        raw = BACKENDS[backend]["call"](image_path, prompt, model)
+        obj = _extract_json_object(raw)
+        title = _slugify_filename_title(str(obj.get("title", "")).strip())
+        doc_date = _normalize_doc_date(
+            None if obj.get("document_date", None) is None else str(obj.get("document_date"))
+        )
+        if not title:
+            title = _fallback_title_from_transcript(transcript)
+        return title, doc_date
+    except Exception:
+        # Heuristic fallback keeps run robust if naming pass fails.
+        return _fallback_title_from_transcript(transcript), None
+
+
+def _find_unique_destination(dest: Path) -> Path:
+    if not dest.exists():
+        return dest
+    base = dest.stem
+    suffix = dest.suffix
+    parent = dest.parent
+    i = 2
+    while True:
+        cand = parent / f"{base}-{i}{suffix}"
+        if not cand.exists():
+            return cand
+        i += 1
+
+
+def _rename_pair(
+    src_img: Path,
+    src_md: Path,
+    dst_img: Path,
+    dst_md: Path,
+) -> tuple[Path, Path]:
+    dst_img_unique = _find_unique_destination(dst_img) if src_img != dst_img else src_img
+    # Keep md stem aligned with final image filename.
+    intended_md = dst_img_unique.with_name(f"{dst_img_unique.name}.ocr.md")
+    dst_md_unique = _find_unique_destination(intended_md) if src_md != intended_md else src_md
+    src_img.rename(dst_img_unique)
+    src_md.rename(dst_md_unique)
+    return dst_img_unique, dst_md_unique
+
+
+def _process_backend(
+    images: list[Path],
+    be_name: str,
+    model: str,
+    resume: bool,
+    force: bool,
+    colocate_output: bool,
+    no_rename: bool = False,
+    indent: str = "",
+) -> tuple[int, int]:
+    """Run a single backend across all images. Returns (ok, fail) counts."""
+    ok = fail = 0
+    n = len(images)
+    pending_renames: list[dict] = []
+    for idx, img in enumerate(images, 1):
+        tag = f"{indent}[{idx}/{n}]"
+        out = (
+            img.with_name(f"{img.name}.ocr.md")
+            if colocate_output
+            else OUTPUT_DIR / f"{img.stem}.{be_name}.md"
+        )
+        skip, reason = _should_skip(out, resume, force, be_name, model)
+
+        if skip:
+            print(f"{tag} SKIP ({reason}): {img.name}")
+            continue
+        if not img.exists():
+            print(f"{tag} SKIP (not found): {img.name}")
+            continue
+
+        print(f"{tag} {img.name}")
+        try:
+            t0 = time.monotonic()
+            transcript = _run_ocr(img, be_name, model)
+            elapsed = time.monotonic() - t0
+            md = _build_output(img.stem, img.name, transcript, be_name, model)
+            out.write_text(md, encoding="utf-8")
+            print(f"{tag}   {len(transcript)} chars in {elapsed:.1f}s")
+            if colocate_output and not no_rename:
+                title_slug, doc_date = _suggest_filename_metadata(img, transcript, be_name, model)
+                prefix_date = doc_date or _scan_date_from_image(img)
+                pending_renames.append(
+                    {
+                        "idx": idx,
+                        "date": prefix_date,
+                        "title": title_slug,
+                        "img": img,
+                        "md": out,
+                        "tag": tag,
+                    }
+                )
+            else:
+                print(f"{tag}   -> {out}")
+            ok += 1
+        except Exception as exc:
+            print(f"{tag}   ERROR: {exc}")
+            fail += 1
+
+    if colocate_output and not no_rename and pending_renames:
+        grouped: dict[str, list[dict]] = defaultdict(list)
+        for entry in pending_renames:
+            grouped[entry["date"]].append(entry)
+
+        for date_key, entries in grouped.items():
+            entries.sort(key=lambda e: e["idx"])
+            include_order = len(entries) > 1
+            for order, entry in enumerate(entries, 1):
+                if include_order:
+                    base_name = f"{date_key}-{order:02d}_{entry['title']}"
+                else:
+                    base_name = f"{date_key}_{entry['title']}"
+                dst_img = entry["img"].with_name(f"{base_name}{entry['img'].suffix.lower()}")
+                dst_md = dst_img.with_name(f"{dst_img.name}.ocr.md")
+                final_img, final_md = _rename_pair(entry["img"], entry["md"], dst_img, dst_md)
+                print(f"{entry['tag']}   -> {final_img.name}")
+                print(f"{entry['tag']}   -> {final_md.name}")
+
+    return ok, fail
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="OCR handwritten scanned notes to Markdown.",
+    )
+    parser.add_argument(
+        "paths", nargs="*", metavar="PATH",
+        help="Image files or directories to scan (default: all images in cwd)",
+    )
+    parser.add_argument(
+        "-b", "--backend", choices=list(BACKENDS), default=None,
+        help="Backend for OCR or combine step (env: OCR_BACKEND, default: copilot-cli)",
+    )
+    parser.add_argument(
+        "-m", "--model", default=None,
+        help="Override model for the chosen backend",
+    )
+    parser.add_argument(
+        "-q", "--quality",
+        choices=["low", "fast", "normal", "default", "high", "slow"],
+        default=None,
+        help="Quality tier: low/fast (best free), normal/default (standard), high/slow (best)",
+    )
+    parser.add_argument(
+        "--all", action="store_true",
+        help="Run all available backends",
+    )
+    parser.add_argument(
+        "--combine", action="store_true",
+        help="Combine existing transcripts from multiple backends into a best-of version",
+    )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Skip any file that already has output",
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Overwrite all existing output",
+    )
+    parser.add_argument(
+        "--no-rename", action="store_true", dest="no_rename",
+        help="Skip auto-renaming files after OCR; write output next to source as-is",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="count", default=0,
+        help="Increase verbosity (-v info, -vv debug)",
+    )
+    parser.add_argument(
+        "--list-models", action="store_true", dest="list_models",
+        help="List available models for each backend and exit",
+    )
+    parser.add_argument(
+        "--refresh-models", action="store_true", dest="refresh_models",
+        help="Force-refresh the model registry cache and exit",
+    )
+    args = parser.parse_args()
+
+    # ── Configure logging ────────────────────────────────────────────
+    level = logging.WARNING
+    if args.verbose >= 2:
+        level = logging.DEBUG
+    elif args.verbose >= 1:
+        level = logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(levelname)s [%(name)s] %(message)s",
+    )
+
+    if args.list_models:
+        _print_model_catalog()
+        return
+
+    if args.refresh_models:
+        _refresh_model_registry()
+        return
+
+    if args.resume and args.force:
+        parser.error("--resume and --force are mutually exclusive")
+
+    if args.quality and args.all:
+        parser.error("--quality and --all are mutually exclusive")
+
+    if args.quality and (args.backend or args.model):
+        parser.error("--quality cannot be combined with -b/--backend or -m/--model")
+
+    # ── Resolve backend / model ──────────────────────────────────────
+    cache = _ensure_model_registry()
+
+    if args.quality:
+        be_name, model = _resolve_quality(args.quality, cache)
+        tier = QUALITY_SYNONYMS.get(args.quality, args.quality)
+        print(f"Quality '{tier}' -> {be_name}/{model}\n")
+    elif not args.all:
+        be_name = args.backend or os.getenv("OCR_BACKEND", "copilot-cli")
+        model = args.model or BACKENDS[be_name]["default_model"]
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ── Gather images (files and/or directories) ─────────────────────
+    if args.paths:
+        images: list[Path] = []
+        for p_str in args.paths:
+            p = Path(p_str) if Path(p_str).is_absolute() else INPUT_DIR / p_str
+            if p.is_dir():
+                dir_imgs = sorted(
+                    f for f in p.iterdir()
+                    if f.suffix.lower() in IMAGE_EXTENSIONS
+                )
+                images.extend(dir_imgs)
+                if dir_imgs:
+                    print(f"Found {len(dir_imgs)} image(s) in {p}")
+            elif p.suffix.lower() in IMAGE_EXTENSIONS:
+                images.append(p)
+            else:
+                print(f"Skipping non-image: {p}")
+    else:
+        images = sorted(
+            f for f in INPUT_DIR.iterdir()
+            if f.suffix.lower() in IMAGE_EXTENSIONS
+        )
+
+    if not images:
+        print("No images found.")
+        sys.exit(1)
+
+    print(f"Found {len(images)} image(s) total.\n")
+
+    # ── Phase 1: individual OCR ──────────────────────────────────────────
+    do_individual = args.all or not args.combine
+
+    if do_individual:
+        if args.all:
+            if args.model:
+                print("Note: --model is ignored with --all (each backend uses its default).\n")
+
+            avail: list[str] = []
+            for name in BACKENDS:
+                ok, reason = _is_available(name)
+                if ok:
+                    avail.append(name)
+                else:
+                    print(f"  {name}: unavailable ({reason})")
+
+            if not avail:
+                print("\nNo backends available.")
+                sys.exit(1)
+            print(f"\nRunning: {', '.join(avail)}\n")
+
+            total_ok = total_fail = 0
+            for be_name in avail:
+                model = BACKENDS[be_name]["default_model"]
+                print(f"=== {be_name} ({model}) ===")
+                ok, fail = _process_backend(
+                    images, be_name, model, args.resume, args.force,
+                    colocate_output=False, indent="  ",
+                )
+                print(f"  -- {ok} OK, {fail} error(s)\n")
+                total_ok += ok
+                total_fail += fail
+            print(f"Phase 1 totals: {total_ok} OK, {total_fail} error(s).\n")
+        else:
+            ok, reason = _is_available(be_name)
+            if not ok:
+                print(f"ERROR: {be_name} unavailable ({reason})")
+                sys.exit(1)
+            print(f"Backend: {be_name} ({model})\n")
+            ok_n, fail_n = _process_backend(
+                images, be_name, model, args.resume, args.force,
+                colocate_output=True, no_rename=args.no_rename,
+            )
+            print(f"\n{ok_n} transcribed, {fail_n} error(s).\n")
+
+    # ── Phase 2: combine ─────────────────────────────────────────────────
+    if args.combine:
+        if args.quality:
+            cbe, cmodel = _resolve_quality(args.quality, cache)
+        else:
+            cbe = args.backend or os.getenv("OCR_BACKEND", "copilot-cli")
+            cmodel = args.model or BACKENDS[cbe]["default_model"]
+
+        if BACKENDS[cbe]["type"] not in _LLM_TYPES:
+            print(
+                f"ERROR: --combine needs an LLM backend, not '{cbe}'. "
+                f"Try: --combine -b gemini"
+            )
+            sys.exit(1)
+
+        ok, reason = _is_available(cbe)
+        if not ok:
+            print(f"ERROR: combine backend '{cbe}' unavailable ({reason})")
+            sys.exit(1)
+
+        print(f"=== Combining transcripts (via {cbe} / {cmodel}) ===\n")
+
+        for idx, img in enumerate(images, 1):
+            tag = f"[{idx}/{len(images)}]"
+            combined_out = OUTPUT_DIR / f"{img.stem}.combined.md"
+            transcripts = _find_transcripts(img.stem)
+
+            if not transcripts:
+                print(f"{tag} SKIP (no transcripts found): {img.name}")
+                continue
+
+            if not args.force and combined_out.exists():
+                if args.resume:
+                    print(f"{tag} SKIP (resume): {img.name}")
+                    continue
+                sig = _read_signature(combined_out)
+                existing_src = set((sig.get("sources") or "").split(","))
+                if (
+                    sig["app_version"] == APP_VERSION
+                    and existing_src == set(transcripts.keys())
+                ):
+                    print(
+                        f"{tag} SKIP (up-to-date, "
+                        f"{len(transcripts)} sources): {img.name}"
+                    )
+                    continue
+
+            sources = sorted(transcripts.keys())
+            print(f"{tag} {img.name}  <-  {', '.join(sources)}")
+            try:
+                combined = _run_combine(img, transcripts, cbe, cmodel)
+                md = _build_combined(
+                    img.stem, img.name, combined, cbe, cmodel, sources,
+                )
+                combined_out.write_text(md, encoding="utf-8")
+                print(f"{tag}   -> {combined_out.name}")
+            except Exception as exc:
+                print(f"{tag}   ERROR: {exc}")
+
+    if args.all or args.combine:
+        print(f"\nAll transcripts in: {OUTPUT_DIR}")
+    else:
+        print("\nOCR files were written next to each source image as '*.ocr.md'.")
+
+
+if __name__ == "__main__":
+    main()

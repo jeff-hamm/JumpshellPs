@@ -1,0 +1,11 @@
+# pip install -r requirements.txt
+#
+# ai-backends is pip-installed by the JumpShell extension.
+# For repo development: pip install -e src/python/ai-backends
+ai-backends
+
+# Backend-specific extras — uncomment what you need:
+# openai
+# anthropic
+# google-generativeai
+# easyocr

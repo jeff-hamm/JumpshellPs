@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-backends"
+version = "2.1.0"
+description = "Multi-provider AI backend abstraction for LLMs"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# No hard dependencies — callers install only what their backends need.
+dependencies = []
+
+[project.optional-dependencies]
+openai     = ["openai"]
+anthropic  = ["anthropic"]
+gemini     = ["google-generativeai"]
+all        = ["openai", "anthropic", "google-generativeai"]
+
+[project.scripts]
+ai-backends = "ai_backends.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]

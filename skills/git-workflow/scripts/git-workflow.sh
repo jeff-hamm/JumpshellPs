@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# git-workflow.sh — Manage copilot AI branches and worktrees
+#
+# Usage:
+#   bash scripts/git-workflow.sh --action <action> [options]
+#
+# Actions:
+#   check                          Check current branch state and derive AI branch name
+#   create   [--branch <name>]     Create worktree for the AI branch
+#   status   [--branch <name>]     Get pending changes on the AI branch worktree
+#   merge    --source <branch> --target <branch> [--strategy merge|squash] [--keep-branch]
+#   cleanup  [--branch <name>]     Remove worktree and delete branch
+#
+# Outputs: JSON to stdout, diagnostics to stderr
+# Exit codes: 0 success, 1 usage error, 2 git error
+
+set -euo pipefail
+
+ACTION=""
+BRANCH=""
+SOURCE=""
+TARGET=""
+STRATEGY="merge"
+KEEP_BRANCH=false
+
+usage() {
+  cat <<'EOF'
+Usage: bash scripts/git-workflow.sh --action <action> [options]
+
+Actions:
+  check                          Check current branch; derive AI branch name (<current>_ai)
+  create   [--branch <name>]     Create worktree for the AI branch
+  status   [--branch <name>]     List pending changes on the AI branch
+  merge    --source <branch> --target <branch> [--strategy merge|squash] [--keep-branch]
+  cleanup  [--branch <name>]     Remove worktree and delete AI branch
+
+Exit codes: 0 success, 1 usage error, 2 git error
+EOF
+}
+
+fail() {
+  local msg="$1"
+  local code="${2:-1}"
+  echo "{\"error\":$(json_str "$msg")}" >&1
+  exit "$code"
+}
+
+json_str() {
+  # Escape a string for JSON
+  if command -v python3 &>/dev/null; then
+    python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$1"
+  else
+    printf '"%s"' "$(echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g; s/\n/\\n/g')"
+  fi
+}
+
+json_array_of_lines() {
+  # Convert newline-separated text into a JSON array of strings
+  if command -v python3 &>/dev/null; then
+    python3 -c "
+import json, sys
+lines = [l for l in sys.stdin.read().splitlines() if l.strip()]
+print(json.dumps(lines))
+"
+  else
+    echo "[]"
+  fi
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --action)       ACTION="$2"; shift 2 ;;
+    --branch)       BRANCH="$2"; shift 2 ;;
+    --source)       SOURCE="$2"; shift 2 ;;
+    --target)       TARGET="$2"; shift 2 ;;
+    --strategy)     STRATEGY="$2"; shift 2 ;;
+    --keep-branch)  KEEP_BRANCH=true; shift ;;
+    --help|-h)      usage; exit 0 ;;
+    *) fail "Unknown argument: $1" 1 ;;
+  esac
+done
+
+if [[ -z "$ACTION" ]]; then
+  usage
+  exit 1
+fi
+
+# Ensure we are inside a git repo
+if ! git rev-parse --git-dir &>/dev/null; then
+  fail "Not a git repository" 2
+fi
+
+# Resolve current branch
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+# Derive AI branch name
+AI_BRANCH="${BRANCH:-${CURRENT_BRANCH}_ai}"
+
+case "$ACTION" in
+
+  check)
+    BRANCH_EXISTS=false
+    if [[ -n "$(git branch --list "$AI_BRANCH")" ]]; then
+      BRANCH_EXISTS=true
+    fi
+
+    WORKTREE_EXISTS=false
+    WORKTREE_PATH=""
+    while IFS= read -r line; do
+      if [[ "$line" == worktree\ * ]]; then
+        CURRENT_WT="${line#worktree }"
+      elif [[ "$line" == "branch refs/heads/$AI_BRANCH" ]]; then
+        WORKTREE_EXISTS=true
+        WORKTREE_PATH="$CURRENT_WT"
+      fi
+    done < <(git worktree list --porcelain)
+
+    PENDING="$(git status --short)"
+
+    python3 -c "
+import json, sys
+data = {
+  'currentBranch':  sys.argv[1],
+  'aiBranch':       sys.argv[2],
+  'branchExists':   sys.argv[3] == 'true',
+  'worktreeExists': sys.argv[4] == 'true',
+  'worktreePath':   sys.argv[5] if sys.argv[5] else None,
+  'pendingChanges': [l for l in sys.argv[6].splitlines() if l.strip()],
+}
+print(json.dumps(data))
+" "$CURRENT_BRANCH" "$AI_BRANCH" "$BRANCH_EXISTS" "$WORKTREE_EXISTS" "$WORKTREE_PATH" "$PENDING"
+    ;;
+
+  create)
+    # Check if worktree already exists
+    if git worktree list --porcelain | grep -q "branch refs/heads/$AI_BRANCH"; then
+      fail "Worktree for branch '$AI_BRANCH' already exists. Use --action status to inspect it."
+    fi
+
+    BRANCH_CREATED=false
+    if [[ -z "$(git branch --list "$AI_BRANCH")" ]]; then
+      git branch "$AI_BRANCH" || fail "Failed to create branch '$AI_BRANCH'" 2
+      BRANCH_CREATED=true
+    fi
+
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    PARENT_DIR="$(dirname "$REPO_ROOT")"
+    REPO_NAME="$(basename "$REPO_ROOT")"
+    WORKTREE_PATH="${PARENT_DIR}/${REPO_NAME}_ai"
+
+    git worktree add "$WORKTREE_PATH" "$AI_BRANCH" || fail "Failed to create worktree at '$WORKTREE_PATH'" 2
+
+    python3 -c "
+import json, sys
+print(json.dumps({
+  'action':        'create',
+  'aiBranch':      sys.argv[1],
+  'branchCreated': sys.argv[2] == 'true',
+  'worktreePath':  sys.argv[3],
+}))
+" "$AI_BRANCH" "$BRANCH_CREATED" "$WORKTREE_PATH"
+    ;;
+
+  status)
+    WORKTREE_PATH=""
+    while IFS= read -r line; do
+      if [[ "$line" == worktree\ * ]]; then
+        CURRENT_WT="${line#worktree }"
+      elif [[ "$line" == "branch refs/heads/$AI_BRANCH" ]]; then
+        WORKTREE_PATH="$CURRENT_WT"
+      fi
+    done < <(git worktree list --porcelain)
+
+    if [[ -z "$WORKTREE_PATH" ]]; then
+      fail "No worktree found for branch '$AI_BRANCH'. Use --action create first."
+    fi
+
+    STATUS_OUT="$(git -C "$WORKTREE_PATH" status --short 2>/dev/null || true)"
+    LOG_OUT="$(git -C "$WORKTREE_PATH" log --oneline "$CURRENT_BRANCH..$AI_BRANCH" 2>/dev/null || true)"
+
+    python3 -c "
+import json, sys
+print(json.dumps({
+  'aiBranch':      sys.argv[1],
+  'worktreePath':  sys.argv[2],
+  'pendingChanges': [l for l in sys.argv[3].splitlines() if l.strip()],
+  'commits':        [l for l in sys.argv[4].splitlines() if l.strip()],
+}))
+" "$AI_BRANCH" "$WORKTREE_PATH" "$STATUS_OUT" "$LOG_OUT"
+    ;;
+
+  merge)
+    [[ -z "$SOURCE" ]] && fail "--source is required for merge action"
+    [[ -z "$TARGET" ]] && fail "--target is required for merge action"
+
+    git checkout "$TARGET" 2>/dev/null || fail "Failed to checkout '$TARGET'" 2
+
+    if [[ "$STRATEGY" == "squash" ]]; then
+      MERGE_OUT="$(git merge --squash "$SOURCE" 2>&1)" || fail "Squash merge failed: $MERGE_OUT" 2
+    else
+      MERGE_OUT="$(git merge --no-ff "$SOURCE" 2>&1)"  || fail "Merge failed: $MERGE_OUT" 2
+    fi
+
+    CLEANUP_DONE=false
+    if [[ "$KEEP_BRANCH" == "false" ]]; then
+      if git worktree list --porcelain | grep -q "branch refs/heads/$SOURCE"; then
+        git worktree remove --force "$SOURCE" &>/dev/null || true
+      fi
+      git branch -D "$SOURCE" &>/dev/null || true
+      CLEANUP_DONE=true
+    fi
+
+    python3 -c "
+import json, sys
+print(json.dumps({
+  'action':      'merge',
+  'source':      sys.argv[1],
+  'target':      sys.argv[2],
+  'strategy':    sys.argv[3],
+  'keepBranch':  sys.argv[4] == 'true',
+  'cleanupDone': sys.argv[5] == 'true',
+  'output':      sys.argv[6],
+}))
+" "$SOURCE" "$TARGET" "$STRATEGY" "$KEEP_BRANCH" "$CLEANUP_DONE" "$MERGE_OUT"
+    ;;
+
+  cleanup)
+    WORKTREE_REMOVED=false
+    if git worktree list --porcelain | grep -q "branch refs/heads/$AI_BRANCH"; then
+      git worktree remove --force "$AI_BRANCH" &>/dev/null && WORKTREE_REMOVED=true || true
+    fi
+
+    BRANCH_DELETED=false
+    git branch -D "$AI_BRANCH" &>/dev/null && BRANCH_DELETED=true || true
+
+    python3 -c "
+import json, sys
+print(json.dumps({
+  'action':          'cleanup',
+  'aiBranch':        sys.argv[1],
+  'worktreeRemoved': sys.argv[2] == 'true',
+  'branchDeleted':   sys.argv[3] == 'true',
+}))
+" "$AI_BRANCH" "$WORKTREE_REMOVED" "$BRANCH_DELETED"
+    ;;
+
+  *)
+    fail "Unknown action '$ACTION'. Valid actions: check, create, status, merge, cleanup"
+    ;;
+esac

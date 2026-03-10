@@ -1,0 +1,22 @@
+{
+  "servers": {
+    "jumpshellPs": {
+      "type": "stdio",
+      "command": "pwsh",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${serverScript}",
+        "-ModuleRoot",
+        "${moduleRoot}"
+      ],
+      "env": {
+        "JUMPSHELL_MCP_DISABLE_AUTOSTART": "1",
+        "TERM_PROGRAM": "mcp"
+      }
+    }
+  }
+}

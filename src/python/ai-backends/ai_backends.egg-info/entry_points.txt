@@ -1,0 +1,2 @@
+[console_scripts]
+ai-backends = ai_backends.__main__:main

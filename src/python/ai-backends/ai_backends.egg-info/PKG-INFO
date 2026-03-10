@@ -1,0 +1,63 @@
+Metadata-Version: 2.4
+Name: ai-backends
+Version: 2.1.0
+Summary: Multi-provider AI backend abstraction for LLMs
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Provides-Extra: openai
+Requires-Dist: openai; extra == "openai"
+Provides-Extra: anthropic
+Requires-Dist: anthropic; extra == "anthropic"
+Provides-Extra: gemini
+Requires-Dist: google-generativeai; extra == "gemini"
+Provides-Extra: all
+Requires-Dist: openai; extra == "all"
+Requires-Dist: anthropic; extra == "all"
+Requires-Dist: google-generativeai; extra == "all"
+
+# ai-backends
+
+Multi-provider AI backend abstraction for LLMs.
+
+Provides a unified interface to call AI models across Gemini, OpenAI, Anthropic,
+GitHub Models API, Copilot CLI, and Cursor. Includes quality-based model selection
+with vision-awareness that auto-discovers available models and assigns them to
+quality tiers.
+
+## Install
+
+```bash
+# Editable install for local development
+pip install -e ~/projects/ai-backends
+
+# Or from GitHub
+pip install git+https://github.com/jeff-hamm/ai-backends
+```
+
+## Optional backend dependencies
+
+```bash
+pip install "ai-backends[openai]"
+pip install "ai-backends[anthropic]"
+pip install "ai-backends[gemini]"
+pip install "ai-backends[all]"
+```
+
+## Quick start
+
+```python
+import ai_backends
+
+# Text-only
+text = ai_backends.call_backend("copilot-cli", "Summarize this topic")
+
+# With context files
+text = ai_backends.call_backend("gemini", "Describe this",
+                                context_files=["image.jpg"])
+
+# Quality-based selection
+cache = ai_backends.ensure_registry()
+backend, model = ai_backends.resolve_quality("normal", cache, vision=True)
+text = ai_backends.call_backend(backend, "OCR this", context_files=["scan.jpg"],
+                                model=model)
+```

@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# change-control.sh — Before/after file-edit safety checks for skills.
+#
+# Usage:
+#   bash scripts/change-control.sh --phase before --file <path>
+#   bash scripts/change-control.sh --phase after  --file <path>
+#
+# Outputs JSON to stdout; diagnostics to stderr.
+#
+# Exit codes:
+#   0  Success
+#   1  Bad input or file not found
+
+set -euo pipefail
+
+PHASE=""
+FILE=""
+APPROVE=false
+REJECT=false
+MESSAGE=""
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: bash scripts/change-control.sh --phase <before|after> --file <path> [--approve] [--reject] [--message <msg>]
+
+Phases:
+  before            Check git status and snapshot the file to <file>.bak.
+  after             Show git diff and git diff --stat for the file.
+  after --approve   Commit changes (git add + commit) and remove backup.
+  after --reject    Restore from <file>.bak and remove backup.
+
+Options:
+  --phase    Required. Phase: 'before' or 'after'.
+  --file     Required. Path to the file being changed.
+  --approve  (after only) Commit the change.
+  --reject   (after only) Restore from backup.
+  --message  (after --approve) Custom commit message.
+  --help     Show this message and exit.
+EOF
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --phase)   PHASE="$2"; shift 2 ;;
+    --file)    FILE="$2";  shift 2 ;;
+    --approve) APPROVE=true; shift ;;
+    --reject)  REJECT=true;  shift ;;
+    --message) MESSAGE="$2"; shift 2 ;;
+    --help|-h) usage ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; usage ;;
+  esac
+done
+
+if [[ -z "$PHASE" || -z "$FILE" ]]; then
+  printf '{"error":"--phase and --file are required"}\n' >&2
+  exit 1
+fi
+
+ABS_FILE="$(realpath "$FILE" 2>/dev/null || echo "$FILE")"
+BACKUP="$ABS_FILE.bak"
+FILE_DIR="$(dirname "$ABS_FILE")"
+
+if [[ ! -f "$ABS_FILE" ]]; then
+  printf '{"error":"file not found","file":"%s"}\n' "$ABS_FILE" >&2
+  exit 1
+fi
+
+# Detect git root
+IN_GIT=false
+GIT_ROOT=""
+if command -v git &>/dev/null && git -C "$FILE_DIR" rev-parse --show-toplevel &>/dev/null 2>&1; then
+  IN_GIT=true
+  GIT_ROOT="$(git -C "$FILE_DIR" rev-parse --show-toplevel)"
+fi
+
+# JSON-safe string enclosing — prefer python3, fall back to sed
+json_str() {
+  if command -v python3 &>/dev/null; then
+    printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()), end="")'
+  else
+    printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' ')"
+  fi
+}
+
+if [[ "$PHASE" == "before" ]]; then
+  cp "$ABS_FILE" "$BACKUP"
+
+  GIT_STATUS=""
+  if $IN_GIT; then
+    GIT_STATUS="$(git -C "$GIT_ROOT" status --short -- "$ABS_FILE" 2>&1 || true)"
+  fi
+
+  printf '{"phase":"before","file":%s,"backupPath":%s,"inGit":%s,"gitStatus":%s}\n' \
+    "$(json_str "$ABS_FILE")" \
+    "$(json_str "$BACKUP")" \
+    "$IN_GIT" \
+    "$(json_str "$GIT_STATUS")"
+
+  exit 0
+fi
+
+if [[ "$PHASE" == "after" ]]; then
+  if $APPROVE && $REJECT; then
+    printf '{"error":"--approve and --reject cannot both be set"}\n' >&2
+    exit 1
+  fi
+
+  DIFF_OUTPUT=""
+  DIFF_STAT=""
+
+  if $IN_GIT; then
+    DIFF_OUTPUT="$(git -C "$GIT_ROOT" diff -- "$ABS_FILE" 2>&1 || true)"
+    DIFF_STAT="$(git -C "$GIT_ROOT" diff --stat -- "$ABS_FILE" 2>&1 || true)"
+  elif [[ -f "$BACKUP" ]]; then
+    DIFF_OUTPUT="$(diff "$BACKUP" "$ABS_FILE" 2>&1 || true)"
+    DIFF_STAT="(not in git — backup exists at $BACKUP)"
+  fi
+
+  COMMITTED=false
+  RESTORED=false
+
+  if $APPROVE; then
+    if $IN_GIT; then
+      git -C "$GIT_ROOT" add -- "$ABS_FILE"
+      COMMIT_MSG="${MESSAGE:-chg: update $(basename "$ABS_FILE")}"
+      git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
+    fi
+    [[ -f "$BACKUP" ]] && rm -f "$BACKUP"
+    COMMITTED=true
+  fi
+
+  if $REJECT; then
+    if [[ -f "$BACKUP" ]]; then
+      cp "$BACKUP" "$ABS_FILE"
+      rm -f "$BACKUP"
+    fi
+    RESTORED=true
+  fi
+
+  HAS_BACKUP=false
+  [[ -f "$BACKUP" ]] && HAS_BACKUP=true
+
+  printf '{"phase":"after","file":%s,"backupPath":%s,"hasBackup":%s,"inGit":%s,"diff":%s,"diffStat":%s,"approved":%s,"restored":%s}\n' \
+    "$(json_str "$ABS_FILE")" \
+    "$(json_str "$BACKUP")" \
+    "$HAS_BACKUP" \
+    "$IN_GIT" \
+    "$(json_str "$DIFF_OUTPUT")" \
+    "$(json_str "$DIFF_STAT")" \
+    "$COMMITTED" \
+    "$RESTORED"
+
+  exit 0
+fi
+
+printf '{"error":"unknown phase %s — use before or after"}\n' "$PHASE" >&2
+exit 1

@@ -1,0 +1,103 @@
+{
+  "name": "jumpshell",
+  "displayName": "JumpShell",
+  "description": "Install and manage JumpShell Copilot skills from VS Code or Cursor.",
+  "version": "0.0.2",
+  "publisher": "jeff-hamm",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeff-hamm/JumpshellPs.git",
+    "directory": "extensions/jumpshell"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "skills",
+    "agents",
+    "jumpshell"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "jumpshell.updateSkills",
+        "title": "Update Skills",
+        "category": "JumpShell"
+      },
+      {
+        "command": "jumpshell.installMcpConfig",
+        "title": "Install MCP Configuration",
+        "category": "JumpShell"
+      }
+    ],
+    "configuration": {
+      "title": "JumpShell",
+      "properties": {
+        "jumpshell.skillsPath": {
+          "type": "string",
+          "default": "~/.agents/skills",
+          "description": "Directory where JumpShell installs Copilot skills. Use an absolute path or a path starting with ~/."
+        },
+        "jumpshell.installMcpOnSkillsInstall": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also install/update JumpShell MCP configuration after running Update Skills."
+        },
+        "jumpshell.installAiBackendsOnSkillsInstall": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also install/update ai_backends after running Update Skills."
+        },
+        "jumpshell.mcpConfigScope": {
+          "type": "string",
+          "enum": [
+            "user",
+            "workspace"
+          ],
+          "default": "user",
+          "description": "Where JumpShell writes MCP configuration. 'user' writes the active profile user mcp.json. 'workspace' writes workspace mcp.json under .vscode or .cursor."
+        },
+        "jumpshell.workspaceMcpDirectory": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "vscode",
+            "cursor"
+          ],
+          "default": "auto",
+          "description": "Workspace MCP directory when jumpshell.mcpConfigScope=workspace. 'auto' chooses by active editor and existing mcp.json files."
+        },
+        "jumpshell.moduleRootPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to your JumpShell module root (or repo root). Leave blank to auto-detect."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run sync:skills && tsc -p .",
+    "check": "tsc -p . --noEmit",
+    "watch": "tsc -w -p .",
+    "sync:skills": "node ./scripts/sync-skills.mjs",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.4.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.7.1",
+    "typescript": "^5.9.3"
+  }
+}
+
+

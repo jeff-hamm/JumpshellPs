@@ -1,0 +1,14 @@
+
+[all]
+openai
+anthropic
+google-generativeai
+
+[anthropic]
+anthropic
+
+[gemini]
+google-generativeai
+
+[openai]
+openai

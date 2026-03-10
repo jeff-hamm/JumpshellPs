@@ -1,0 +1,291 @@
+﻿#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./patch-json.sh --type <setting|task|mcp|keybinding> --action <add|edit|remove> [--path <json.path>] [--value <json>] [--match <json>] [--file <path>] [--workspace] [--dry-run]
+
+Purpose:
+  Safely patch VS Code/Cursor JSON config files after intent parsing.
+
+Options:
+  --type       Target JSON file type: setting, task, mcp, keybinding.
+  --action     Patch operation: add, edit, remove.
+  --path       Dot path for object targets (example: editor.tabSize). Use '$' for root.
+               Ignored for keybinding mode.
+  --value      JSON value used by add/edit operations.
+  --match      JSON matcher used by keybinding edit/remove (optional for add).
+  --file       Explicit file path. If omitted, resolve-editor is used.
+  --workspace  Resolve workspace-scoped file when --file is not provided.
+  --dry-run    Do not write file; return planned change summary.
+EOF
+}
+
+TYPE=""
+ACTION=""
+PATH_ARG=""
+VALUE_JSON=""
+MATCH_JSON=""
+FILE_PATH=""
+WORKSPACE="false"
+DRY_RUN="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --type)
+      TYPE="${2:-}"
+      shift 2
+      ;;
+    --action)
+      ACTION="${2:-}"
+      shift 2
+      ;;
+    --path)
+      PATH_ARG="${2:-}"
+      shift 2
+      ;;
+    --value)
+      VALUE_JSON="${2:-}"
+      shift 2
+      ;;
+    --match)
+      MATCH_JSON="${2:-}"
+      shift 2
+      ;;
+    --file)
+      FILE_PATH="${2:-}"
+      shift 2
+      ;;
+    --workspace)
+      WORKSPACE="true"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Unknown argument: %s\n\n' "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$TYPE" || -z "$ACTION" ]]; then
+  printf '%s\n\n' "--type and --action are required." >&2
+  usage >&2
+  exit 2
+fi
+
+if [[ "$TYPE" != "setting" && "$TYPE" != "task" && "$TYPE" != "mcp" && "$TYPE" != "keybinding" ]]; then
+  printf 'Unknown --type %s\n' "$TYPE" >&2
+  exit 2
+fi
+
+if [[ "$ACTION" != "add" && "$ACTION" != "edit" && "$ACTION" != "remove" ]]; then
+  printf 'Unknown --action %s\n' "$ACTION" >&2
+  exit 2
+fi
+
+if [[ -z "$FILE_PATH" ]]; then
+  RESOLVER="$(dirname "$0")/resolve-editor.sh"
+  if [[ ! -f "$RESOLVER" ]]; then
+    printf 'resolve-editor.sh not found next to patch-json script: %s\n' "$RESOLVER" >&2
+    exit 1
+  fi
+
+  if [[ "$WORKSPACE" == "true" ]]; then
+    FILE_PATH="$(bash "$RESOLVER" --settings "$TYPE" --workspace)"
+  else
+    FILE_PATH="$(bash "$RESOLVER" --settings "$TYPE")"
+  fi
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  printf 'python3 is required by patch-json.sh\n' >&2
+  exit 1
+fi
+
+python3 - "$FILE_PATH" "$TYPE" "$ACTION" "$PATH_ARG" "$VALUE_JSON" "$MATCH_JSON" "$DRY_RUN" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def fail(msg: str, code: int = 1) -> None:
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def parse_json(text: str, label: str):
+    if text == "":
+        return None
+    try:
+        return json.loads(text)
+    except Exception as exc:
+        fail(f"Invalid JSON for {label}: {exc}")
+
+
+def deep_equal(a, b) -> bool:
+    return json.dumps(a, sort_keys=True, separators=(",", ":")) == json.dumps(b, sort_keys=True, separators=(",", ":"))
+
+
+def split_path(path_text: str):
+    if path_text in ("", "$"):
+        return []
+    if path_text.startswith("$."):
+        path_text = path_text[2:]
+    elif path_text.startswith("$"):
+        path_text = path_text[1:]
+    return [part for part in path_text.split(".") if part]
+
+
+def ensure_parent(root: dict, segments):
+    cur = root
+    for part in segments[:-1]:
+        if part not in cur:
+            cur[part] = {}
+        if not isinstance(cur[part], dict):
+            fail(f"Cannot create nested key under non-object path segment '{part}'")
+        cur = cur[part]
+    return cur
+
+
+def derive_match(value_obj, match_obj):
+    if match_obj is not None:
+        return match_obj
+    if value_obj is None:
+        return None
+    if isinstance(value_obj, dict):
+        if "key" in value_obj and "command" in value_obj:
+            return {"key": value_obj["key"], "command": value_obj["command"]}
+        if "command" in value_obj:
+            return {"command": value_obj["command"]}
+    return value_obj
+
+
+def entry_matches(item, matcher):
+    if isinstance(matcher, dict):
+        if not isinstance(item, dict):
+            return False
+        for k, v in matcher.items():
+            if k not in item or not deep_equal(item[k], v):
+                return False
+        return True
+    return deep_equal(item, matcher)
+
+
+if len(sys.argv) != 8:
+    fail("Internal argument error", 2)
+
+file_path = Path(sys.argv[1]).expanduser().resolve()
+file_type = sys.argv[2]
+action = sys.argv[3]
+path_arg = sys.argv[4]
+value_json = sys.argv[5]
+match_json = sys.argv[6]
+dry_run = sys.argv[7].lower() == "true"
+
+value_obj = parse_json(value_json, "--value")
+match_obj = parse_json(match_json, "--match")
+
+default_root = [] if file_type == "keybinding" else {}
+
+if file_path.exists():
+    raw = file_path.read_text(encoding="utf-8")
+    if raw.strip():
+        try:
+            document = json.loads(raw)
+        except Exception:
+            fail(f"Target file is not valid JSON: {file_path}")
+    else:
+        document = default_root
+else:
+    document = default_root
+
+changed = False
+
+if file_type == "keybinding":
+    if document is None:
+        document = []
+    if not isinstance(document, list):
+        fail("Expected a JSON array as root for keybinding type.")
+
+    if action in ("add", "edit") and value_obj is None:
+        fail(f"--value is required for keybinding {action}")
+
+    matcher = derive_match(value_obj, match_obj)
+    if action in ("edit", "remove") and matcher is None:
+        fail(f"--match or a matchable --value is required for keybinding {action}")
+
+    match_indexes = [idx for idx, entry in enumerate(document) if entry_matches(entry, matcher)]
+
+    if action == "add":
+        if not match_indexes:
+            document.append(value_obj)
+            changed = True
+    elif action == "edit":
+        if match_indexes:
+            first = match_indexes[0]
+            if not deep_equal(document[first], value_obj):
+                document[first] = value_obj
+                changed = True
+        else:
+            document.append(value_obj)
+            changed = True
+    elif action == "remove":
+        if match_indexes:
+            for idx in sorted(match_indexes, reverse=True):
+                del document[idx]
+            changed = True
+else:
+    if document is None:
+        document = {}
+    if not isinstance(document, dict):
+        fail("Expected a JSON object as root.")
+
+    segments = split_path(path_arg)
+    if not segments:
+        fail(f"--path is required for type '{file_type}' (for example: editor.tabSize)")
+
+    if action in ("add", "edit") and value_obj is None:
+        fail(f"--value is required for {action}")
+
+    parent = ensure_parent(document, segments)
+    leaf = segments[-1]
+
+    if action == "add":
+        if leaf not in parent:
+            parent[leaf] = value_obj
+            changed = True
+    elif action == "edit":
+        if leaf not in parent or not deep_equal(parent[leaf], value_obj):
+            parent[leaf] = value_obj
+            changed = True
+    elif action == "remove":
+        if leaf in parent:
+            del parent[leaf]
+            changed = True
+
+if changed and not dry_run:
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+result = {
+    "status": "ok",
+    "changed": changed,
+    "dryRun": dry_run,
+    "file": str(file_path),
+    "type": file_type,
+    "action": action,
+    "path": path_arg,
+}
+print(json.dumps(result, separators=(",", ":")))
+PY
