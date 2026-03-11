@@ -340,19 +340,28 @@ def _call_copilot(
 
 def _call_cursor(prompt: str, context_files: list[Path], model_name: str) -> str:
     """Cursor Agent CLI — uses -p (print/non-interactive) mode."""
+    # No --add-path equivalent exists in the cursor CLI; inline text file
+    # contents directly into the prompt. Images are skipped (unsupported).
     full_prompt = prompt
     if context_files:
-        file_refs = "\n".join(str(f.resolve()) for f in context_files)
-        full_prompt = f"{prompt}\n\nContext files:\n{file_refs}"
+        text_parts: list[str] = []
+        for f in context_files:
+            if f.suffix.lower() not in MIME_MAP and f.exists():
+                text_parts.append(f"=== {f.name} ===\n{f.read_text(encoding='utf-8')}")
+        if text_parts:
+            full_prompt = "\n\n".join(text_parts) + "\n\n" + prompt
 
-    cmd = ["agent", "-p", "--output-format", "text", full_prompt]
+    cmd = ["agent", "-p", full_prompt, "--output-format", "text"]
     if model_name and model_name != "default":
         cmd.extend(["--model", model_name])
 
     cmd = _prepare_command(cmd)
 
+    # Run in the directory of the first context file so relative paths resolve.
+    cwd = str(context_files[0].parent) if context_files else None
+
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, shell=SHELL)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300, shell=SHELL, cwd=cwd)
     except FileNotFoundError:
         raise RuntimeError(
             "cursor agent CLI not found — install: "

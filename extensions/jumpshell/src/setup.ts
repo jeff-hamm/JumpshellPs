@@ -6,7 +6,10 @@ import { resolveAiCli } from './configure';
 import { installAiBackends, configureAiCli } from './aiBackends';
 import { checkPsModuleInstalled, installPowerShellModule } from './psModule';
 
+const SETUP_SELECTIONS_KEY = 'jumpshell.setupSelections';
+
 type SetupItem = vscode.QuickPickItem & {
+  id: string;
   run: () => Promise<void>;
 };
 
@@ -31,30 +34,39 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
       }
     );
 
+  const savedSelections = context.globalState.get<Record<string, boolean>>(SETUP_SELECTIONS_KEY, {});
+
+  /** Use saved preference if present; otherwise fall back to `defaultPicked`. */
+  const resolvePicked = (id: string, defaultPicked: boolean): boolean =>
+    id in savedSelections ? savedSelections[id] : defaultPicked;
+
   const items: SetupItem[] = [];
 
   // --- Skills ---
   if (!skillsStatus.installed) {
     items.push({
+      id: 'skills',
       label: '$(package) Skills',
       description: 'Not installed',
       detail: 'Install Jumpshell Copilot skill pack to ~/.agents/skills',
-      picked: true,
+      picked: resolvePicked('skills', true),
       run: () => installManagedSkills(context, 'install'),
     });
   } else if (!skillsStatus.upToDate) {
     items.push({
+      id: 'skills',
       label: '$(sync) Skills',
       description: `${skillsStatus.updateCount} update(s) available`,
       detail: `${skillsStatus.installedCount} skill(s) installed — updates are ready`,
-      picked: true,
+      picked: resolvePicked('skills', true),
       run: () => installManagedSkills(context, 'update'),
     });
   } else {
     items.push({
+      id: 'skills',
       label: '$(pass-filled) Skills',
       description: `${skillsStatus.installedCount} skill(s) — up to date`,
-      picked: false,
+      picked: resolvePicked('skills', false),
       run: () => installManagedSkills(context, 'update'),
     });
   }
@@ -62,17 +74,19 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   // --- MCP Configuration ---
   if (!mcpConfigured) {
     items.push({
+      id: 'mcp',
       label: '$(plug) MCP Configuration',
       description: 'Not configured',
       detail: 'Configure the JumpshellPs MCP server in mcp.json',
-      picked: true,
+      picked: resolvePicked('mcp', true),
       run: () => installMcpConfig(context),
     });
   } else {
     items.push({
+      id: 'mcp',
       label: '$(pass-filled) MCP Configuration',
       description: 'Configured',
-      picked: false,
+      picked: resolvePicked('mcp', false),
       run: () => installMcpConfig(context),
     });
   }
@@ -81,17 +95,19 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   let aiBackendsItem: SetupItem;
   if (!aiCli) {
     aiBackendsItem = {
+      id: 'ai-backends',
       label: '$(cloud-download) AI Backends (ai-cli)',
       description: 'Not installed',
       detail: 'Install the bundled ai-backends Python package and ai-cli tool',
-      picked: true,
+      picked: resolvePicked('ai-backends', true),
       run: () => installAiBackends(context),
     };
   } else {
     aiBackendsItem = {
+      id: 'ai-backends',
       label: '$(pass-filled) AI Backends (ai-cli)',
       description: `${aiCli} is on PATH`,
-      picked: false,
+      picked: resolvePicked('ai-backends', false),
       run: () => installAiBackends(context),
     };
   }
@@ -100,17 +116,19 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   // --- PowerShell Module ---
   if (!psModuleInstalled) {
     items.push({
+      id: 'ps-module',
       label: '$(terminal-powershell) PowerShell Module',
       description: 'Not installed',
       detail: 'Add Import-Module Jumpshell to $PROFILE and run Install.ps1',
-      picked: true,
+      picked: resolvePicked('ps-module', true),
       run: () => installPowerShellModule(context),
     });
   } else {
     items.push({
+      id: 'ps-module',
       label: '$(pass-filled) PowerShell Module',
       description: 'Installed',
-      picked: false,
+      picked: resolvePicked('ps-module', false),
       run: () => installPowerShellModule(context),
     });
   }
@@ -124,6 +142,13 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   if (!selected || selected.length === 0) {
     return;
   }
+
+  // Persist this run's selections so the next open pre-checks the same items.
+  const newSelections: Record<string, boolean> = {};
+  for (const item of items) {
+    newSelections[item.id] = selected.includes(item);
+  }
+  await context.globalState.update(SETUP_SELECTIONS_KEY, newSelections);
 
   for (const item of selected) {
     outputChannel.appendLine(`[setup] Running: ${item.label}`);

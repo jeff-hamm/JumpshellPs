@@ -157,7 +157,7 @@ _API_BACKENDS = [
 
 # CLI backends: (name, command, install_hint)
 _CLI_BACKENDS = [
-    ("copilot-cli", "copilot", "npm install -g @anthropic-ai/copilot  (or see GitHub Copilot docs)"),
+    ("copilot-cli", "copilot", "npm install -g @github/copilot"),
     ("cursor", "agent", "Install from https://cursor.com"),
 ]
 

@@ -4,7 +4,7 @@ import { promises as fsPromises } from 'node:fs';
 import * as vscode from 'vscode';
 import { getOutputChannel } from './output';
 import { pathExists } from './utils';
-import { ensurePython, commandExists } from './prereqs';
+import { ensurePython, ensureNpm, commandExists } from './prereqs';
 
 type InstallAiBackendsOptions = {
   silent?: boolean;
@@ -135,7 +135,7 @@ const CLI_BACKENDS: readonly CliBackend[] = [
     label: '$(copilot) GitHub Copilot CLI',
     description: 'GitHub Copilot terminal agent',
     command: 'copilot',
-    installHint: 'npm install -g @anthropic-ai/copilot',
+    installHint: 'npm install -g @github/copilot',
   },
   {
     name: 'cursor',
@@ -153,6 +153,56 @@ function resolveConfigFilePath(): string {
 }
 
 type BackendItem = vscode.QuickPickItem & { backendIdx: number; isApi: boolean };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI tool installers
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function installCopilotCli(): Promise<boolean> {
+  const outputChannel = getOutputChannel();
+  const npmAvailable = await ensureNpm();
+  if (!npmAvailable) {
+    outputChannel.appendLine('[cli] npm not available — skipping copilot-cli install');
+    return false;
+  }
+
+  const isWindows = process.platform === 'win32';
+  const terminal = vscode.window.createTerminal({
+    name: 'Jumpshell — Install copilot-cli',
+    shellPath: isWindows ? 'pwsh.exe' : undefined,
+    isTransient: false,
+  });
+  terminal.show();
+  terminal.sendText('npm install -g @github/copilot');
+
+  await new Promise<void>((resolve) => {
+    const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
+  });
+
+  return commandExists('copilot');
+}
+
+async function installCursorCli(): Promise<boolean> {
+  const isWindows = process.platform === 'win32';
+  const terminal = vscode.window.createTerminal({
+    name: 'Jumpshell — Install Cursor',
+    shellPath: isWindows ? 'pwsh.exe' : undefined,
+    isTransient: false,
+  });
+  terminal.show();
+
+  if (isWindows) {
+    terminal.sendText("irm 'https://cursor.com/install?win32=true' | iex");
+  } else {
+    terminal.sendText('curl https://cursor.com/install -fsS | bash');
+  }
+
+  await new Promise<void>((resolve) => {
+    const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
+  });
+
+  return commandExists('agent');
+}
 
 export async function configureAiCli(context: vscode.ExtensionContext): Promise<void> {
   const outputChannel = getOutputChannel();
@@ -240,9 +290,15 @@ export async function configureAiCli(context: vscode.ExtensionContext): Promise<
       if (cliAvailable.get(backend.name)) {
         enabledBackends.push(backend.name);
       } else {
-        void vscode.window.showInformationMessage(
-          `${backend.name} is not installed. ${backend.installHint}`
-        );
+        let installed = false;
+        if (backend.name === 'copilot-cli') {
+          installed = await installCopilotCli();
+        } else if (backend.name === 'cursor') {
+          installed = await installCursorCli();
+        }
+        if (installed) {
+          enabledBackends.push(backend.name);
+        }
       }
     }
   }

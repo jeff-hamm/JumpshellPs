@@ -255,9 +255,7 @@ async function installVsix(vsixPath: string): Promise<void> {
     getOutputChannel().appendLine('[warn] VS Code command install failed, attempting CLI install fallback.');
   }
 
-  const candidates = process.platform === 'win32'
-    ? ['code-insiders', 'code', 'cursor']
-    : ['code-insiders', 'code', 'cursor'];
+  const candidates = ['code-insiders', 'code', 'cursor'];
 
   for (const candidate of candidates) {
     try {

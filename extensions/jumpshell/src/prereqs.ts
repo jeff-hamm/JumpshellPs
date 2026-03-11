@@ -329,3 +329,91 @@ export async function ensurePython(): Promise<string | undefined> {
 
   return resolvePython();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Node.js / npm
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function installNodeWindows(): Promise<void> {
+  const terminal = openInstallTerminal(
+    'Jumpshell — Install Node.js',
+    'cmd.exe',
+    [
+      'winget install --id OpenJS.NodeJS.LTS --source winget --accept-package-agreements --accept-source-agreements',
+      'echo Done. You may need to restart your terminal for npm to be on PATH.',
+    ]
+  );
+  await new Promise<void>((resolve) => {
+    const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
+  });
+}
+
+async function installNodeMacOs(): Promise<void> {
+  const hasBrew = await commandExists('brew', ['--version']);
+  const lines: string[] = [];
+  if (!hasBrew) {
+    lines.push(
+      'echo "Installing Homebrew first..."',
+      '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+    );
+  }
+  lines.push('brew install node');
+  const terminal = openInstallTerminal('Jumpshell — Install Node.js', '/bin/bash', lines);
+  await new Promise<void>((resolve) => {
+    const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
+  });
+}
+
+async function installNodeLinux(): Promise<void> {
+  const lines = [
+    'set -e',
+    'if command -v apt-get >/dev/null 2>&1; then curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs',
+    'elif command -v dnf >/dev/null 2>&1; then sudo dnf install -y nodejs',
+    'elif command -v yum >/dev/null 2>&1; then sudo yum install -y nodejs',
+    'elif command -v zypper >/dev/null 2>&1; then sudo zypper install -y nodejs',
+    'elif command -v pacman >/dev/null 2>&1; then sudo pacman -Sy --noconfirm nodejs npm',
+    'else echo Could not detect package manager. Install Node.js from https://nodejs.org; exit 1',
+    'fi',
+  ].join('; ');
+
+  const terminal = openInstallTerminal('Jumpshell — Install Node.js', '/bin/bash', [`bash -c '${lines}'`]);
+  await new Promise<void>((resolve) => {
+    const d = vscode.window.onDidCloseTerminal((t) => { if (t === terminal) { d.dispose(); resolve(); } });
+  });
+}
+
+/**
+ * Ensure npm is available (requires Node.js).
+ * Returns true if npm is (or was just) installed, false if the user cancelled.
+ */
+export async function ensureNpm(): Promise<boolean> {
+  const outputChannel = getOutputChannel();
+
+  if (await commandExists('npm', ['--version'])) {
+    return true;
+  }
+
+  outputChannel.appendLine('[prereqs] npm not found — offering Node.js installation');
+
+  const choice = await vscode.window.showWarningMessage(
+    'npm (Node.js) is not installed. It is required for GitHub Copilot CLI. Install Node.js now?',
+    { modal: true },
+    'Install',
+    'Cancel'
+  );
+
+  if (choice !== 'Install') {
+    return false;
+  }
+
+  const platform = process.platform;
+  if (platform === 'win32') {
+    await installNodeWindows();
+  } else if (platform === 'darwin') {
+    await installNodeMacOs();
+  } else {
+    await installNodeLinux();
+  }
+
+  return commandExists('npm', ['--version']);
+}
