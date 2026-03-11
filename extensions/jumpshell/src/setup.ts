@@ -78,22 +78,24 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
   }
 
   // --- AI Backends ---
+  let aiBackendsItem: SetupItem;
   if (!aiCli) {
-    items.push({
+    aiBackendsItem = {
       label: '$(cloud-download) AI Backends (ai-cli)',
       description: 'Not installed',
       detail: 'Install the bundled ai-backends Python package and ai-cli tool',
       picked: true,
       run: () => installAiBackends(context),
-    });
+    };
   } else {
-    items.push({
+    aiBackendsItem = {
       label: '$(pass-filled) AI Backends (ai-cli)',
       description: `${aiCli} is on PATH`,
       picked: false,
       run: () => installAiBackends(context),
-    });
+    };
   }
+  items.push(aiBackendsItem);
 
   // --- PowerShell Module ---
   if (!psModuleInstalled) {
@@ -112,15 +114,6 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
       run: () => installPowerShellModule(context),
     });
   }
-
-  // --- Configure AI Backends ---
-  // Always offered; pre-selected when no keys are stored yet (fresh install).
-  items.push({
-    label: '$(gear) Configure AI Backends Credentials',
-    description: 'Select backends and enter your API keys',
-    picked: !aiCli,
-    run: () => configureAiCli(context),
-  });
 
   const selected = await vscode.window.showQuickPick(items, {
     canPickMany: true,
@@ -148,6 +141,17 @@ export async function configureShell(context: vscode.ExtensionContext): Promise<
       if (cont !== 'Continue') {
         break;
       }
+    }
+  }
+
+  // After setup, if the user ran the AI Backends install, offer configuration.
+  if (selected.includes(aiBackendsItem)) {
+    const action = await vscode.window.showInformationMessage(
+      'Jumpshell: ai-backends is installing in the terminal. Configure API keys when ready.',
+      'Configure Now'
+    );
+    if (action === 'Configure Now') {
+      await configureAiCli(context);
     }
   }
 }
