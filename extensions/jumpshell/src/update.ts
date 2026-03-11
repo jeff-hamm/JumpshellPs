@@ -7,7 +7,7 @@ import { checkMcpConfigured, installMcpConfig } from './mcp';
 import { resolveAiCli } from './configure';
 import { installAiBackends } from './aiBackends';
 import { checkPsModuleInstalled, installPowerShellModule } from './psModule';
-import { runStartupUpdateCheck } from './updater';
+import { checkForExtensionUpdates } from './updater';
 
 async function resolveRepoRoot(context: vscode.ExtensionContext): Promise<string | undefined> {
   // Explicit user config takes priority.
@@ -41,7 +41,7 @@ export async function updateJumpshell(context: vscode.ExtensionContext): Promise
   // ── 1. Check for a new extension version on GitHub ──────────────────────────
   outputChannel.appendLine('[update] Checking GitHub for extension update…');
   try {
-    await runStartupUpdateCheck(context);
+    await checkForExtensionUpdates(context);
   }
   catch (error) {
     outputChannel.appendLine(`[update] Extension update check failed: ${error instanceof Error ? error.message : String(error)}`);
