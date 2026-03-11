@@ -1,9 +1,9 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
-function Get-Usage {
+function Get-VsEditorUsage {
   @"
 Usage:
-  ./resolve-editor.ps1 [--name|--profile|--user|--rules|--skills|--settings [type]|--workspace] [--workspace] [--git-commit]
+  ./Resolve-VsEditor.ps1 [--name|--profile|--user|--rules|--skills|--settings [type]|--workspace] [--workspace] [--git-commit]
 
 Modes:
   --name                  Return editor name (default)
@@ -18,17 +18,18 @@ Modes:
 Flags:
   --git-commit            After resolving path, also run change-control before-phase (backup + git status).
                           No-op when resolved path is not an existing file.
+  --relative              When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 "@
 }
 
-function Resolve-WithModuleIfAvailable {
+function Resolve-VsEditorViaModule {
   param([string]$Flag)
 
   $modeMap = @{
-    '--name' = 'Name'
-    '--profile' = 'Profile'
-    '--user' = 'User'
-    '--rules' = 'Rules'
+    '--name'      = 'Name'
+    '--profile'   = 'Profile'
+    '--user'      = 'User'
+    '--rules'     = 'Rules'
     '--workspace' = 'Workspace'
   }
 
@@ -69,7 +70,7 @@ function Resolve-WithModuleIfAvailable {
     }
 
     return [PSCustomObject]@{
-      Editor = [string]$editor
+      Editor    = [string]$editor
       ScopePath = [string]$scopePath
     }
   }
@@ -80,23 +81,23 @@ function Resolve-WithModuleIfAvailable {
   return $null
 }
 
-function Export-ScopeContext {
+function Export-VsEditorScopeContext {
   param(
     [string]$Editor,
     [string]$ScopePath
   )
 
-  $resolvedEditor = [string]$Editor
+  $resolvedEditor    = [string]$Editor
   $resolvedScopePath = if ($null -eq $ScopePath) { '' } else { [string]$ScopePath }
 
-  Set-Variable -Name 'EDITOR' -Scope Script -Value $resolvedEditor -Force
+  Set-Variable -Name 'EDITOR'     -Scope Script -Value $resolvedEditor    -Force
   Set-Variable -Name 'SCOPE_PATH' -Scope Script -Value $resolvedScopePath -Force
 
-  $Env:EDITOR = $resolvedEditor
+  $Env:EDITOR     = $resolvedEditor
   $Env:SCOPE_PATH = $resolvedScopePath
 }
 
-function Write-PathTuple {
+function Write-VsEditorPathTuple {
   param(
     [string]$Editor,
     [string]$ScopePath
@@ -106,7 +107,7 @@ function Write-PathTuple {
   Write-Output ($tuple | ConvertTo-Json -Compress)
 }
 
-function Select-FirstExisting {
+function Select-VsFirstExistingPath {
   param([string[]]$Candidates)
 
   foreach ($candidate in $Candidates) {
@@ -118,12 +119,14 @@ function Select-FirstExisting {
   return ($Candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
 }
 
-function Get-HintText {
+function Get-VsEditorHintText {
   $hints = @(
     $Env:VSCODE_IPC_HOOK,
     $Env:VSCODE_GIT_ASKPASS_MAIN,
     $Env:TERM_PROGRAM,
     $Env:TERM_PROGRAM_VERSION,
+    $Env:WINDSURF_IPC_HOOK,
+    $Env:CURSOR_TRACE_DIR,
     $Env:CLAUDECODE,
     $Env:CLAUDE_CONFIG_DIR
   )
@@ -144,66 +147,78 @@ function Get-HintText {
   return ($hints | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
 }
 
-function Get-EditorOrder {
-  $hintText = Get-HintText
+function Get-VsEditorOrder {
+  $hintText = Get-VsEditorHintText
+
+  if ($hintText -match 'windsurf') {
+    return @('Windsurf', 'Code', 'Code - Insiders', 'Cursor', 'VSCodium', 'Claude')
+  }
 
   if ($hintText -match 'Code - Insiders|code-insiders') {
-    return @('Code - Insiders', 'Code', 'Cursor', 'Claude')
+    return @('Code - Insiders', 'Code', 'Cursor', 'Windsurf', 'VSCodium', 'Claude')
   }
 
-  if ($hintText -match 'Cursor') {
-    return @('Cursor', 'Code', 'Code - Insiders', 'Claude')
+  if ($hintText -match '[Cc]ursor') {
+    return @('Cursor', 'Code', 'Code - Insiders', 'Windsurf', 'VSCodium', 'Claude')
   }
 
-  if ($hintText -match 'Claude|claude') {
-    return @('Claude', 'Code', 'Code - Insiders', 'Cursor')
+  if ($hintText -match '[Vv][Ss][Cc]odium|[Cc]odium') {
+    return @('VSCodium', 'Code', 'Code - Insiders', 'Cursor', 'Windsurf', 'Claude')
   }
 
-  return @('Code', 'Code - Insiders', 'Cursor', 'Claude')
+  if ($hintText -match '[Cc]laude') {
+    return @('Claude', 'Code', 'Code - Insiders', 'Cursor', 'Windsurf', 'VSCodium')
+  }
+
+  return @('Code', 'Code - Insiders', 'Cursor', 'Windsurf', 'VSCodium', 'Claude')
 }
 
-function Get-ProfileCandidatesForEditor {
+function Get-VsEditorProfileCandidates {
   param([string]$Editor)
 
   if ($IsWindows) {
     $appData = if ($Env:APPDATA) { $Env:APPDATA } else { $Env:AppData }
-    if (-not $appData) {
-      return @()
-    }
+    if (-not $appData) { return @() }
 
     switch ($Editor) {
-      'Code' { return @(Join-Path $appData 'Code\User') }
+      'Code'            { return @(Join-Path $appData 'Code\User') }
       'Code - Insiders' { return @(Join-Path $appData 'Code - Insiders\User') }
-      'Cursor' { return @(Join-Path $appData 'Cursor\User') }
-      'Claude' { return @((Join-Path $appData 'Claude\User'), (Join-Path $appData 'Claude')) }
-      default { return @() }
+      'Cursor'          { return @(Join-Path $appData 'Cursor\User') }
+      'Windsurf'        { return @(Join-Path $appData 'Windsurf\User') }
+      'VSCodium'        { return @(Join-Path $appData 'VSCodium\User') }
+      'Claude'          { return @((Join-Path $appData 'Claude\User'), (Join-Path $appData 'Claude')) }
+      default           { return @() }
     }
   }
 
   if ($IsMacOS) {
     switch ($Editor) {
-      'Code' { return @("$HOME/Library/Application Support/Code/User") }
+      'Code'            { return @("$HOME/Library/Application Support/Code/User") }
       'Code - Insiders' { return @("$HOME/Library/Application Support/Code - Insiders/User") }
-      'Cursor' { return @("$HOME/Library/Application Support/Cursor/User") }
-      'Claude' { return @("$HOME/Library/Application Support/Claude/User", "$HOME/Library/Application Support/Claude") }
-      default { return @() }
+      'Cursor'          { return @("$HOME/Library/Application Support/Cursor/User") }
+      'Windsurf'        { return @("$HOME/Library/Application Support/Windsurf/User") }
+      'VSCodium'        { return @("$HOME/Library/Application Support/VSCodium/User") }
+      'Claude'          { return @("$HOME/Library/Application Support/Claude/User", "$HOME/Library/Application Support/Claude") }
+      default           { return @() }
     }
   }
 
   switch ($Editor) {
-    'Code' { return @("$HOME/.config/Code/User") }
+    'Code'            { return @("$HOME/.config/Code/User") }
     'Code - Insiders' { return @("$HOME/.config/Code - Insiders/User") }
-    'Cursor' { return @("$HOME/.config/Cursor/User") }
-    'Claude' { return @("$HOME/.config/Claude/User", "$HOME/.config/Claude") }
-    default { return @() }
+    'Cursor'          { return @("$HOME/.config/Cursor/User") }
+    'Windsurf'        { return @("$HOME/.config/Windsurf/User") }
+    'VSCodium'        { return @("$HOME/.config/VSCodium/User") }
+    'Claude'          { return @("$HOME/.config/Claude/User", "$HOME/.config/Claude") }
+    default           { return @() }
   }
 }
 
-function Resolve-EditorName {
-  $ordered = Get-EditorOrder
+function Resolve-VsEditorName {
+  $ordered = Get-VsEditorOrder
 
   foreach ($editor in $ordered) {
-    $candidates = Get-ProfileCandidatesForEditor -Editor $editor
+    $candidates = Get-VsEditorProfileCandidates -Editor $editor
     foreach ($candidate in $candidates) {
       if (Test-Path -LiteralPath $candidate) {
         return $editor
@@ -214,46 +229,39 @@ function Resolve-EditorName {
   return $ordered[0]
 }
 
-function Resolve-ProfilePath {
-  $editor = Resolve-EditorName
-  $candidates = Get-ProfileCandidatesForEditor -Editor $editor
-  return (Select-FirstExisting -Candidates $candidates)
+function Resolve-VsEditorProfilePath {
+  $editor     = Resolve-VsEditorName
+  $candidates = Get-VsEditorProfileCandidates -Editor $editor
+  return (Select-VsFirstExistingPath -Candidates $candidates)
 }
 
-function Resolve-UserPath {
-  $editor = Resolve-EditorName
-  if ($editor -eq 'Cursor') {
-    return (Join-Path $HOME '.cursor')
-  }
+function Resolve-VsEditorUserPath {
+  $editor = Resolve-VsEditorName
 
-  if ($editor -eq 'Claude') {
-    return (Join-Path $HOME '.claude')
-  }
+  if ($editor -eq 'Cursor') { return (Join-Path $HOME '.cursor') }
+  if ($editor -eq 'Claude') { return (Join-Path $HOME '.claude') }
 
   return (Join-Path $HOME '.agents')
 }
 
-function Resolve-RulesPath {
-  $editor = Resolve-EditorName
-  $userPath = Resolve-UserPath
-  if ($editor -eq 'Cursor') {
-    return (Join-Path $userPath 'rules')
-  }
+function Resolve-VsEditorRulesPath {
+  $editor   = Resolve-VsEditorName
+  $userPath = Resolve-VsEditorUserPath
+
+  if ($editor -eq 'Cursor') { return (Join-Path $userPath 'rules') }
 
   if ($editor -eq 'Claude') {
-    $claudeCandidates = @(
+    return (Select-VsFirstExistingPath -Candidates @(
       (Join-Path $userPath 'commands'),
       (Join-Path $userPath 'rules'),
       $userPath
-    )
-
-    return (Select-FirstExisting -Candidates $claudeCandidates)
+    ))
   }
 
   return (Join-Path $userPath 'instructions')
 }
 
-function Resolve-WorkspaceRoot {
+function Resolve-VsWorkspaceRoot {
   $start = (Get-Location).Path
 
   $git = Get-Command git -ErrorAction SilentlyContinue
@@ -276,21 +284,17 @@ function Resolve-WorkspaceRoot {
   while (-not [string]::IsNullOrWhiteSpace($current)) {
     $hasWorkspaceFile = @(Get-ChildItem -LiteralPath $current -File -Filter '*.code-workspace' -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0
     $hasMarker =
-      (Test-Path -LiteralPath (Join-Path $current '.git')) -or
+      (Test-Path -LiteralPath (Join-Path $current '.git'))    -or
       (Test-Path -LiteralPath (Join-Path $current '.vscode')) -or
       (Test-Path -LiteralPath (Join-Path $current '.cursor')) -or
       (Test-Path -LiteralPath (Join-Path $current '.agents')) -or
       (Test-Path -LiteralPath (Join-Path $current '.claude')) -or
       $hasWorkspaceFile
 
-    if ($hasMarker) {
-      return $current
-    }
+    if ($hasMarker) { return $current }
 
     $parent = Split-Path -Path $current -Parent
-    if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
-      break
-    }
+    if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) { break }
 
     $current = $parent
   }
@@ -298,56 +302,46 @@ function Resolve-WorkspaceRoot {
   return $start
 }
 
-function Resolve-WorkspacePath {
-  $editor = Resolve-EditorName
-  $workspaceRoot = Resolve-WorkspaceRoot
+function Resolve-VsWorkspacePath {
+  $editor        = Resolve-VsEditorName
+  $workspaceRoot = Resolve-VsWorkspaceRoot
 
-  if ($editor -eq 'Cursor') {
-    return (Join-Path $workspaceRoot '.cursor')
-  }
-
-  if ($editor -eq 'Claude') {
-    return (Join-Path $workspaceRoot '.claude')
-  }
+  if ($editor -eq 'Cursor') { return (Join-Path $workspaceRoot '.cursor') }
+  if ($editor -eq 'Claude') { return (Join-Path $workspaceRoot '.claude') }
 
   return (Join-Path $workspaceRoot '.agents')
 }
 
-function Resolve-WorkspaceRulesPath {
-  $editor = Resolve-EditorName
-  $workspacePath = Resolve-WorkspacePath
+function Resolve-VsWorkspaceRulesPath {
+  $editor        = Resolve-VsEditorName
+  $workspacePath = Resolve-VsWorkspacePath
 
-  if ($editor -eq 'Cursor') {
-    return (Join-Path $workspacePath 'rules')
-  }
+  if ($editor -eq 'Cursor') { return (Join-Path $workspacePath 'rules') }
 
   if ($editor -eq 'Claude') {
-    $candidates = @(
+    return (Select-VsFirstExistingPath -Candidates @(
       (Join-Path $workspacePath 'commands'),
       (Join-Path $workspacePath 'rules'),
       $workspacePath
-    )
-    return (Select-FirstExisting -Candidates $candidates)
+    ))
   }
 
   return (Join-Path $workspacePath 'instructions')
 }
 
-function Resolve-SkillsPath {
+function Resolve-VsSkillsPath {
   param([switch]$Workspace)
 
-  $editor = Resolve-EditorName
+  $editor = Resolve-VsEditorName
 
   if ($Workspace) {
-    $workspacePath = Resolve-WorkspacePath
-    return (Join-Path $workspacePath 'skills')
+    return (Join-Path (Resolve-VsWorkspacePath) 'skills')
   }
 
-  $userPath = Resolve-UserPath
-  return (Join-Path $userPath 'skills')
+  return (Join-Path (Resolve-VsEditorUserPath) 'skills')
 }
 
-function Resolve-SettingsPath {
+function Resolve-VsSettingsPath {
   param([switch]$Workspace, [string]$Subtype)
 
   $fileMap = @{
@@ -358,13 +352,14 @@ function Resolve-SettingsPath {
   }
 
   $dirPath = if ($Workspace) {
-    $editor = Resolve-EditorName
-    $workspaceRoot = Resolve-WorkspaceRoot
+    $editor        = Resolve-VsEditorName
+    $workspaceRoot = Resolve-VsWorkspaceRoot
     if ($editor -eq 'Cursor') { Join-Path $workspaceRoot '.cursor' }
     elseif ($editor -eq 'Claude') { Join-Path $workspaceRoot '.claude' }
     else { Join-Path $workspaceRoot '.vscode' }
-  } else {
-    Resolve-ProfilePath
+  }
+  else {
+    Resolve-VsEditorProfilePath
   }
 
   if ([string]::IsNullOrWhiteSpace($Subtype)) { return $dirPath }
@@ -378,16 +373,15 @@ function Resolve-SettingsPath {
   return (Join-Path $dirPath $fileName)
 }
 
-function Invoke-BeforePhase {
+function Invoke-VsBeforePhase {
   param([string]$FilePath)
 
   if ([string]::IsNullOrWhiteSpace($FilePath)) { return }
-  # Only run before-phase when the resolved path is an existing file
   if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return }
 
   $ccScript = Join-Path $PSScriptRoot 'change-control.ps1'
   if (-not (Test-Path -LiteralPath $ccScript)) {
-    [Console]::Error.WriteLine("[resolve-editor] change-control.ps1 not found: $ccScript")
+    [Console]::Error.WriteLine("[Resolve-VsEditor] change-control.ps1 not found: $ccScript")
     return
   }
 
@@ -395,10 +389,18 @@ function Invoke-BeforePhase {
   $out | ForEach-Object { [Console]::Error.WriteLine([string]$_) }
 }
 
-$validModes = @('--name','--profile','--user','--rules','--skills','--settings','--workspace')
-$modeArg = $null
-$workspaceFlag = $false
-$gitCommitFlag = $false
+function Get-VsWorkspaceRelativePath {
+  param([string]$ScopePath)
+  return [System.IO.Path]::GetRelativePath((Resolve-VsWorkspaceRoot), $ScopePath)
+}
+
+# --- Argument parsing ---
+
+$validModes     = @('--name','--profile','--user','--rules','--skills','--settings','--workspace')
+$modeArg        = $null
+$workspaceFlag  = $false
+$gitCommitFlag  = $false
+$relativeFlag   = $false
 $settingsSubtype = $null
 
 $i = 0
@@ -410,14 +412,16 @@ while ($i -lt $args.Count) {
   elseif ($a -eq '--git-commit') {
     $gitCommitFlag = $true
   }
+  elseif ($a -eq '--relative') {
+    $relativeFlag = $true
+  }
   elseif ($a -eq '--settings') {
     if ($null -ne $modeArg) {
       [Console]::Error.WriteLine('Multiple mode flags supplied.')
-      [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+      [Console]::Error.WriteLine((Get-VsEditorUsage).TrimEnd())
       exit 2
     }
     $modeArg = '--settings'
-    # Check if the next arg is a subtype (not a flag)
     if (($i + 1) -lt $args.Count -and -not ($args[$i + 1] -match '^--')) {
       $i++
       $settingsSubtype = $args[$i]
@@ -426,91 +430,97 @@ while ($i -lt $args.Count) {
   elseif ($validModes -contains $a) {
     if ($null -ne $modeArg) {
       [Console]::Error.WriteLine('Multiple mode flags supplied.')
-      [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+      [Console]::Error.WriteLine((Get-VsEditorUsage).TrimEnd())
       exit 2
     }
     $modeArg = $a
   }
   else {
     [Console]::Error.WriteLine("Unknown argument: $a")
-    [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+    [Console]::Error.WriteLine((Get-VsEditorUsage).TrimEnd())
     exit 2
   }
   $i++
 }
 
 $mode = if ($null -ne $modeArg) { $modeArg } else { '--name' }
-# --workspace alone (no other type) retains legacy behaviour; promote to a mode
+# --workspace alone retains legacy standalone behaviour
 if ($null -eq $modeArg -and $workspaceFlag) { $mode = '--workspace'; $workspaceFlag = $false }
 
-$moduleResolved = Resolve-WithModuleIfAvailable -Flag $mode
+$moduleResolved = Resolve-VsEditorViaModule -Flag $mode
 
 if ($mode -eq '--name') {
   $editorName = if ($moduleResolved -and -not [string]::IsNullOrWhiteSpace($moduleResolved.Editor)) {
     [string]$moduleResolved.Editor
   }
   else {
-    Resolve-EditorName
+    Resolve-VsEditorName
   }
 
-  Export-ScopeContext -Editor $editorName -ScopePath ''
+  Export-VsEditorScopeContext -Editor $editorName -ScopePath ''
   Write-Output $editorName
   exit 0
 }
 
-# For legacy modes (non-composite), attempt module resolution first
-if (-not $workspaceFlag -and $moduleResolved -and -not [string]::IsNullOrWhiteSpace($moduleResolved.Editor) -and -not [string]::IsNullOrWhiteSpace($moduleResolved.ScopePath)) {
-  Export-ScopeContext -Editor $moduleResolved.Editor -ScopePath $moduleResolved.ScopePath
+# For non-composite modes, try module resolution first
+if (-not $workspaceFlag -and $moduleResolved -and
+    -not [string]::IsNullOrWhiteSpace($moduleResolved.Editor) -and
+    -not [string]::IsNullOrWhiteSpace($moduleResolved.ScopePath)) {
+  Export-VsEditorScopeContext -Editor $moduleResolved.Editor -ScopePath $moduleResolved.ScopePath
   Write-Output $moduleResolved.ScopePath
   exit 0
 }
 
 switch ($mode) {
   '--profile' {
-    $editorName = Resolve-EditorName
-    $scopePath = Resolve-ProfilePath
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = Resolve-VsEditorProfilePath
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   '--user' {
-    $editorName = Resolve-EditorName
-    $scopePath = Resolve-UserPath
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = Resolve-VsEditorUserPath
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   '--rules' {
-    $editorName = Resolve-EditorName
-    $scopePath = if ($workspaceFlag) { Resolve-WorkspaceRulesPath } else { Resolve-RulesPath }
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = if ($workspaceFlag) { Resolve-VsWorkspaceRulesPath } else { Resolve-VsEditorRulesPath }
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-VsWorkspaceRelativePath -ScopePath $scopePath }
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   '--skills' {
-    $editorName = Resolve-EditorName
-    $scopePath = Resolve-SkillsPath -Workspace:$workspaceFlag
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = Resolve-VsSkillsPath -Workspace:$workspaceFlag
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-VsWorkspaceRelativePath -ScopePath $scopePath }
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   '--settings' {
-    $editorName = Resolve-EditorName
-    $scopePath = Resolve-SettingsPath -Workspace:$workspaceFlag -Subtype $settingsSubtype
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = Resolve-VsSettingsPath -Workspace:$workspaceFlag -Subtype $settingsSubtype
+    if ($relativeFlag -and $workspaceFlag) { $scopePath = Get-VsWorkspaceRelativePath -ScopePath $scopePath }
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   '--workspace' {
-    $editorName = Resolve-EditorName
-    $scopePath = Resolve-WorkspacePath
-    Export-ScopeContext -Editor $editorName -ScopePath $scopePath
+    $editorName = Resolve-VsEditorName
+    $scopePath  = Resolve-VsWorkspacePath
+    if ($relativeFlag) { $scopePath = Get-VsWorkspaceRelativePath -ScopePath $scopePath }
+    Export-VsEditorScopeContext -Editor $editorName -ScopePath $scopePath
     Write-Output $scopePath
-    if ($gitCommitFlag) { Invoke-BeforePhase -FilePath $scopePath }
+    if ($gitCommitFlag) { Invoke-VsBeforePhase -FilePath $scopePath }
   }
   default {
     [Console]::Error.WriteLine("Unknown mode: $mode")
-    [Console]::Error.WriteLine((Get-Usage).TrimEnd())
+    [Console]::Error.WriteLine((Get-VsEditorUsage).TrimEnd())
     exit 2
   }
 }

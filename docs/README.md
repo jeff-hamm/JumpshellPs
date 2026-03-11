@@ -64,5 +64,5 @@ One-time repo setting:
 - Root-level `Jumpshell.psd1` and `Jumpshell.psm1` are compatibility shims.
 - Canonical PowerShell implementation now lives in `src/pwsh`.
 - Canonical MCP scripts now live in `src/pwsh/mcp`.
-- Extension MCP template lives at `mcps/jumpshellps.json` and is bundled into extension assets.
+- Extension MCP template lives at `mcps/jumpshell.json` and is bundled into extension assets.
 - Root-level `Install.ps1` is now extension-focused and delegates to `extensions/Install.ps1`.

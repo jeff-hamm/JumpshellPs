@@ -9,7 +9,7 @@ type InstallMcpOptions = {
   silent?: boolean;
 };
 
-const mcpTemplateFileName = 'jumpshellps.json';
+const mcpTemplateFileName = 'jumpshell.json';
 
 export async function installMcpConfig(context: vscode.ExtensionContext, options: InstallMcpOptions = {}): Promise<void> {
   const outputChannel = getOutputChannel();
@@ -218,7 +218,7 @@ export async function checkMcpConfigured(): Promise<boolean> {
   try {
     const targetPath = await resolveMcpConfigPath();
     const config = await loadMcpConfig(targetPath);
-    return isRecord(config.servers) && 'jumpshellps' in config.servers;
+    return isRecord(config.servers) && 'jumpshell' in config.servers;
   }
   catch {
     return false;

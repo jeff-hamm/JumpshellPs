@@ -13,7 +13,6 @@ Set-StrictMode -Version Latest
 
 $extensionsRoot = $PSScriptRoot
 $extensionRoot = Join-Path $extensionsRoot 'jumpshell'
-$packageJsonPath = Join-Path $extensionRoot 'package.json'
 $repoRoot = Split-Path -Parent $extensionsRoot
 $envFilePath = Join-Path $extensionsRoot '.env'
 
@@ -46,122 +45,13 @@ function Import-DotEnv {
     }
 }
 
-function Resolve-VsixPath {
-    param(
-        [string]$ExtensionsRoot,
-        [string]$ExtensionName,
-        [string]$ReleaseVersion
-    )
-
-    $candidates = @(
-        (Join-Path $ExtensionsRoot ("{0}-{1}.vsix" -f $ExtensionName, $ReleaseVersion)),
-        (Join-Path $ExtensionsRoot ("{0}.vsix" -f $ExtensionName))
-    )
-
-    foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-            return $candidate
-        }
-    }
-
-    $latest = Get-ChildItem -LiteralPath $ExtensionsRoot -Filter ("{0}*.vsix" -f $ExtensionName) -File -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTimeUtc -Descending |
-        Select-Object -First 1
-
-    if ($null -ne $latest) {
-        return $latest.FullName
-    }
-
-    throw "No VSIX file is available in $ExtensionsRoot"
-}
-
-function Get-IncrementedPatchVersion {
-    param([string]$Version)
-
-    $match = [regex]::Match($Version, '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)')
-    if (-not $match.Success) {
-        throw "Cannot increment version '$Version'. Expected major.minor.patch."
-    }
-
-    $major = [int]$match.Groups['major'].Value
-    $minor = [int]$match.Groups['minor'].Value
-    $patch = [int]$match.Groups['patch'].Value
-    return "$major.$minor.$($patch + 1)"
-}
-
-function Test-SrcChangedSinceLastTag {
-    param([string]$RepoRoot)
-
-    $lastTag = git -C $RepoRoot describe --tags --abbrev=0 2>$null
-    if ([string]::IsNullOrWhiteSpace($lastTag)) {
-        # No prior tag — treat everything as changed.
-        return $true
-    }
-
-    $changedFiles = git -C $RepoRoot diff --name-only $lastTag HEAD 2>$null
-    if ($changedFiles | Where-Object {
-        $_ -match '^src/' -or
-        $_ -match '^skills/' -or
-        $_ -match '^mcps/' -or
-        $_ -match '^extensions/jumpshell/'
-    }) {
-        return $true
-    }
-
-    return $false
-}
-
-if (-not (Test-Path -LiteralPath $packageJsonPath -PathType Leaf)) {
-    throw "Could not find extension package file: $packageJsonPath"
-}
-
 # ── Determine version to build ────────────────────────────────────────────────
-$packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
-$currentVersion = [string]$packageJson.version
-if ([string]::IsNullOrWhiteSpace($currentVersion)) {
-    throw "Extension version is missing from $packageJsonPath"
-}
-
-# Detect whether the caller specified an explicit 3-digit version (e.g. 1.2.3).
-$isThreeDigitVersion = $false
-if (-not [string]::IsNullOrWhiteSpace($Version)) {
-    $isThreeDigitVersion = $Version -match '^\d+\.\d+\.\d+$'
-}
-
-$resolvedVersion = $currentVersion
-if ($isThreeDigitVersion) {
-    # Exact 3-digit version: use as-is, no auto-bump.
-    $resolvedVersion = $Version
-}
-else {
-    # Resolve a partial version spec (e.g. "1" or "1.0") into a base, then bump patch if src changed.
-    $baseVersion = $currentVersion
-    if (-not [string]::IsNullOrWhiteSpace($Version)) {
-        # Expand partial version against the current one.
-        $parts = $Version -split '\.'
-        $curParts = $currentVersion -split '\.'
-        while ($parts.Count -lt 3) { $parts += $curParts[$parts.Count] }
-        $baseVersion = $parts -join '.'
-    }
-
-    $srcChanged = Test-SrcChangedSinceLastTag -RepoRoot $repoRoot
-    if ($srcChanged) {
-        $resolvedVersion = Get-IncrementedPatchVersion -Version $baseVersion
-        Write-Host "Src changed since last tag — bumping version: $currentVersion -> $resolvedVersion" -ForegroundColor Cyan
-    }
-    else {
-        $resolvedVersion = $baseVersion
-        Write-Host "No src changes since last tag. Using version $resolvedVersion" -ForegroundColor DarkCyan
-    }
-}
-
+& "$PSScriptRoot/Set-Version.ps1" -Version $Version -Bump:$(& "$PSScriptRoot/Is-Stale.ps1")
 
 $builtVsixPath = $null
 if (-not $NoBuild) {
-    $buildArgs = @{ Version = $resolvedVersion }
 
-    $buildScript = Join-Path $extensionsRoot 'Build.ps1'
-    $builtVsixPath = & $buildScript @buildArgs
+    $builtVsixPath = & "$PSScriptRoot/Build.ps1"
     if ($LASTEXITCODE -ne 0) {
         throw "Build.ps1 failed with exit code $LASTEXITCODE"
     }
@@ -172,6 +62,8 @@ if (-not $NoBuild) {
 }
 
 # ── Read the final version from package.json ───────────────────────────────────
+$packageJsonPath = Join-Path $extensionRoot 'package.json'
+
 $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
 $extensionName = [string]$packageJson.name
 $publisher = [string]$packageJson.publisher
@@ -246,7 +138,7 @@ if ($Publish) {
         [string]$builtVsixPath
     }
     else {
-        Resolve-VsixPath -ExtensionsRoot $extensionsRoot -ExtensionName $extensionName -ReleaseVersion $releaseVersion
+        Join-Path $extensionsRoot ("{0}.vsix" -f $extensionName)
     }
 
     if (-not (Test-Path -LiteralPath $vsixPath -PathType Leaf)) {

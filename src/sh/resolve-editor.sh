@@ -1,5 +1,13 @@
-﻿#!/usr/bin/env bash
+#!/bin/sh
+# Re-exec under bash (preferred) or zsh if not already running one
+if [ -z "${BASH_VERSION-}" ] && [ -z "${ZSH_VERSION-}" ]; then
+  if command -v bash >/dev/null 2>&1; then exec bash -- "$0" "$@"; fi
+  if command -v zsh  >/dev/null 2>&1; then exec zsh  -- "$0" "$@"; fi
+  printf 'error: bash or zsh is required to run this script\n' >&2; exit 1
+fi
 set -euo pipefail
+# Capture interpreter path for subprocess invocations
+if [ -n "${BASH_VERSION-}" ]; then _sh_exec="$BASH"; else _sh_exec="$(command -v zsh)"; fi
 
 usage() {
   cat <<'EOF'
@@ -19,6 +27,7 @@ Modes:
 Flags:
   --git-commit           After resolving path, also run change-control before-phase (backup + git status).
                          No-op when resolved path is not an existing file.
+  --relative             When combined with a --workspace path, return only the workspace-relative portion (e.g. .agents/instructions).
 EOF
 }
 
@@ -66,29 +75,47 @@ write_path_tuple() {
 }
 
 hint_text() {
-  printf '%s %s %s %s %s %s' "${TERM_PROGRAM-}" "${TERM_PROGRAM_VERSION-}" "${VSCODE_IPC_HOOK-}" "${VSCODE_GIT_ASKPASS_MAIN-}" "${CLAUDECODE-}" "${CLAUDE_CONFIG_DIR-}"
+  printf '%s %s %s %s %s %s %s %s' \
+    "${TERM_PROGRAM-}" \
+    "${TERM_PROGRAM_VERSION-}" \
+    "${VSCODE_IPC_HOOK-}" \
+    "${VSCODE_GIT_ASKPASS_MAIN-}" \
+    "${WINDSURF_IPC_HOOK-}" \
+    "${CURSOR_TRACE_DIR-}" \
+    "${CLAUDECODE-}" \
+    "${CLAUDE_CONFIG_DIR-}"
 }
 
 editor_order() {
   local hints
   hints="$(hint_text)"
 
+  if printf '%s' "$hints" | grep -Eiq 'windsurf'; then
+    printf '%s\n' "Windsurf" "Code" "Code - Insiders" "Cursor" "VSCodium" "Claude"
+    return
+  fi
+
   if printf '%s' "$hints" | grep -Eiq 'Code - Insiders|code-insiders'; then
-    printf '%s\n' "Code - Insiders" "Code" "Cursor" "Claude"
+    printf '%s\n' "Code - Insiders" "Code" "Cursor" "Windsurf" "VSCodium" "Claude"
     return
   fi
 
-  if printf '%s' "$hints" | grep -qi 'Cursor'; then
-    printf '%s\n' "Cursor" "Code" "Code - Insiders" "Claude"
+  if printf '%s' "$hints" | grep -Eiq 'cursor'; then
+    printf '%s\n' "Cursor" "Code" "Code - Insiders" "Windsurf" "VSCodium" "Claude"
     return
   fi
 
-  if printf '%s' "$hints" | grep -Eiq 'Claude|claude'; then
-    printf '%s\n' "Claude" "Code" "Code - Insiders" "Cursor"
+  if printf '%s' "$hints" | grep -Eiq 'vscodium|codium'; then
+    printf '%s\n' "VSCodium" "Code" "Code - Insiders" "Cursor" "Windsurf" "Claude"
     return
   fi
 
-  printf '%s\n' "Code" "Code - Insiders" "Cursor" "Claude"
+  if printf '%s' "$hints" | grep -Eiq 'claude'; then
+    printf '%s\n' "Claude" "Code" "Code - Insiders" "Cursor" "Windsurf" "VSCodium"
+    return
+  fi
+
+  printf '%s\n' "Code" "Code - Insiders" "Cursor" "Windsurf" "VSCodium" "Claude"
 }
 
 profile_candidates_for_editor() {
@@ -99,18 +126,22 @@ profile_candidates_for_editor() {
   case "$os" in
     Darwin)
       case "$editor" in
-        "Code") printf '%s\n' "$HOME/Library/Application Support/Code/User" ;;
+        "Code")            printf '%s\n' "$HOME/Library/Application Support/Code/User" ;;
         "Code - Insiders") printf '%s\n' "$HOME/Library/Application Support/Code - Insiders/User" ;;
-        "Cursor") printf '%s\n' "$HOME/Library/Application Support/Cursor/User" ;;
-        "Claude") printf '%s\n' "$HOME/Library/Application Support/Claude/User" "$HOME/Library/Application Support/Claude" ;;
+        "Cursor")          printf '%s\n' "$HOME/Library/Application Support/Cursor/User" ;;
+        "Windsurf")        printf '%s\n' "$HOME/Library/Application Support/Windsurf/User" ;;
+        "VSCodium")        printf '%s\n' "$HOME/Library/Application Support/VSCodium/User" ;;
+        "Claude")          printf '%s\n' "$HOME/Library/Application Support/Claude/User" "$HOME/Library/Application Support/Claude" ;;
       esac
       ;;
     Linux)
       case "$editor" in
-        "Code") printf '%s\n' "$HOME/.config/Code/User" ;;
+        "Code")            printf '%s\n' "$HOME/.config/Code/User" ;;
         "Code - Insiders") printf '%s\n' "$HOME/.config/Code - Insiders/User" ;;
-        "Cursor") printf '%s\n' "$HOME/.config/Cursor/User" ;;
-        "Claude") printf '%s\n' "$HOME/.config/Claude/User" "$HOME/.config/Claude" ;;
+        "Cursor")          printf '%s\n' "$HOME/.config/Cursor/User" ;;
+        "Windsurf")        printf '%s\n' "$HOME/.config/Windsurf/User" ;;
+        "VSCodium")        printf '%s\n' "$HOME/.config/VSCodium/User" ;;
+        "Claude")          printf '%s\n' "$HOME/.config/Claude/User" "$HOME/.config/Claude" ;;
       esac
       ;;
     *)
@@ -139,7 +170,10 @@ resolve_profile_path() {
     editor="$(resolve_editor_name)"
   fi
 
-  mapfile -t candidates < <(profile_candidates_for_editor "$editor")
+  local candidates=()
+  while IFS= read -r _line; do
+    candidates+=("$_line")
+  done < <(profile_candidates_for_editor "$editor")
   first_existing_path "${candidates[@]}"
 }
 
@@ -184,6 +218,12 @@ resolve_rules_path() {
   printf '%s\n' "$user_path/instructions"
 }
 
+_has_code_workspace() {
+  local dir="$1" f
+  for f in "$dir"/*.code-workspace; do [ -f "$f" ] && return 0; done
+  return 1
+}
+
 resolve_workspace_root() {
   local start current parent
   start="$PWD"
@@ -198,7 +238,7 @@ resolve_workspace_root() {
 
   current="$start"
   while :; do
-    if [ -e "$current/.git" ] || [ -d "$current/.vscode" ] || [ -d "$current/.cursor" ] || [ -d "$current/.agents" ] || [ -d "$current/.claude" ] || compgen -G "$current/*.code-workspace" >/dev/null; then
+    if [ -e "$current/.git" ] || [ -d "$current/.vscode" ] || [ -d "$current/.cursor" ] || [ -d "$current/.agents" ] || [ -d "$current/.claude" ] || _has_code_workspace "$current"; then
       printf '%s\n' "$current"
       return
     fi
@@ -298,8 +338,9 @@ resolve_settings_path() {
     return
   fi
 
-  local file_name
-  case "${subtype,,}" in
+  local file_name subtype_lc
+  subtype_lc="$(printf '%s' "$subtype" | tr '[:upper:]' '[:lower:]')"
+  case "$subtype_lc" in
     setting)    file_name="settings.json" ;;
     task)       file_name="tasks.json" ;;
     mcp)        file_name="mcp.json" ;;
@@ -323,13 +364,21 @@ invoke_before_phase() {
     return
   fi
 
-  bash "$cc_script" --phase before --file "$file_path" >&2
+  "$_sh_exec" "$cc_script" --phase before --file "$file_path" >&2
+}
+
+make_relative() {
+  local path="$1"
+  local workspace_root
+  workspace_root="$(resolve_workspace_root)"
+  printf '%s\n' "${path#"$workspace_root/"}"
 }
 
 # Parse arguments
 MODE=""
 WORKSPACE_FLAG=false
 GIT_COMMIT_FLAG=false
+RELATIVE_FLAG=false
 SETTINGS_SUBTYPE=""
 
 while [[ $# -gt 0 ]]; do
@@ -359,6 +408,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --git-commit)
       GIT_COMMIT_FLAG=true
+      shift
+      ;;
+    --relative)
+      RELATIVE_FLAG=true
       shift
       ;;
     --help|-h)
@@ -402,6 +455,7 @@ case "$mode" in
     else
       scope_path="$(resolve_rules_path "$editor")"
     fi
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -409,6 +463,7 @@ case "$mode" in
   --skills)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_skills_path "$WORKSPACE_FLAG")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -416,6 +471,7 @@ case "$mode" in
   --settings)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_settings_path "$WORKSPACE_FLAG" "$SETTINGS_SUBTYPE")"
+    [ "$RELATIVE_FLAG" = "true" ] && [ "$WORKSPACE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"
@@ -423,6 +479,7 @@ case "$mode" in
   --workspace)
     editor="$(resolve_editor_name)"
     scope_path="$(resolve_workspace_path "$editor")"
+    [ "$RELATIVE_FLAG" = "true" ] && scope_path="$(make_relative "$scope_path")"
     export_scope_context "$editor" "$scope_path"
     printf '%s\n' "$scope_path"
     [[ "$GIT_COMMIT_FLAG" == "true" ]] && invoke_before_phase "$scope_path"

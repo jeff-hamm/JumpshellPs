@@ -1,6 +1,4 @@
 param(
-    [switch]$Build,
-
     [string]$VsixPath
 )
 

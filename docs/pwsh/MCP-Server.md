@@ -12,7 +12,7 @@ Jumpshell exposes module functions as MCP tools over stdio so chat agents can ca
 - Runtime server script: `src/pwsh/mcp/server.ps1`
 - MCP config installer script: `src/pwsh/mcp/Install-Mcp.ps1`
 - Module MCP management functions: `src/pwsh/Mcp.ps1`
-- MCP template used by extension packaging: `mcps/jumpshellps.json`
+- MCP template used by extension packaging: `mcps/jumpshell.json`
 
 Legacy root-level `mcp/` compatibility files were removed.
 
@@ -75,7 +75,7 @@ $env:JUMPSHELL_MCP_AUTOSTART = '0'
 
 ## Config Shape
 
-Template file `mcps/jumpshellps.json` contains:
+Template file `mcps/jumpshell.json` contains:
 
 - `servers.jumpshell.type = stdio`
 - `command = pwsh`

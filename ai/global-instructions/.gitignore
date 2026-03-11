@@ -11,3 +11,7 @@
 !src/
 !src/**
 *.bak
+
+# Generated script copies (see src/Sync-Scripts.ps1 — commit after running)
+src/user-skills/common/scripts/resolve-editor.ps1
+src/user-skills/common/scripts/resolve-editor.sh

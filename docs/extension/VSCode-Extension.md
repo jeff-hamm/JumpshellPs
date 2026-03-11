@@ -84,7 +84,7 @@ Manifest file:
 The extension installs MCP config by:
 
 1. Resolving module source root (`src/pwsh`)
-2. Loading template `jumpshellps.json`
+2. Loading template `jumpshell.json`
 3. Replacing placeholders for:
 - `${moduleRoot}`
 - `${serverScript}`

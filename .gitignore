@@ -8,3 +8,7 @@ Install/.module-deps-cache
 # Per-host environment cache files
 .jumpshell/
 extensions/.env
+
+# Generated script copies (see src/Sync-Scripts.ps1)
+skills/setting/scripts/resolve-editor.ps1
+skills/setting/scripts/resolve-editor.sh

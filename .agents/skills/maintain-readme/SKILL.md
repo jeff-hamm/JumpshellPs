@@ -33,7 +33,7 @@ The README has five top-level sections in order:
 - **Extension packaging manifest:** `extensions/jumpshell/assets/skills-manifest.json`
 
 ### MCP Server
-- **Config template:** `mcps/jumpshellps.json`
+- **Config template:** `mcps/jumpshell.json`
 - **Runtime server:** `src/pwsh/mcp/server.ps1`
 - **MCP installer script:** `src/pwsh/mcp/Install-Mcp.ps1`
 - **Module MCP commands:** `src/pwsh/Mcp.ps1`
