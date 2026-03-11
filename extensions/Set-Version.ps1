@@ -43,4 +43,7 @@ else {
     }
 }
 
+$packageJson.version = $resolvedVersion
+$packageJson | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $packageJsonPath -Encoding UTF8
+
 Write-Output $resolvedVersion
