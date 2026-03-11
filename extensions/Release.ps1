@@ -1,5 +1,6 @@
 param(
     [string]$Version,
+    [switch]$ReplaceVersion,
 
     [switch]$NoBuild,
 
@@ -44,9 +45,9 @@ function Import-DotEnv {
         }
     }
 }
-
+$BumpVersion = !$ReplaceVersion -and $(& "$PSScriptRoot/Is-Stale.ps1")
 # ── Determine version to build ────────────────────────────────────────────────
-& "$PSScriptRoot/Set-Version.ps1" -Version $Version -Bump:$(& "$PSScriptRoot/Is-Stale.ps1")
+& "$PSScriptRoot/Set-Version.ps1" -Version $Version -Bump:$BumpVersion
 
 $builtVsixPath = $null
 if (-not $NoBuild) {
