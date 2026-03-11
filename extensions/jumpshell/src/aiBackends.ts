@@ -192,7 +192,7 @@ async function installCursorCli(): Promise<boolean> {
   terminal.show();
 
   if (isWindows) {
-    terminal.sendText("irm 'https://cursor.com/install?win32=true' | iex");
+    terminal.sendText("powershell -NoProfile -C \"irm 'https://cursor.com/install?win32=true' | iex\"");
   } else {
     terminal.sendText('curl https://cursor.com/install -fsS | bash');
   }
